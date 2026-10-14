@@ -1422,7 +1422,6 @@ module = [
     "sentry.utils.integrationdocs",
     "sentry.utils.json",
     "sentry.utils.jwt",
-    "sentry.utils.loremipsum",
     "sentry.utils.managers",
     "sentry.utils.marketo_client",
     "sentry.utils.meta",
