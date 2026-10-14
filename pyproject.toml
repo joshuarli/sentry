@@ -965,7 +965,6 @@ module = [
     "sentry.lang.dart.*",
     "sentry.lang.java",
     "sentry.lang.java.exceptions",
-    "sentry.lang.java.proguard",
     "sentry.lang.java.utils",
     "sentry.lang.java.view_hierarchies",
     "sentry.lang.javascript.*",
