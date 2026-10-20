@@ -85,10 +85,11 @@ class DiagnosticRecord:
     path: str
     code: str | None
     message: str
+    line: int | None = None
 
     @property
-    def key(self) -> tuple[str, str | None, str]:
-        return self.path, self.code, self.message
+    def key(self) -> tuple[str, str | None, int | None]:
+        return self.path, self.code, self.line
 
 
 @dataclass(frozen=True)
@@ -983,9 +984,11 @@ def compare_error_debt(
     )
 
 
-def _diagnostic_sort_key(key: tuple[str, str | None, str]) -> tuple[str, str, str]:
-    path, code, message = key
-    return path, code or "", message
+def _diagnostic_sort_key(
+    key: tuple[str, str | None, int | None],
+) -> tuple[str, str, int]:
+    path, code, line = key
+    return path, code or "", line if line is not None else -1
 
 
 def compare_obligations[T](
@@ -1013,7 +1016,7 @@ def _diagnostic_record(value: str, root: Path) -> DiagnosticRecord:
     if diagnostic is None or diagnostic.severity != "error" or diagnostic.filename is None:
         raise InvalidMeasurement(f"mypy API returned an unrecognized diagnostic: {value}")
     source_path = _assert_tree_path(diagnostic.filename, root)
-    return DiagnosticRecord(source_path, diagnostic.code, diagnostic.message)
+    return DiagnosticRecord(source_path, diagnostic.code, diagnostic.message, diagnostic.line)
 
 
 def _known_environment_warnings(output: str) -> tuple[str, ...]:
@@ -3341,6 +3344,7 @@ def _run_precision_canaries(output: Path) -> dict[str, object]:
             _assert_tree_path(str(item.filename), canary_root),
             item.code,
             item.message,
+            item.line,
         )
         for item in cli_run.errors
         if item.filename is not None

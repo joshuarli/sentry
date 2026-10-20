@@ -17,6 +17,7 @@ def test_notes_and_multiline_messages_do_not_count_as_errors() -> None:
     assert run.checked_sources == 2
     assert len(run.errors) == 1
     assert run.errors[0].filename == "src/sentry/a.py"
+    assert run.errors[0].line == 4
     assert run.errors[0].code == "arg-type"
 
 
