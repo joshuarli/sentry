@@ -511,7 +511,6 @@ module = [
     "sentry.api.endpoints.organization_pipeline",
     "sentry.api.endpoints.organization_profiling_functions",
     "sentry.api.endpoints.organization_profiling_profiles",
-    "sentry.api.endpoints.organization_project_keys",
     "sentry.api.endpoints.organization_projects_sent_first_event",
     "sentry.api.endpoints.organization_recent_searches",
     "sentry.api.endpoints.organization_relay_usage",
