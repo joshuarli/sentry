@@ -538,7 +538,6 @@ module = [
     "sentry.api.endpoints.project_create_sample",
     "sentry.api.endpoints.project_filter_details",
     "sentry.api.endpoints.project_filters",
-    "sentry.api.endpoints.project_member_index",
     "sentry.api.endpoints.project_overview",
     "sentry.api.endpoints.project_performance_general_settings",
     "sentry.api.endpoints.project_profiling_profile",
