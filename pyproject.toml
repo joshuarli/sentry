@@ -624,7 +624,6 @@ module = [
     "sentry.api.serializers.models.team",
     "sentry.api.serializers.models.userreport",
     "sentry.api.serializers.models.userrollback",
-    "sentry.api.serializers.release_details_types",
     "sentry.api.serializers.rest_framework",
     "sentry.api.serializers.rest_framework.base",
     "sentry.api.serializers.rest_framework.commit",
