@@ -570,7 +570,6 @@ module = [
     "sentry.api.endpoints.relay.*",
     "sentry.api.endpoints.seer_models",
     "sentry.api.endpoints.setup_wizard",
-    "sentry.api.endpoints.system_health",
     "sentry.api.endpoints.system_options",
     "sentry.api.endpoints.timeseries",
     "sentry.api.endpoints.user_organizationintegrations",
