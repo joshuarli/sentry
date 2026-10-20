@@ -473,7 +473,6 @@ module = [
     "sentry.api.endpoints.auth_config",
     "sentry.api.endpoints.auth_index",
     "sentry.api.endpoints.auth_login",
-    "sentry.api.endpoints.auth_validate",
     "sentry.api.endpoints.broadcast_details",
     "sentry.api.endpoints.broadcast_index",
     "sentry.api.endpoints.builtin_symbol_sources",
