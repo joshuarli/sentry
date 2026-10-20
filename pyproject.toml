@@ -461,7 +461,6 @@ module = [
     "sentry.api.endpoints.api_applications",
     "sentry.api.endpoints.api_authorizations",
     "sentry.api.endpoints.api_token_details",
-    "sentry.api.endpoints.api_tokens",
     "sentry.api.endpoints.artifact_bundles",
     "sentry.api.endpoints.artifact_lookup",
     "sentry.api.endpoints.assistant",
