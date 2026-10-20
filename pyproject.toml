@@ -642,7 +642,6 @@ module = [
     "sentry.apidocs",
     "sentry.apidocs.api_ownership_allowlist_dont_modify",
     "sentry.apidocs.build",
-    "sentry.apidocs.constants",
     "sentry.apidocs.extensions",
     "sentry.apidocs.hooks",
     "sentry.apidocs.parameters",
