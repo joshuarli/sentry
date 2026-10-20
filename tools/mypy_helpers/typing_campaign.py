@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import difflib
 import gzip
 import hashlib
 import io
@@ -972,16 +973,31 @@ def _source_record(path: str, root: Path) -> SourceFile:
 
 
 def compare_error_debt(
-    parent: Iterable[DiagnosticRecord], candidate: Iterable[DiagnosticRecord]
+    parent: Iterable[DiagnosticRecord],
+    candidate: Iterable[DiagnosticRecord],
+    *,
+    parent_line_map: Mapping[tuple[str, int], int] | None = None,
+    candidate_line_map: Mapping[tuple[str, int], int] | None = None,
 ) -> tuple[DiagnosticRecord, ...]:
-    parent_counts = Counter(item.key for item in parent)
-    candidate_counts = Counter(item.key for item in candidate)
+    parent_records = tuple(parent)
+    candidate_records = tuple(candidate)
+    parent_counts = Counter(_diagnostic_key(item, parent_line_map) for item in parent_records)
+    candidate_counts = Counter(_diagnostic_key(item, candidate_line_map) for item in candidate_records)
     additions = candidate_counts - parent_counts
-    by_key = {item.key: item for item in candidate}
+    by_key = {_diagnostic_key(item, candidate_line_map): item for item in candidate_records}
     return tuple(
         by_key[key]
         for key in sorted(additions.elements(), key=_diagnostic_sort_key)
     )
+
+
+def _diagnostic_key(
+    item: DiagnosticRecord, line_map: Mapping[tuple[str, int], int] | None
+) -> tuple[str, str | None, int | None]:
+    line = item.line
+    if line is not None and line_map is not None:
+        line = line_map.get((item.path, line), line)
+    return item.path, item.code, line
 
 
 def _diagnostic_sort_key(
@@ -2089,10 +2105,49 @@ def _profile_comparison(
     candidate_result = candidate.profiles[profile]
     parent_errors = _owned_diagnostics(parent_result, parent.inventory)
     candidate_errors = _owned_diagnostics(candidate_result, candidate.inventory)
+    candidate_line_map = _changed_source_line_map(parent, candidate)
     return (
-        compare_error_debt(parent_errors, candidate_errors),
-        compare_error_debt(candidate_errors, parent_errors),
+        compare_error_debt(
+            parent_errors, candidate_errors, candidate_line_map=candidate_line_map
+        ),
+        compare_error_debt(
+            candidate_errors,
+            parent_errors,
+            parent_line_map=candidate_line_map,
+        ),
     )
+
+
+def _changed_source_line_map(
+    parent: TreeMeasurement, candidate: TreeMeasurement
+) -> Mapping[tuple[str, int], int]:
+    changed_paths = {
+        path
+        for path in set(parent.source_digests) | set(candidate.source_digests)
+        if parent.source_digests.get(path) != candidate.source_digests.get(path)
+    }
+    line_map: dict[tuple[str, int], int] = {}
+    for path in changed_paths & (set(parent.source_digests) & set(candidate.source_digests)):
+        parent_source = parent.root / path
+        candidate_source = candidate.root / path
+        if not parent_source.is_file() or not candidate_source.is_file():
+            continue
+        parent_lines = parent_source.read_text(encoding="utf-8", errors="replace").splitlines()
+        candidate_lines = candidate_source.read_text(
+            encoding="utf-8", errors="replace"
+        ).splitlines()
+        matcher = difflib.SequenceMatcher(a=parent_lines, b=candidate_lines, autojunk=False)
+        for tag, parent_start, parent_end, candidate_start, candidate_end in matcher.get_opcodes():
+            if tag == "equal":
+                for offset in range(parent_end - parent_start):
+                    line_map[(path, candidate_start + offset + 1)] = parent_start + offset + 1
+            elif tag == "replace" and parent_start < parent_end:
+                parent_count = parent_end - parent_start
+                candidate_count = candidate_end - candidate_start
+                for offset in range(candidate_count):
+                    parent_offset = min(offset * parent_count // candidate_count, parent_count - 1)
+                    line_map[(path, candidate_start + offset + 1)] = parent_start + parent_offset + 1
+    return line_map
 
 
 _WEAK_WHEN_FALSE = frozenset(
