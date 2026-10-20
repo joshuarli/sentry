@@ -11,6 +11,7 @@ class InvalidMypyOutput(ValueError):
 @dataclass(frozen=True)
 class Diagnostic:
     filename: str | None
+    line: int | None
     severity: str
     code: str | None
     message: str
@@ -44,13 +45,16 @@ def parse_diagnostic_line(line: str) -> Diagnostic | None:
     if match is not None:
         return Diagnostic(
             match["filename"] or None,
+            int(match["line"]) if match["line"] is not None else None,
             match["severity"],
             match["code"],
             match["message"].rstrip(),
         )
     global_error = _GLOBAL_ERROR.fullmatch(line)
     if global_error is not None:
-        return Diagnostic(None, "error", global_error["code"], global_error["message"].rstrip())
+        return Diagnostic(
+            None, None, "error", global_error["code"], global_error["message"].rstrip()
+        )
     return None
 
 

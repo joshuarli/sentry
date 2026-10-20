@@ -1372,6 +1372,15 @@ def test_error_debt_sorting_handles_missing_and_present_codes() -> None:
     assert {item.message for item in additions} == {"missing code", "typed code"}
 
 
+def test_error_debt_uses_source_line_and_code_as_identity() -> None:
+    parent = (DiagnosticRecord("src/sentry/example.py", "misc", "contains Any", 42),)
+    changed_message = (DiagnosticRecord("src/sentry/example.py", "misc", "contains Project", 42),)
+    changed_code = (DiagnosticRecord("src/sentry/example.py", "arg-type", "contains Project", 42),)
+
+    assert compare_error_debt(parent, changed_message) == ()
+    assert compare_error_debt(parent, changed_code) == changed_code
+
+
 def test_any_obligation_key_sorts_absent_and_present_exceptions() -> None:
     obligations = (
         AnyObligation("src/a.py", "anchor", "return", "explicit", "approved"),
