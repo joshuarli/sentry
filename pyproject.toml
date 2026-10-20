@@ -481,7 +481,6 @@ module = [
     "sentry.api.endpoints.event_attachment_details",
     "sentry.api.endpoints.event_attachments",
     "sentry.api.endpoints.event_file_committers",
-    "sentry.api.endpoints.filechange",
     "sentry.api.endpoints.index",
     "sentry.api.endpoints.internal.*",
     "sentry.api.endpoints.oauth_userinfo",
