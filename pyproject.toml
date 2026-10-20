@@ -526,7 +526,6 @@ module = [
     "sentry.api.endpoints.organization_stats_summary",
     "sentry.api.endpoints.organization_stats_v2",
     "sentry.api.endpoints.organization_tagkey_values",
-    "sentry.api.endpoints.organization_tags",
     "sentry.api.endpoints.organization_trace",
     "sentry.api.endpoints.organization_trace_item_attributes",
     "sentry.api.endpoints.organization_trace_item_attributes_ranked",
