@@ -457,7 +457,6 @@ module = [
     "sentry.api.endpoints.accept_project_transfer",
     "sentry.api.endpoints.admin_project_configs",
     "sentry.api.endpoints.api_application_details",
-    "sentry.api.endpoints.api_application_rotate_secret",
     "sentry.api.endpoints.api_applications",
     "sentry.api.endpoints.api_authorizations",
     "sentry.api.endpoints.api_token_details",
