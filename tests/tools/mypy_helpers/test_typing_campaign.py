@@ -31,6 +31,7 @@ from tools.mypy_helpers.typing_campaign import (
     _assert_tree_path,
     _assert_trusted_policy,
     _candidate_allstrong_reuse_allowed,
+    _changed_source_line_map,
     _command_compare,
     _command_evaluate_series,
     _coverage_audits,
@@ -1379,6 +1380,41 @@ def test_error_debt_uses_source_line_and_code_as_identity() -> None:
 
     assert compare_error_debt(parent, changed_message) == ()
     assert compare_error_debt(parent, changed_code) == changed_code
+
+
+def test_error_debt_matches_diagnostics_across_changed_source_lines() -> None:
+    parent = (DiagnosticRecord("src/sentry/example.py", "misc", "contains Any", 42),)
+    candidate = (DiagnosticRecord("src/sentry/example.py", "misc", "contains Project", 45),)
+
+    assert compare_error_debt(
+        parent,
+        candidate,
+        candidate_line_map={("src/sentry/example.py", 45): 42},
+    ) == ()
+
+
+def test_changed_source_line_map_tracks_insertions_and_rewritten_signatures(
+    tmp_path: Path,
+) -> None:
+    path = "src/sentry/example.py"
+    parent_root = tmp_path / "parent"
+    candidate_root = tmp_path / "candidate"
+    (parent_root / path).parent.mkdir(parents=True)
+    (candidate_root / path).parent.mkdir(parents=True)
+    (parent_root / path).write_text("import x\n\ndef get(self, project):\n    return project\n")
+    (candidate_root / path).write_text(
+        "import x\nfrom typing import Any\n\ndef get(\n"
+        "    self,\n    project: Project\n) -> Any:\n    return project\n"
+    )
+    parent = replace(_tree(), root=parent_root, source_digests={path: "parent"})
+    candidate = replace(_tree(), root=candidate_root, source_digests={path: "candidate"})
+
+    line_map = _changed_source_line_map(parent, candidate)
+
+    assert (path, 2) not in line_map
+    assert line_map[(path, 3)] == 2
+    assert line_map[(path, 7)] == 3
+    assert line_map[(path, 8)] == 4
 
 
 def test_any_obligation_key_sorts_absent_and_present_exceptions() -> None:
