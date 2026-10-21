@@ -897,7 +897,6 @@ module = [
     "sentry.issues.endpoints.organization_issues_resolved_in_release",
     "sentry.issues.endpoints.organization_issues_with_supergroups",
     "sentry.issues.endpoints.project_codeowners_details",
-    "sentry.issues.endpoints.project_codeowners_index",
     "sentry.issues.endpoints.project_issues_resolved_in_release",
     "sentry.issues.endpoints.project_ownership",
     "sentry.issues.endpoints.project_performance_issue_settings",
