@@ -1,9 +1,21 @@
+from typing import assert_type
 from urllib.parse import urlencode
 
 from django.urls import reverse
 
+from sentry.insights.endpoints.starred_segments import StarSegmentSerializer
 from sentry.insights.models import InsightsStarredSegment
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+
+
+class StarSegmentSerializerTypesTest(APITestCase):
+    def test_validated_data_types(self) -> None:
+        serializer = StarSegmentSerializer(
+            data={"service_span": "my_service_span", "project_id": 1}
+        )
+        assert serializer.is_valid()
+        assert_type(serializer.validated_data["service_span"], str)
+        assert_type(serializer.validated_data["project_id"], int)
 
 
 class OrganizationStarredServiceSpansTest(APITestCase, SnubaTestCase):

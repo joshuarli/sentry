@@ -95,7 +95,7 @@ class UserSubscriptionsEndpoint(UserEndpoint):
         newsletter.backend.create_or_update_subscription(user, **kwargs)
         return self.respond(status=204)
 
-    def post(self, request: Request, user) -> Response:
+    def post(self, request: Request, user: User) -> Response:
         """
         Configure Newsletter Subscription
         `````````````````````````````````
