@@ -1856,6 +1856,83 @@ def test_precision_adapter_accounts_for_declaration_expression_sentinels(
     )
 
 
+def test_precision_adapter_ignores_typed_dict_field_names_but_keeps_error_any(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "snapshot"
+    package = root / "src" / "sentry"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("")
+    source_path = "src/sentry/example.py"
+    (root / source_path).write_text(
+        "from typing import Any, TypedDict\n\n"
+        "class Payload(TypedDict):\n"
+        "    name: str\n"
+        "    extension: Any\n\n"
+        "def preserve_any(value: Any) -> Any:\n"
+        "    return value\n\n"
+        "def invalid_attribute(value: object) -> Any:\n"
+        "    return value.missing\n"
+    )
+    (root / "pyproject.toml").write_text(
+        "[tool.mypy]\n"
+        "python_version = '3.13'\n"
+        "files = ['src/sentry']\n"
+        "mypy_path = ['src']\n"
+        "namespace_packages = true\n"
+        "explicit_package_bases = true\n"
+    )
+    output = tmp_path / "measurements"
+    output.mkdir()
+
+    measurement = run_profile(
+        Profile.PRECISION,
+        root,
+        "synthetic-tree",
+        output,
+        timeout_seconds=120,
+    )
+
+    module = ast.parse((root / source_path).read_text())
+    typed_dict = next(
+        statement
+        for statement in module.body
+        if isinstance(statement, ast.ClassDef) and statement.name == "Payload"
+    )
+    field_fingerprints = {
+        hashlib.sha256(ast.dump(statement.target, include_attributes=False).encode())
+        .hexdigest()[:20]
+        for statement in typed_dict.body
+        if isinstance(statement, ast.AnnAssign)
+        and isinstance(statement.target, ast.Name)
+    }
+    missing_attribute = next(
+        node
+        for node in ast.walk(module)
+        if isinstance(node, ast.Attribute) and node.attr == "missing"
+    )
+    missing_fingerprint = hashlib.sha256(
+        ast.dump(missing_attribute, include_attributes=False).encode()
+    ).hexdigest()[:20]
+    obligations = [
+        item for item in measurement.any_obligations if item.path == source_path
+    ]
+
+    assert measurement.adapter_status == 0
+    assert measurement.checker_status == 1
+    assert not any(
+        item.origin == "from_error"
+        and any(f"ast:{fingerprint}#" in item.anchor for fingerprint in field_fingerprints)
+        for item in obligations
+    )
+    assert any(
+        item.origin == "from_error"
+        and item.anchor.startswith(f"precision:ast:{missing_fingerprint}#")
+        for item in obligations
+    )
+    assert any(item.origin == "explicit" for item in obligations)
+
+
 def test_precision_adapter_anchors_unique_import_and_exception_binders(
     tmp_path: Path,
 ) -> None:
