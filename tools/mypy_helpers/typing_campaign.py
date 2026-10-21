@@ -89,8 +89,8 @@ class DiagnosticRecord:
     line: int | None = None
 
     @property
-    def key(self) -> tuple[str, str | None, int | None]:
-        return self.path, self.code, self.line
+    def key(self) -> tuple[str, str | None, int | None, str]:
+        return self.path, self.code, self.line, self.message
 
 
 @dataclass(frozen=True)
@@ -114,15 +114,23 @@ class AnyObligation:
     type_position: str
     origin: str
     exception: str | None = None
+    scope: str | None = None
 
     @property
-    def key(self) -> tuple[str, str, str, str, str]:
-        return self.path, self.anchor, self.type_position, self.origin, self.exception or ""
+    def key(self) -> tuple[str, str, str, str, str, str]:
+        return (
+            self.path,
+            self.anchor,
+            self.type_position,
+            self.origin,
+            self.exception or "",
+            self.scope or "",
+        )
 
     @property
-    def debt_key(self) -> tuple[str, str, str, str, str]:
+    def debt_key(self) -> tuple[str, str, str, str, str, str]:
         if ":any-leaf:" in self.anchor:
-            return self.path, self.anchor, "", "", ""
+            return self.path, self.anchor, "", "", "", self.scope or ""
         return self.key
 
 
@@ -883,7 +891,7 @@ def _any_obligations(result, origins: dict[int, str]) -> dict[str, object]:
     expression_occurrences: Counter[tuple[str, str]] = Counter()
     obligations = []
     for expression_key, leaves in sorted(expressions.items()):
-        path, anchor, _, _, _, _ = expression_key
+        path, anchor, line, _, _, _ = expression_key
         occurrence_key = (path, anchor)
         expression_occurrence = expression_occurrences[occurrence_key]
         expression_occurrences[occurrence_key] += 1
@@ -895,6 +903,7 @@ def _any_obligations(result, origins: dict[int, str]) -> dict[str, object]:
                     "anchor": f"{anchor_prefix}{anchor}#{expression_occurrence}:any-leaf:{leaf_index}",
                     "type_position": position,
                     "origin": origin,
+                    "line": line,
                 }
             )
     return {
@@ -1065,18 +1074,18 @@ def compare_error_debt(
 
 def _diagnostic_key(
     item: DiagnosticRecord, line_map: Mapping[tuple[str, int], int] | None
-) -> tuple[str, str | None, int | None]:
+) -> tuple[str, str | None, int | None, str]:
     line = item.line
     if line is not None and line_map is not None:
         line = line_map.get((item.path, line), line)
-    return item.path, item.code, line
+    return item.path, item.code, line, item.message
 
 
 def _diagnostic_sort_key(
-    key: tuple[str, str | None, int | None],
-) -> tuple[str, str, int]:
-    path, code, line = key
-    return path, code or "", line if line is not None else -1
+    key: tuple[str, str | None, int | None, str],
+) -> tuple[str, str, int, str]:
+    path, code, line, message = key
+    return path, code or "", line if line is not None else -1, message
 
 
 def compare_obligations[T](
@@ -1137,6 +1146,7 @@ def _precision_any_obligations(
     raw_obligations: Sequence[Mapping[str, object]], root: Path
 ) -> tuple[AnyObligation, ...]:
     normalized_paths: dict[str, str | None] = {}
+    scopes_by_path: dict[str, tuple[dict[int, str], dict[str, str]]] = {}
     obligations: list[AnyObligation] = []
     for item in raw_obligations:
         raw_path = str(item["path"])
@@ -1148,15 +1158,57 @@ def _precision_any_obligations(
         source_path = normalized_paths[raw_path]
         if source_path is None:
             continue
+        raw_line = item.get("line")
+        scope = None
+        if isinstance(raw_line, int) and not isinstance(raw_line, bool):
+            if source_path not in scopes_by_path:
+                source_file = root / source_path
+                source = source_file.read_text(encoding="utf-8")
+                scopes_by_path[source_path] = _function_scopes(
+                    ast.parse(source, filename=source_path),
+                    module_identity(source_path) or source_path,
+                )
+            scope = scopes_by_path[source_path][0].get(raw_line)
         obligations.append(
             AnyObligation(
                 source_path,
                 str(item["anchor"]),
                 str(item["type_position"]),
                 str(item["origin"]),
+                scope=scope,
             )
         )
     return tuple(obligations)
+
+
+def _function_scopes(
+    tree: ast.Module, module: str
+) -> tuple[dict[int, str], dict[str, str]]:
+    line_scopes: dict[int, str] = {}
+    body_digests: dict[str, str] = {}
+    occurrences: Counter[str] = Counter()
+
+    def visit(node: ast.AST, parent_scope: tuple[str, ...]) -> None:
+        if isinstance(node, ast.ClassDef):
+            for child in node.body:
+                visit(child, (*parent_scope, node.name))
+            return
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            qualified_name = ".".join((module, *parent_scope, node.name))
+            occurrences[qualified_name] += 1
+            symbol = f"{qualified_name}#{occurrences[qualified_name]}"
+            end_line = node.end_lineno or node.lineno
+            for line in range(node.lineno, end_line + 1):
+                line_scopes[line] = symbol
+            body_digests[symbol] = ast.dump(ast.Module(body=node.body, type_ignores=[]))
+            for child in node.body:
+                visit(child, (*parent_scope, node.name))
+            return
+        for descendant in ast.iter_child_nodes(node):
+            visit(descendant, parent_scope)
+
+    visit(tree, ())
+    return line_scopes, body_digests
 
 
 def _run_git(repo: Path, *args: str) -> str:
@@ -2425,6 +2477,50 @@ def _has_signature_any(
     )
 
 
+def _newly_typed_unchanged_scopes(
+    parent: TreeMeasurement,
+    candidate: TreeMeasurement,
+    candidate_any_positions: Mapping[tuple[str, str], set[str]],
+) -> tuple[frozenset[tuple[str, str]], Mapping[tuple[str, int], str]]:
+    candidate_paths = {
+        path
+        for path in set(parent.source_digests) & set(candidate.source_digests)
+        if parent.source_digests[path] != candidate.source_digests[path]
+    }
+    candidate_modules = {record.path: record.module for record in candidate.inventory}
+    parent_functions: dict[str, dict[str, str]] = {}
+    candidate_functions: dict[str, dict[str, str]] = {}
+    candidate_lines: dict[tuple[str, int], str] = {}
+    for path in candidate_paths:
+        module = candidate_modules.get(path)
+        if module is None:
+            continue
+        parent_source = parent.root / path
+        candidate_source = candidate.root / path
+        if not parent_source.is_file() or not candidate_source.is_file():
+            continue
+        parent_functions[path] = _function_scopes(
+            ast.parse(parent_source.read_text(encoding="utf-8"), filename=path), module
+        )[1]
+        line_scopes, candidate_functions[path] = _function_scopes(
+            ast.parse(candidate_source.read_text(encoding="utf-8"), filename=path), module
+        )
+        candidate_lines.update({(path, line): symbol for line, symbol in line_scopes.items()})
+
+    signatures = frozenset(
+        (path, symbol)
+        for (path, symbol, position), previous in parent.signatures.items()
+        if previous == "<missing>"
+        and position.startswith(("parameter:", "return"))
+        and candidate.signatures.get((path, symbol, position), "<missing>") != "<missing>"
+        and not _has_signature_any(candidate_any_positions, path, symbol, position)
+        and parent_functions.get(path, {}).get(symbol)
+        == candidate_functions.get(path, {}).get(symbol)
+        and symbol in parent_functions.get(path, {})
+    )
+    return signatures, candidate_lines
+
+
 def _signature_regressions(
     parent: TreeMeasurement,
     candidate: TreeMeasurement,
@@ -2451,10 +2547,11 @@ def _signature_regressions(
         current_any = _has_signature_any(candidate_any_positions, path, symbol, position)
         if previous_any and not current_any:
             continue
-        reasons.append(
-            f"unsupported or precision-erasing signature change: {path} {symbol} {position}: "
-            f"{previous} -> {current}"
-        )
+        if current in {"Any", "object"} and previous != current:
+            reasons.append(
+                f"precision-erasing signature change: {path} {symbol} {position}: "
+                f"{previous} -> {current}"
+            )
     return tuple(reasons)
 
 
@@ -2482,6 +2579,37 @@ def _signature_improvements(
     return tuple(improvements)
 
 
+def _signature_changes_for_review(
+    parent: TreeMeasurement,
+    candidate: TreeMeasurement,
+    parent_any_positions: Mapping[tuple[str, str], set[str]],
+    candidate_any_positions: Mapping[tuple[str, str], set[str]],
+) -> tuple[dict[str, str], ...]:
+    changes = []
+    for key in sorted(set(parent.signatures) & set(candidate.signatures)):
+        previous = parent.signatures[key]
+        current = candidate.signatures[key]
+        if previous == current or previous == "<missing>":
+            continue
+        path, symbol, position = key
+        if position.startswith("parameter:") and _safe_input_widening(previous, current):
+            continue
+        if _has_signature_any(parent_any_positions, path, symbol, position) and not _has_signature_any(
+            candidate_any_positions, path, symbol, position
+        ):
+            continue
+        changes.append(
+            {
+                "path": path,
+                "symbol": symbol,
+                "position": position,
+                "parent": previous,
+                "candidate": current,
+            }
+        )
+    return tuple(changes)
+
+
 def _unanchored_any_obligations(
     profile: ProfileMeasurement | None,
 ) -> tuple[AnyObligation, ...]:
@@ -2497,7 +2625,7 @@ def _unanchored_any_obligations(
 
 def _any_obligations_by_debt_key(
     obligations: Iterable[AnyObligation],
-) -> dict[tuple[str, str, str, str, str], AnyObligation]:
+) -> dict[tuple[str, str, str, str, str, str], AnyObligation]:
     return {item.debt_key: item for item in sorted(obligations, key=lambda item: item.key)}
 
 
@@ -2620,17 +2748,6 @@ def decide_candidate(
         precision_additions, precision_removals = _profile_comparison(
             parent, candidate, Profile.PRECISION
         )
-    for profile_name, additions in (
-        (Profile.CONFIGURED.value, configured_additions),
-        (Profile.ALL_STRONG.value, allstrong_additions),
-        (Profile.UNSUPPRESSED.value, unsuppressed_additions),
-        (Profile.PRECISION.value, precision_additions),
-    ):
-        reasons.extend(
-            f"new {profile_name} error {item.path} [{item.code}]: {item.message}"
-            for item in additions
-        )
-
     bypass_additions = candidate.bypasses - parent.bypasses
     omission_additions = candidate.signature_omissions - parent.signature_omissions
     parent_any_by_debt_key = _any_obligations_by_debt_key(parent.any_obligations)
@@ -2638,6 +2755,26 @@ def decide_candidate(
     any_additions = tuple(
         candidate_any_by_debt_key[key]
         for key in sorted(candidate_any_by_debt_key.keys() - parent_any_by_debt_key.keys())
+    )
+    changed_signature_keys = {
+        key
+        for key in set(parent.signatures) & set(candidate.signatures)
+        if parent.signatures[key] != candidate.signatures[key]
+    }
+    candidate_any_positions = _signature_any_positions(
+        candidate.any_obligations, changed_signature_keys
+    )
+    newly_typed_scopes, candidate_line_scopes = _newly_typed_unchanged_scopes(
+        parent, candidate, candidate_any_positions
+    )
+    exposed_dynamic_any = tuple(
+        item
+        for item in any_additions
+        if item.origin == "from_error" and (item.path, item.scope) in newly_typed_scopes
+    )
+    exposed_dynamic_any_keys = {item.debt_key for item in exposed_dynamic_any}
+    any_additions = tuple(
+        item for item in any_additions if item.debt_key not in exposed_dynamic_any_keys
     )
     removed_any = tuple(
         parent_any_by_debt_key[key]
@@ -2660,6 +2797,29 @@ def decide_candidate(
             != candidate_any_by_debt_key[key].origin
         )
     ]
+    exposed_dynamic_diagnostics: dict[str, list[dict[str, object]]] = {}
+    for profile_name, additions in (
+        (Profile.CONFIGURED.value, configured_additions),
+        (Profile.ALL_STRONG.value, allstrong_additions),
+        (Profile.UNSUPPRESSED.value, unsuppressed_additions),
+        (Profile.PRECISION.value, precision_additions),
+    ):
+        exposed_dynamic_diagnostics[profile_name] = []
+        retained_additions = []
+        for item in additions:
+            scope = candidate_line_scopes.get((item.path, item.line)) if item.line is not None else None
+            if (
+                item.code == "no-untyped-call"
+                and scope is not None
+                and (item.path, scope) in newly_typed_scopes
+            ):
+                exposed_dynamic_diagnostics[profile_name].append(asdict(item))
+            else:
+                retained_additions.append(item)
+        reasons.extend(
+            f"new {profile_name} error {item.path} [{item.code}]: {item.message}"
+            for item in retained_additions
+        )
     reasons.extend(
         f"new typing bypass {path}: {anchor}"
         for path, anchor in sorted(bypass_additions)
@@ -2673,21 +2833,16 @@ def decide_candidate(
         for item in sorted(any_additions, key=lambda obligation: obligation.key)
     )
 
-    changed_signature_keys = {
-        key
-        for key in set(parent.signatures) & set(candidate.signatures)
-        if parent.signatures[key] != candidate.signatures[key]
-    }
     parent_any_positions = _signature_any_positions(
         parent.any_obligations, changed_signature_keys
-    )
-    candidate_any_positions = _signature_any_positions(
-        candidate.any_obligations, changed_signature_keys
     )
     source_signature_changes = _signature_regressions(
         parent, candidate, parent_any_positions, candidate_any_positions
     )
     signature_improvements = _signature_improvements(
+        parent, candidate, parent_any_positions, candidate_any_positions
+    )
+    signature_changes_for_review = _signature_changes_for_review(
         parent, candidate, parent_any_positions, candidate_any_positions
     )
     if source_changes and not (
@@ -2748,26 +2903,6 @@ def decide_candidate(
         for path, _, _ in signature_improvements
         if (module := credit_path_module(path)) is not None
     )
-    if require_adoption_credit and len(credited_modules) > 1:
-        reasons.append(
-            "candidate combines typing debt removals across modules: "
-            + ", ".join(sorted(credited_modules))
-        )
-    if require_adoption_credit and len(changed_source_modules) > 1:
-        reasons.append(
-            "candidate changes source in multiple modules: "
-            + ", ".join(sorted(changed_source_modules))
-        )
-    if (
-        require_adoption_credit
-        and changed_source_modules
-        and credited_modules
-        and not credited_modules.issubset(changed_source_modules)
-    ):
-        reasons.append(
-            "candidate changes source and removes debt from different modules: "
-            + ", ".join(sorted(credited_modules | changed_source_modules))
-        )
     adoption_credit = bool(
         removed_weak
         or removed_suppressions
@@ -2815,6 +2950,10 @@ def decide_candidate(
         "new_bypasses": sorted(bypass_additions),
         "new_signature_omissions": sorted(omission_additions),
         "new_any_obligations": [asdict(item) for item in sorted(any_additions, key=lambda obligation: obligation.key)],
+        "exposed_dynamic_any_obligations": [
+            asdict(item) for item in sorted(exposed_dynamic_any, key=lambda obligation: obligation.key)
+        ],
+        "exposed_dynamic_diagnostics": exposed_dynamic_diagnostics,
         "any_obligation_metadata_changes": any_metadata_changes,
         "precision_residuals": {
             "parent": _precision_residual_summary(parent_precision, parent_residuals),
@@ -2824,6 +2963,7 @@ def decide_candidate(
         },
         "removed_signature_omissions": sorted(removed_omissions),
         "signature_improvements": list(signature_improvements),
+        "signature_changes_for_review": list(signature_changes_for_review),
         "credited_modules": sorted(credited_modules),
         "changed_source_modules": sorted(changed_source_modules),
         "signature_regressions": list(source_signature_changes),
@@ -3262,6 +3402,7 @@ def _weak_settings_by_module(source: str, modules: Iterable[str]) -> dict[str, f
     _validate_generated_mypy_section(source, WEAK_SECTION)
     try:
         section = marked_section(source, WEAK_SECTION)
+        overrides: list[dict[str, list[str]]]
         if section is None:
             overrides = []
         else:
@@ -3299,8 +3440,6 @@ def _policy_changes(
     repo: Path,
     parent_tree: str,
     candidate_tree: str,
-    *,
-    source_changes: Sequence[str] | None = None,
 ) -> tuple[str, ...]:
     changed = []
     for relative_path in _POLICY_PATHS:
@@ -3345,21 +3484,6 @@ def _policy_changes(
                 for option in options - parent_settings[module]
             }
             if added:
-                changed.append("pyproject.toml")
-                break
-            if source_changes is None:
-                source_changes = _changed_source_paths(repo, parent_tree, candidate_tree)
-            changed_modules = {
-                module
-                for path in source_changes
-                if (module := module_identity(path)) is not None
-            }
-            removed_modules = {
-                module
-                for module, options in parent_settings.items()
-                if options - candidate_settings[module]
-            }
-            if removed_modules - changed_modules:
                 changed.append("pyproject.toml")
                 break
         elif candidate_pairs - parent_pairs:
@@ -3815,7 +3939,7 @@ def _command_evaluate_series(
                 "parent_tree": parent_tree,
                 "transitions": transitions,
             }
-        changed_policy = _policy_changes(repo, previous_tree, candidate_tree, source_changes=())
+        changed_policy = _policy_changes(repo, previous_tree, candidate_tree)
         if changed_policy:
             reasons = [
                 "candidate changes evaluator policy: " + ", ".join(changed_policy)

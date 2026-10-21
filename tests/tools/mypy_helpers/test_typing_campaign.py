@@ -423,11 +423,10 @@ def _weak_policy_config(modules: tuple[str, ...]) -> str:
     )
 
 
-def _compare_weak_policy_expansion(
+def _compare_weak_policy_narrowing(
     parent_config: str,
     candidate_config: str,
     *,
-    changed_modules: tuple[str, ...],
     inventory_modules: tuple[str, ...],
 ) -> tuple[str, ...]:
     with (
@@ -444,40 +443,33 @@ def _compare_weak_policy_expansion(
             return_value=frozenset(inventory_modules),
         ),
     ):
-        return _policy_changes(
-            Path("."),
-            "parent",
-            "candidate",
-            source_changes=tuple(f"src/{module.replace('.', '/')}.py" for module in changed_modules),
-        )
+        return _policy_changes(Path("."), "parent", "candidate")
 
 
-def test_policy_accepts_coverage_preserving_weak_wildcard_expansion() -> None:
+def test_policy_accepts_coverage_preserving_weak_wildcard_narrowing() -> None:
     parent_config = _weak_policy_config(("sentry.geo.*",))
     candidate_config = _weak_policy_config(("sentry.geo.base", "sentry.geo.models"))
 
-    changes = _compare_weak_policy_expansion(
+    changes = _compare_weak_policy_narrowing(
         parent_config,
         candidate_config,
-        changed_modules=("sentry.geo",),
         inventory_modules=("sentry.geo", "sentry.geo.base", "sentry.geo.models"),
     )
 
     assert changes == ()
 
 
-def test_policy_rejects_weak_wildcard_expansion_missing_a_sibling() -> None:
+def test_policy_allows_weak_wildcard_narrowing_before_profile_acceptance() -> None:
     parent_config = _weak_policy_config(("sentry.geo.*",))
     candidate_config = _weak_policy_config(("sentry.geo.base",))
 
-    changes = _compare_weak_policy_expansion(
+    changes = _compare_weak_policy_narrowing(
         parent_config,
         candidate_config,
-        changed_modules=("sentry.geo",),
         inventory_modules=("sentry.geo", "sentry.geo.base", "sentry.geo.models"),
     )
 
-    assert changes == ("pyproject.toml",)
+    assert changes == ()
 
 
 def test_policy_rejects_weak_wildcard_expansion_to_unrelated_module() -> None:
@@ -486,10 +478,9 @@ def test_policy_rejects_weak_wildcard_expansion_to_unrelated_module() -> None:
         ("sentry.geo.base", "sentry.geo.models", "sentry.other")
     )
 
-    changes = _compare_weak_policy_expansion(
+    changes = _compare_weak_policy_narrowing(
         parent_config,
         candidate_config,
-        changed_modules=("sentry.geo",),
         inventory_modules=("sentry.geo", "sentry.geo.base", "sentry.geo.models", "sentry.other"),
     )
 
@@ -1589,24 +1580,72 @@ def test_error_debt_sorting_handles_missing_and_present_codes() -> None:
     assert {item.message for item in additions} == {"missing code", "typed code"}
 
 
-def test_error_debt_uses_source_line_and_code_as_identity() -> None:
+def test_error_debt_detects_same_location_diagnostic_substitution() -> None:
     parent = (DiagnosticRecord("src/sentry/example.py", "misc", "contains Any", 42),)
     changed_message = (DiagnosticRecord("src/sentry/example.py", "misc", "contains Project", 42),)
     changed_code = (DiagnosticRecord("src/sentry/example.py", "arg-type", "contains Project", 42),)
 
-    assert compare_error_debt(parent, changed_message) == ()
+    assert compare_error_debt(parent, changed_message) == changed_message
     assert compare_error_debt(parent, changed_code) == changed_code
 
 
 def test_error_debt_matches_diagnostics_across_changed_source_lines() -> None:
     parent = (DiagnosticRecord("src/sentry/example.py", "misc", "contains Any", 42),)
-    candidate = (DiagnosticRecord("src/sentry/example.py", "misc", "contains Project", 45),)
+    candidate = (DiagnosticRecord("src/sentry/example.py", "misc", "contains Any", 45),)
 
     assert compare_error_debt(
         parent,
         candidate,
         candidate_line_map={("src/sentry/example.py", 45): 42},
     ) == ()
+
+
+def test_error_debt_preserves_duplicate_diagnostic_counts() -> None:
+    error = DiagnosticRecord("src/sentry/example.py", "arg-type", "invalid value", 42)
+
+    assert compare_error_debt((error,), (error, error)) == (error,)
+
+
+def test_candidate_accepts_shared_contract_improvements_across_modules() -> None:
+    source_path = "src/sentry/contracts.py"
+    consumer_contract_path = "src/sentry/consumer_contract.py"
+    downstream_path = "src/sentry/consumer.py"
+    error = DiagnosticRecord(downstream_path, "no-untyped-call", "call is untyped", 12)
+    inventory = (
+        SourceFile(source_path, "sentry.contracts", SourceKind.OWNED_IMPLEMENTATION),
+        SourceFile(consumer_contract_path, "sentry.consumer_contract", SourceKind.OWNED_IMPLEMENTATION),
+        SourceFile(downstream_path, "sentry.consumer", SourceKind.OWNED_IMPLEMENTATION),
+    )
+    parent = _tree(
+        diagnostics=(error,),
+        source_digests={
+            source_path: "before",
+            consumer_contract_path: "before",
+            downstream_path: "same",
+        },
+        inventory=inventory,
+        profiles=tuple(Profile),
+    )
+    candidate = _tree(
+        source_digests={
+            source_path: "after",
+            consumer_contract_path: "after",
+            downstream_path: "same",
+        },
+        inventory=inventory,
+        profiles=tuple(Profile),
+    )
+
+    decision = decide_candidate(
+        parent, candidate, require_adoption_credit=True, precision_calibrated=True
+    )
+
+    assert decision.outcome == Outcome.COMPLETE, decision.reasons
+    assert decision.details["credited_modules"] == ["sentry.consumer"]
+    assert decision.details["changed_source_modules"] == [
+        "sentry.consumer_contract",
+        "sentry.contracts",
+    ]
 
 
 def test_changed_source_line_map_tracks_insertions_and_rewritten_signatures(
@@ -1708,6 +1747,36 @@ def test_precision_any_obligations_normalizes_each_raw_path_once(tmp_path: Path)
             "ast:three#0",
             "expression:1",
             "explicit",
+        ),
+    )
+
+
+def test_precision_any_obligation_records_enclosing_function(tmp_path: Path) -> None:
+    root = tmp_path / "snapshot"
+    source_path = root / "src" / "sentry" / "example.py"
+    source_path.parent.mkdir(parents=True)
+    source_path.write_text("def convert(value):\n    return str(value)\n")
+
+    obligations = _precision_any_obligations(
+        [
+            {
+                "path": str(source_path),
+                "anchor": "ast:convert#0:any-leaf:0",
+                "type_position": "expression:0",
+                "origin": "from_error",
+                "line": 2,
+            }
+        ],
+        root,
+    )
+
+    assert obligations == (
+        AnyObligation(
+            "src/sentry/example.py",
+            "ast:convert#0:any-leaf:0",
+            "expression:0",
+            "from_error",
+            scope="sentry.example.convert#1",
         ),
     )
 
@@ -2383,7 +2452,7 @@ def test_new_configured_diagnostic_rejects_candidate() -> None:
     assert any("new configured error" in reason for reason in decision.reasons)
 
 
-def test_evaluate_rejects_debt_removal_across_multiple_modules() -> None:
+def test_evaluate_accepts_debt_removal_across_multiple_modules() -> None:
     parent = _tree(
         weak=frozenset(
             {
@@ -2396,8 +2465,11 @@ def test_evaluate_rejects_debt_removal_across_multiple_modules() -> None:
 
     decision = decide_candidate(parent, candidate, require_adoption_credit=True)
 
-    assert decision.outcome == Outcome.REJECTED
-    assert any("across modules" in reason for reason in decision.reasons)
+    assert decision.outcome == Outcome.COMPLETE, decision.reasons
+    assert decision.details["weak_removals"] == [
+        ("sentry.example", "disallow_untyped_defs"),
+        ("sentry.other", "disallow_untyped_defs"),
+    ]
 
 
 def test_new_all_strong_diagnostic_rejects_candidate() -> None:
@@ -2407,6 +2479,21 @@ def test_new_all_strong_diagnostic_rejects_candidate() -> None:
     )
 
     decision = decide_candidate(parent, candidate, require_adoption_credit=False)
+
+    assert decision.outcome == Outcome.REJECTED
+    assert any("new all-strong error" in reason for reason in decision.reasons)
+
+
+def test_weak_policy_removal_that_exposes_errors_is_rejected() -> None:
+    all_strong_error = DiagnosticRecord(
+        "src/sentry/example.py", "arg-type", "new all-strong error"
+    )
+    parent = _tree(
+        weak=frozenset({("sentry.example", "disallow_untyped_defs")}),
+    )
+    candidate = _tree(diagnostics=(all_strong_error,))
+
+    decision = decide_candidate(parent, candidate, require_adoption_credit=True)
 
     assert decision.outcome == Outcome.REJECTED
     assert any("new all-strong error" in reason for reason in decision.reasons)
@@ -2875,6 +2962,125 @@ def test_truthful_read_only_input_widening_is_accepted_with_precision() -> None:
     assert decision.precision_complete
 
 
+def test_new_annotation_can_expose_existing_untyped_call(tmp_path: Path) -> None:
+    source_path = "src/sentry/example.py"
+    symbol = "sentry.example.consume#1"
+    parent_root = tmp_path / "parent"
+    candidate_root = tmp_path / "candidate"
+    parent_source = "def consume(value):\n    return value.update()\n"
+    candidate_source = "def consume(value: User) -> None:\n    return value.update()\n"
+    (parent_root / source_path).parent.mkdir(parents=True)
+    (candidate_root / source_path).parent.mkdir(parents=True)
+    (parent_root / source_path).write_text(parent_source)
+    (candidate_root / source_path).write_text(candidate_source)
+    inventory = (SourceFile(source_path, "sentry.example", SourceKind.OWNED_IMPLEMENTATION),)
+    diagnostic = DiagnosticRecord(source_path, "no-untyped-call", "Call to untyped function", 2)
+    exposed_any = AnyObligation(
+        source_path,
+        "precision:ast:call#0:any-leaf:0",
+        "expression:0",
+        "from_error",
+        scope=symbol,
+    )
+    signature = (source_path, symbol, "parameter:value")
+    parent = replace(
+        _tree(
+            signatures={signature: "<missing>"},
+            source_digests={source_path: "parent"},
+            inventory=inventory,
+            profiles=tuple(Profile),
+        ),
+        root=parent_root,
+    )
+    candidate = replace(
+        _tree(
+            diagnostics=(diagnostic,),
+            any_obligations=frozenset({exposed_any}),
+            precision_any_obligations=(exposed_any,),
+            signatures={signature: "User"},
+            source_digests={source_path: "candidate"},
+            inventory=inventory,
+            profiles=tuple(Profile),
+        ),
+        root=candidate_root,
+    )
+
+    decision = decide_candidate(
+        parent, candidate, require_adoption_credit=True, precision_calibrated=True
+    )
+
+    assert decision.outcome == Outcome.COMPLETE, decision.reasons
+    assert decision.details["new_any_obligations"] == []
+    assert decision.details["exposed_dynamic_any_obligations"] == [
+        {
+            "path": source_path,
+            "anchor": exposed_any.anchor,
+            "type_position": exposed_any.type_position,
+            "origin": exposed_any.origin,
+            "exception": None,
+            "scope": symbol,
+        }
+    ]
+    exposed_diagnostics = cast(
+        dict[str, list[dict[str, object]]], decision.details["exposed_dynamic_diagnostics"]
+    )
+    assert exposed_diagnostics["all-strong"] == [
+        {
+            "path": source_path,
+            "code": "no-untyped-call",
+            "message": "Call to untyped function",
+            "line": 2,
+        }
+    ]
+
+
+def test_new_annotation_does_not_hide_any_from_changed_function_body(tmp_path: Path) -> None:
+    source_path = "src/sentry/example.py"
+    symbol = "sentry.example.consume#1"
+    parent_root = tmp_path / "parent"
+    candidate_root = tmp_path / "candidate"
+    (parent_root / source_path).parent.mkdir(parents=True)
+    (candidate_root / source_path).parent.mkdir(parents=True)
+    (parent_root / source_path).write_text("def consume(value):\n    return value.update()\n")
+    (candidate_root / source_path).write_text("def consume(value: User):\n    return value.save()\n")
+    inventory = (SourceFile(source_path, "sentry.example", SourceKind.OWNED_IMPLEMENTATION),)
+    exposed_any = AnyObligation(
+        source_path,
+        "precision:ast:save#0:any-leaf:0",
+        "expression:0",
+        "from_error",
+        scope=symbol,
+    )
+    signature = (source_path, symbol, "parameter:value")
+    parent = replace(
+        _tree(
+            signatures={signature: "<missing>"},
+            source_digests={source_path: "parent"},
+            inventory=inventory,
+            profiles=tuple(Profile),
+        ),
+        root=parent_root,
+    )
+    candidate = replace(
+        _tree(
+            any_obligations=frozenset({exposed_any}),
+            precision_any_obligations=(exposed_any,),
+            signatures={signature: "User"},
+            source_digests={source_path: "candidate"},
+            inventory=inventory,
+            profiles=tuple(Profile),
+        ),
+        root=candidate_root,
+    )
+
+    decision = decide_candidate(
+        parent, candidate, require_adoption_credit=False, precision_calibrated=True
+    )
+
+    assert decision.outcome == Outcome.REJECTED
+    assert any("new Any obligation" in reason for reason in decision.reasons)
+
+
 def test_return_broadening_is_rejected_even_with_precision() -> None:
     key = ("src/sentry/example.py", "sentry.example.lookup#1", "return")
     parent = _tree(
@@ -2897,6 +3103,38 @@ def test_return_broadening_is_rejected_even_with_precision() -> None:
 
     assert decision.outcome == Outcome.REJECTED
     assert any("precision-erasing signature change" in reason for reason in decision.reasons)
+
+
+def test_signature_refinement_is_reported_for_contract_review() -> None:
+    key = ("src/sentry/example.py", "sentry.example.lookup#1", "return")
+    parent = _tree(
+        signatures={key: "Sequence[str]"},
+        source_digests={"src/sentry/example.py": "before"},
+        profiles=tuple(Profile),
+    )
+    candidate = _tree(
+        signatures={key: "list[str]"},
+        source_digests={"src/sentry/example.py": "after"},
+        profiles=tuple(Profile),
+    )
+
+    decision = decide_candidate(
+        parent,
+        candidate,
+        require_adoption_credit=False,
+        precision_calibrated=True,
+    )
+
+    assert decision.outcome == Outcome.COMPLETE, decision.reasons
+    assert decision.details["signature_changes_for_review"] == [
+        {
+            "path": key[0],
+            "symbol": key[1],
+            "position": key[2],
+            "parent": "Sequence[str]",
+            "candidate": "list[str]",
+        }
+    ]
 
 
 def test_signature_any_obligations_allow_a_precise_return_improvement() -> None:
