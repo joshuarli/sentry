@@ -33,7 +33,7 @@ class UserSubscriptionsEndpoint(UserEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, user) -> Response:
+    def get(self, request: Request, user: User) -> Response:
         """
         Retrieve Account Subscriptions
         `````````````````````````````````````
@@ -64,7 +64,7 @@ class UserSubscriptionsEndpoint(UserEndpoint):
             ]
         )
 
-    def put(self, request: Request, user) -> Response:
+    def put(self, request: Request, user: User) -> Response:
         """
         Update Account Subscriptions
         ````````````````````````````
