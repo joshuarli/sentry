@@ -472,7 +472,6 @@ module = [
     "sentry.api.endpoints.chunk",
     "sentry.api.endpoints.data_scrubbing_selector_suggestions",
     "sentry.api.endpoints.debug_files",
-    "sentry.api.endpoints.dsn_lookup",
     "sentry.api.endpoints.event_apple_crash_report",
     "sentry.api.endpoints.event_attachment_details",
     "sentry.api.endpoints.event_attachments",
