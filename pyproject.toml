@@ -510,7 +510,6 @@ module = [
     "sentry.api.endpoints.organization_pipeline",
     "sentry.api.endpoints.organization_profiling_functions",
     "sentry.api.endpoints.organization_profiling_profiles",
-    "sentry.api.endpoints.organization_recent_searches",
     "sentry.api.endpoints.organization_relay_usage",
     "sentry.api.endpoints.organization_releases",
     "sentry.api.endpoints.organization_sampling_effective_sample_rate",
