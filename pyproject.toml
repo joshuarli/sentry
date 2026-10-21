@@ -547,7 +547,6 @@ module = [
     "sentry.api.endpoints.setup_wizard",
     "sentry.api.endpoints.timeseries",
     "sentry.api.endpoints.user_organizationintegrations",
-    "sentry.api.endpoints.user_organizations",
     "sentry.api.endpoints.user_subscriptions",
     "sentry.api.exceptions",
     "sentry.api.fields.*",
