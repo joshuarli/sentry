@@ -1011,7 +1011,6 @@ module = [
     "sentry.models.projectcodeowners",
     "sentry.models.projectkey",
     "sentry.models.projectownership",
-    "sentry.models.projectplatform",
     "sentry.models.projectredirect",
     "sentry.models.projectsdk",
     "sentry.models.projectteam",
