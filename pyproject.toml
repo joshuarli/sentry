@@ -481,7 +481,6 @@ module = [
     "sentry.api.endpoints.oauth_userinfo",
     "sentry.api.endpoints.organization_access_request_details",
     "sentry.api.endpoints.organization_api_key_details",
-    "sentry.api.endpoints.organization_api_key_index",
     "sentry.api.endpoints.organization_artifactbundle_assemble",
     "sentry.api.endpoints.organization_attribute_mappings",
     "sentry.api.endpoints.organization_auth_provider_details",
