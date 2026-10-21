@@ -39,7 +39,9 @@ class PipelinePermission(OrganizationPermission):
 
 def _get_api_pipeline(
     request: Request, organization: RpcOrganization, pipeline_name: str
-) -> Response | IntegrationPipeline | IdentityPipeline:
+) -> (
+    Response[dict[str, str]] | IntegrationPipeline | IdentityPipeline
+):
     """Look up an active API-ready pipeline from the session, or return an error Response."""
     pipelines = {cls.pipeline_name: cls for cls in PIPELINE_CLASSES}
     if pipeline_name not in pipelines:
