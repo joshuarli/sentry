@@ -115,6 +115,7 @@ class AnyObligation:
     origin: str
     exception: str | None = None
     scope: str | None = None
+    line: int | None = None
 
     @property
     def key(self) -> tuple[str, str, str, str, str, str]:
@@ -1176,6 +1177,7 @@ def _precision_any_obligations(
                 str(item["type_position"]),
                 str(item["origin"]),
                 scope=scope,
+                line=raw_line if isinstance(raw_line, int) and not isinstance(raw_line, bool) else None,
             )
         )
     return tuple(obligations)
@@ -1778,6 +1780,7 @@ def _source_contracts(
         dict_names,
         wildcard_imports,
     ) = _typing_names(tree)
+    function_lines = _function_scopes(tree, module)[0]
     bypasses: set[tuple[str, str]] = set()
     signatures: dict[tuple[str, str, str], str] = {}
     omissions: set[tuple[str, str, str]] = set()
@@ -1806,10 +1809,14 @@ def _source_contracts(
         if directive is not None:
             line = source.splitlines()[token.start[0] - 1]
             statement = line.split("#", 1)[0].strip() or "<module>"
+            if statement.startswith(("def ", "async def ")):
+                statement = function_lines.get(token.start[0], statement)
             bypasses.add((source_path, f"comment:{statement}:{directive.group(0)}"))
         elif re.search(r"\bmypy\s*:\s*disable[-_]error[-_]code\b", lowered):
             line = source.splitlines()[token.start[0] - 1]
             statement = line.split("#", 1)[0].strip() or "<module>"
+            if statement.startswith(("def ", "async def ")):
+                statement = function_lines.get(token.start[0], statement)
             bypasses.add((source_path, f"comment:{statement}:mypy-disable-error-code"))
 
     def record_signature(
@@ -2481,8 +2488,13 @@ def _newly_typed_unchanged_scopes(
     parent: TreeMeasurement,
     candidate: TreeMeasurement,
     candidate_any_positions: Mapping[tuple[str, str], set[str]],
-) -> tuple[frozenset[tuple[str, str]], Mapping[tuple[str, int], str]]:
-    candidate_paths = {
+    scope_paths: Iterable[str],
+) -> tuple[
+    frozenset[tuple[str, str]],
+    frozenset[tuple[str, str]],
+    Mapping[tuple[str, int], str],
+]:
+    candidate_paths = set(scope_paths) | {
         path
         for path in set(parent.source_digests) & set(candidate.source_digests)
         if parent.source_digests[path] != candidate.source_digests[path]
@@ -2495,17 +2507,28 @@ def _newly_typed_unchanged_scopes(
         module = candidate_modules.get(path)
         if module is None:
             continue
-        parent_source = parent.root / path
         candidate_source = candidate.root / path
-        if not parent_source.is_file() or not candidate_source.is_file():
+        if not candidate_source.is_file():
             continue
-        parent_functions[path] = _function_scopes(
-            ast.parse(parent_source.read_text(encoding="utf-8"), filename=path), module
-        )[1]
         line_scopes, candidate_functions[path] = _function_scopes(
             ast.parse(candidate_source.read_text(encoding="utf-8"), filename=path), module
         )
         candidate_lines.update({(path, line): symbol for line, symbol in line_scopes.items()})
+        if parent.source_digests.get(path) == candidate.source_digests.get(path):
+            parent_functions[path] = candidate_functions[path]
+        else:
+            parent_source = parent.root / path
+            if parent_source.is_file():
+                parent_functions[path] = _function_scopes(
+                    ast.parse(parent_source.read_text(encoding="utf-8"), filename=path), module
+                )[1]
+
+    unchanged_scopes = frozenset(
+        (path, symbol)
+        for path, functions in candidate_functions.items()
+        for symbol, body in functions.items()
+        if parent_functions.get(path, {}).get(symbol) == body
+    )
 
     signatures = frozenset(
         (path, symbol)
@@ -2518,7 +2541,11 @@ def _newly_typed_unchanged_scopes(
         == candidate_functions.get(path, {}).get(symbol)
         and symbol in parent_functions.get(path, {})
     )
-    return signatures, candidate_lines
+    return signatures, unchanged_scopes, candidate_lines
+
+
+def _any_expression_anchor(anchor: str) -> str:
+    return re.sub(r":any-leaf:\d+$", "", anchor)
 
 
 def _signature_regressions(
@@ -2764,17 +2791,54 @@ def decide_candidate(
     candidate_any_positions = _signature_any_positions(
         candidate.any_obligations, changed_signature_keys
     )
-    newly_typed_scopes, candidate_line_scopes = _newly_typed_unchanged_scopes(
-        parent, candidate, candidate_any_positions
+    all_diagnostic_additions = (
+        *configured_additions,
+        *unsuppressed_additions,
+        *allstrong_additions,
+        *precision_additions,
     )
+    scope_paths = {
+        item.path for item in any_additions
+    } | {item.path for item in all_diagnostic_additions}
+    newly_typed_scopes, unchanged_scopes, candidate_line_scopes = _newly_typed_unchanged_scopes(
+        parent, candidate, candidate_any_positions, scope_paths
+    )
+    parent_any_expressions = {
+        (item.path, _any_expression_anchor(item.anchor), item.scope)
+        for item in parent.any_obligations
+        if item.scope is not None and ":any-leaf:" in item.anchor
+    }
+    preexisting_candidate_any_lines = {
+        (item.path, item.line, item.scope)
+        for item in candidate.any_obligations
+        if item.line is not None
+        and item.scope is not None
+        and (item.path, item.scope) in unchanged_scopes
+        and (item.path, _any_expression_anchor(item.anchor), item.scope)
+        in parent_any_expressions
+    }
     exposed_dynamic_any = tuple(
         item
         for item in any_additions
-        if item.origin == "from_error" and (item.path, item.scope) in newly_typed_scopes
+        if item.scope is not None
+        and (item.path, item.scope) in unchanged_scopes
+        and (
+            (item.path, _any_expression_anchor(item.anchor), item.scope)
+            in parent_any_expressions
+            or (
+                item.origin in {"from_error", "from_omitted_generics"}
+                and (item.path, item.scope) in newly_typed_scopes
+            )
+        )
     )
     exposed_dynamic_any_keys = {item.debt_key for item in exposed_dynamic_any}
+    test_precision_any_additions = tuple(
+        item for item in any_additions if item.path.startswith("tests/")
+    )
     any_additions = tuple(
-        item for item in any_additions if item.debt_key not in exposed_dynamic_any_keys
+        item
+        for item in any_additions
+        if item.debt_key not in exposed_dynamic_any_keys and not item.path.startswith("tests/")
     )
     removed_any = tuple(
         parent_any_by_debt_key[key]
@@ -2798,6 +2862,7 @@ def decide_candidate(
         )
     ]
     exposed_dynamic_diagnostics: dict[str, list[dict[str, object]]] = {}
+    test_precision_diagnostics: list[dict[str, object]] = []
     for profile_name, additions in (
         (Profile.CONFIGURED.value, configured_additions),
         (Profile.ALL_STRONG.value, allstrong_additions),
@@ -2808,10 +2873,26 @@ def decide_candidate(
         retained_additions = []
         for item in additions:
             scope = candidate_line_scopes.get((item.path, item.line)) if item.line is not None else None
-            if (
+            if profile_name == Profile.PRECISION.value and item.path.startswith("tests/"):
+                test_precision_diagnostics.append(asdict(item))
+            elif (
                 item.code == "no-untyped-call"
                 and scope is not None
                 and (item.path, scope) in newly_typed_scopes
+            ):
+                exposed_dynamic_diagnostics[profile_name].append(asdict(item))
+            elif (
+                profile_name == Profile.PRECISION.value
+                and item.code == "misc"
+                and item.message.startswith(
+                    ('Expression type contains "Any"', 'Expression has type "Any"')
+                )
+                and scope is not None
+                and (item.path, scope) in unchanged_scopes
+                and (
+                    (item.path, item.line, scope) in preexisting_candidate_any_lines
+                    or (item.path, scope) in newly_typed_scopes
+                )
             ):
                 exposed_dynamic_diagnostics[profile_name].append(asdict(item))
             else:
@@ -2922,6 +3003,8 @@ def decide_candidate(
         and not parent.precision_gaps
         and not candidate.precision_gaps
         and not blocked_residual_count
+        and not test_precision_any_additions
+        and not test_precision_diagnostics
         and not any(item.origin.startswith("unknown-") for item in parent.any_obligations)
         and not any(item.origin.startswith("unknown-") for item in candidate.any_obligations)
     )
@@ -2950,6 +3033,11 @@ def decide_candidate(
         "new_bypasses": sorted(bypass_additions),
         "new_signature_omissions": sorted(omission_additions),
         "new_any_obligations": [asdict(item) for item in sorted(any_additions, key=lambda obligation: obligation.key)],
+        "new_test_precision_any_obligations": [
+            asdict(item)
+            for item in sorted(test_precision_any_additions, key=lambda obligation: obligation.key)
+        ],
+        "test_precision_error_additions": test_precision_diagnostics,
         "exposed_dynamic_any_obligations": [
             asdict(item) for item in sorted(exposed_dynamic_any, key=lambda obligation: obligation.key)
         ],
