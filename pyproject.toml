@@ -1341,7 +1341,6 @@ module = [
     "sentry.utils.datastructures",
     "sentry.utils.dates",
     "sentry.utils.db",
-    "sentry.utils.display_name_filter",
     "sentry.utils.eap",
     "sentry.utils.exceptions",
     "sentry.utils.glob",
