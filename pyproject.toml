@@ -990,7 +990,6 @@ module = [
     "sentry.models.organizationcontributors",
     "sentry.models.organizationmember",
     "sentry.models.organizationmemberinvite",
-    "sentry.models.organizationmemberteam",
     "sentry.models.organizationonboardingtask",
     "sentry.models.orgauthtoken",
     "sentry.models.owner_base",
