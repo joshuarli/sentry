@@ -2807,6 +2807,78 @@ def test_new_any_obligation_rejects_candidate() -> None:
     assert any("new Any obligation" in reason for reason in decision.reasons)
 
 
+def test_any_obligation_occurrence_reindex_is_not_a_new_obligation() -> None:
+    path = "src/sentry/example.py"
+    scope = "sentry.example.convert#1"
+    parent_any = AnyObligation(
+        path,
+        "precision:ast:abc#2:any-leaf:0",
+        "expression:0",
+        "from_another_any",
+        scope=scope,
+        line=42,
+    )
+    candidate_any = AnyObligation(
+        path,
+        "precision:ast:abc#0:any-leaf:0",
+        "expression:0",
+        "from_another_any",
+        scope=scope,
+        line=42,
+    )
+
+    decision = decide_candidate(
+        _tree(any_obligations=frozenset({parent_any})),
+        _tree(any_obligations=frozenset({candidate_any})),
+        require_adoption_credit=False,
+        precision_calibrated=True,
+    )
+
+    assert decision.outcome == Outcome.COMPLETE, decision.reasons
+    assert decision.details["new_any_obligations"] == []
+
+
+def test_any_obligation_occurrence_reindex_preserves_multiplicity() -> None:
+    path = "src/sentry/example.py"
+    scope = "sentry.example.convert#1"
+    parent_any = AnyObligation(
+        path,
+        "precision:ast:abc#2:any-leaf:0",
+        "expression:0",
+        "from_another_any",
+        scope=scope,
+        line=42,
+    )
+    candidate_any = (
+        AnyObligation(
+            path,
+            "precision:ast:abc#0:any-leaf:0",
+            "expression:0",
+            "from_another_any",
+            scope=scope,
+            line=42,
+        ),
+        AnyObligation(
+            path,
+            "precision:ast:abc#1:any-leaf:0",
+            "expression:0",
+            "from_another_any",
+            scope=scope,
+            line=43,
+        ),
+    )
+
+    decision = decide_candidate(
+        _tree(any_obligations=frozenset({parent_any})),
+        _tree(any_obligations=frozenset(candidate_any)),
+        require_adoption_credit=False,
+        precision_calibrated=True,
+    )
+
+    assert decision.outcome == Outcome.REJECTED
+    assert len(decision.details["new_any_obligations"]) == 1
+
+
 def test_precision_any_origin_and_position_changes_keep_the_same_debt_identity() -> None:
     path = "src/sentry/example.py"
     anchor = "precision:ast:abc#0:any-leaf:0"
