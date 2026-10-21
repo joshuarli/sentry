@@ -2548,6 +2548,42 @@ def _any_expression_anchor(anchor: str) -> str:
     return re.sub(r"#\d+(?=:any-leaf:)|:any-leaf:\d+$", "", anchor)
 
 
+def _explicit_variadic_replacements(
+    parent: TreeMeasurement,
+    candidate: TreeMeasurement,
+) -> dict[tuple[str, str], tuple[str, ...]]:
+    replacements: dict[tuple[str, str], tuple[str, ...]] = {}
+    function_keys = {
+        key[:2]
+        for key in parent.signatures
+        if key[2] in {"parameter:args", "parameter:kwargs"}
+    }
+    for path, symbol in sorted(function_keys):
+        variadic_keys = {
+            position: (path, symbol, f"parameter:{position}")
+            for position in ("args", "kwargs")
+        }
+        if any(parent.signatures.get(key) != "<missing>" for key in variadic_keys.values()):
+            continue
+        if any(key in candidate.signatures for key in variadic_keys.values()):
+            continue
+        explicit_parameters = tuple(
+            sorted(
+                position.removeprefix("parameter:")
+                for (signature_path, signature_symbol, position), annotation
+                in candidate.signatures.items()
+                if signature_path == path
+                and signature_symbol == symbol
+                and position.startswith("parameter:")
+                and position not in {"parameter:args", "parameter:kwargs"}
+                and annotation != "<missing>"
+            )
+        )
+        if explicit_parameters:
+            replacements[(path, symbol)] = explicit_parameters
+    return replacements
+
+
 def _signature_regressions(
     parent: TreeMeasurement,
     candidate: TreeMeasurement,
@@ -2555,7 +2591,16 @@ def _signature_regressions(
     candidate_any_positions: Mapping[tuple[str, str], set[str]],
 ) -> tuple[str, ...]:
     reasons: list[str] = []
+    variadic_replacements = _explicit_variadic_replacements(parent, candidate)
     removed = set(parent.signatures) - set(candidate.signatures)
+    removed = {
+        key
+        for key in removed
+        if not (
+            key[:2] in variadic_replacements
+            and key[2] in {"parameter:args", "parameter:kwargs"}
+        )
+    }
     reasons.extend(
         f"signature disappeared or was renamed: {path} {symbol} {position}"
         for path, symbol, position in sorted(removed)
@@ -2613,6 +2658,7 @@ def _signature_changes_for_review(
     candidate_any_positions: Mapping[tuple[str, str], set[str]],
 ) -> tuple[dict[str, str], ...]:
     changes = []
+    variadic_replacements = _explicit_variadic_replacements(parent, candidate)
     for key in sorted(set(parent.signatures) & set(candidate.signatures)):
         previous = parent.signatures[key]
         current = candidate.signatures[key]
@@ -2634,7 +2680,21 @@ def _signature_changes_for_review(
                 "candidate": current,
             }
         )
-    return tuple(changes)
+    for (path, symbol), parameters in variadic_replacements.items():
+        replacement = f"explicit parameters: {', '.join(parameters)}"
+        changes.extend(
+            {
+                "path": path,
+                "symbol": symbol,
+                "position": f"parameter:{position}",
+                "parent": "<missing>",
+                "candidate": replacement,
+            }
+            for position in ("args", "kwargs")
+        )
+    return tuple(
+        sorted(changes, key=lambda item: (item["path"], item["symbol"], item["position"]))
+    )
 
 
 def _unanchored_any_obligations(
