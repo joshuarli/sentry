@@ -524,7 +524,6 @@ module = [
     "sentry.api.endpoints.organization_trace_meta",
     "sentry.api.endpoints.organization_traces",
     "sentry.api.endpoints.organization_unsubscribe",
-    "sentry.api.endpoints.project_artifact_bundle_file_details",
     "sentry.api.endpoints.project_artifact_bundle_files",
     "sentry.api.endpoints.project_create_sample",
     "sentry.api.endpoints.project_overview",
