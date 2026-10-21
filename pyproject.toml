@@ -752,7 +752,6 @@ module = [
     "sentry.integrations.bitbucket.*",
     "sentry.integrations.bitbucket_server.*",
     "sentry.integrations.claude_code.*",
-    "sentry.integrations.client",
     "sentry.integrations.cursor.*",
     "sentry.integrations.data_forwarding.*",
     "sentry.integrations.discord",
