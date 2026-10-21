@@ -1341,7 +1341,6 @@ module = [
     "sentry.utils.db",
     "sentry.utils.eap",
     "sentry.utils.exceptions",
-    "sentry.utils.glob",
     "sentry.utils.groupreference",
     "sentry.utils.hashlib",
     "sentry.utils.http",
