@@ -56,7 +56,7 @@ class BroadcastDetailsEndpoint(Endpoint):
         kwargs["broadcast"] = broadcast
         return args, kwargs
 
-    def _get_validator(self, request: Request):
+    def _get_validator(self, request: Request) -> type[BroadcastValidator]:
         if request.access.has_permission("broadcasts.admin"):
             return AdminBroadcastValidator
         return BroadcastValidator
