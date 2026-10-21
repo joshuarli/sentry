@@ -46,6 +46,7 @@ from tools.mypy_helpers.typing_campaign import (
     _policy_changes,
     _precision_any_obligations,
     _reusable_source_contract_paths,
+    _reviewed_unchanged_source_any,
     _run_precision_canaries,
     _source_contracts,
     _tree_contracts,
@@ -3325,6 +3326,119 @@ def test_new_annotation_does_not_hide_any_from_changed_function_body(tmp_path: P
 
     decision = decide_candidate(
         parent, candidate, require_adoption_credit=False, precision_calibrated=True
+    )
+
+    assert decision.outcome == Outcome.REJECTED
+    assert any("new Any obligation" in reason for reason in decision.reasons)
+
+
+def test_targeted_parent_and_candidate_profiles_confirm_existing_any_in_unchanged_source() -> None:
+    source_path = "src/sentry/web/forms/accounts.py"
+    source = SourceFile(source_path, "sentry.web.forms.accounts", SourceKind.OWNED_IMPLEMENTATION)
+    existing_any = AnyObligation(
+        source_path,
+        "precision:ast:hidden-input#0:any-leaf:0",
+        "expression:0.0.0.1",
+        "special_form",
+        line=179,
+    )
+    parent = _tree(
+        inventory=(source,),
+        source_digests={source_path: "unchanged"},
+        profiles=tuple(Profile),
+    )
+    candidate = _tree(
+        inventory=(source,),
+        any_obligations=frozenset({existing_any}),
+        precision_any_obligations=(existing_any,),
+        source_digests={source_path: "unchanged"},
+        profiles=tuple(Profile),
+    )
+    parent_target = _profile(Profile.PRECISION, any_obligations=(existing_any,))
+    candidate_target = _profile(Profile.PRECISION, any_obligations=(existing_any,))
+
+    reviewed = _reviewed_unchanged_source_any(
+        parent,
+        candidate,
+        {source_path: (parent_target, candidate_target)},
+    )
+    decision = decide_candidate(
+        parent,
+        candidate,
+        require_adoption_credit=False,
+        precision_calibrated=True,
+        unchanged_source_any=reviewed,
+    )
+
+    assert reviewed == (existing_any,)
+    assert decision.outcome == Outcome.COMPLETE, decision.reasons
+    assert decision.details["new_any_obligations"] == []
+    assert decision.details["unchanged_source_any_obligations"] == [
+        {
+            "path": source_path,
+            "anchor": existing_any.anchor,
+            "type_position": existing_any.type_position,
+            "origin": existing_any.origin,
+            "exception": None,
+            "scope": None,
+            "line": 179,
+        }
+    ]
+
+
+def test_targeted_any_review_requires_exact_match_and_unchanged_source() -> None:
+    source_path = "src/sentry/web/forms/accounts.py"
+    source = SourceFile(source_path, "sentry.web.forms.accounts", SourceKind.OWNED_IMPLEMENTATION)
+    existing_any = AnyObligation(
+        source_path,
+        "precision:ast:hidden-input#0:any-leaf:0",
+        "expression:0.0.0.1",
+        "special_form",
+    )
+    different_any = AnyObligation(
+        source_path,
+        existing_any.anchor,
+        existing_any.type_position,
+        "from_error",
+    )
+    parent_target = _profile(Profile.PRECISION, any_obligations=(existing_any,))
+    candidate_target = _profile(Profile.PRECISION, any_obligations=(existing_any,))
+    parent = _tree(
+        inventory=(source,),
+        source_digests={source_path: "parent"},
+        profiles=tuple(Profile),
+    )
+    changed_candidate = _tree(
+        inventory=(source,),
+        any_obligations=frozenset({different_any}),
+        precision_any_obligations=(different_any,),
+        source_digests={source_path: "candidate"},
+        profiles=tuple(Profile),
+    )
+    unchanged_candidate = _tree(
+        inventory=(source,),
+        any_obligations=frozenset({different_any}),
+        precision_any_obligations=(different_any,),
+        source_digests={source_path: "parent"},
+        profiles=tuple(Profile),
+    )
+
+    assert _reviewed_unchanged_source_any(
+        parent,
+        changed_candidate,
+        {source_path: (parent_target, candidate_target)},
+    ) == ()
+    assert _reviewed_unchanged_source_any(
+        parent,
+        unchanged_candidate,
+        {source_path: (parent_target, candidate_target)},
+    ) == ()
+    decision = decide_candidate(
+        parent,
+        unchanged_candidate,
+        require_adoption_credit=False,
+        precision_calibrated=True,
+        unchanged_source_any=(),
     )
 
     assert decision.outcome == Outcome.REJECTED
