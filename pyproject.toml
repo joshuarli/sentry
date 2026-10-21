@@ -1222,7 +1222,6 @@ module = [
     "sentry.tasks.auto_source_code_config",
     "sentry.tasks.base",
     "sentry.tasks.clear_expired_resolutions",
-    "sentry.tasks.clear_expired_snoozes",
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.console_platform_cleanup",
     "sentry.tasks.delete_pending_groups",
