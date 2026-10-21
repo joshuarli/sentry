@@ -1135,7 +1135,6 @@ module = [
     "sentry.scm.*",
     "sentry.sdk_updates",
     "sentry.search",
-    "sentry.search.base",
     "sentry.search.events",
     "sentry.search.events.builder.*",
     "sentry.search.events.constants",
