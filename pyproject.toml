@@ -555,7 +555,6 @@ module = [
     "sentry.api.handlers",
     "sentry.api.invite_helper",
     "sentry.api.paginator",
-    "sentry.api.release_search",
     "sentry.api.serializers",
     "sentry.api.serializers.base",
     "sentry.api.serializers.models",
