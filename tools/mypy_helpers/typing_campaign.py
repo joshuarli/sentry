@@ -3165,7 +3165,72 @@ def _generated_mypy_pairs(source: str, section_name: str) -> frozenset[tuple[str
     )
 
 
-def _policy_changes(repo: Path, parent_tree: str, candidate_tree: str) -> tuple[str, ...]:
+def _tree_modules(repo: Path, tree: str) -> frozenset[str]:
+    result = subprocess.run(
+        ("git", "ls-tree", "-r", "-z", "--name-only", tree),
+        cwd=repo,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode:
+        raise InvalidMeasurement(
+            f"git ls-tree failed with {result.returncode}: {result.stderr.decode(errors='replace')}"
+        )
+    try:
+        return frozenset(
+            module
+            for path in (raw.decode("utf-8") for raw in result.stdout.split(b"\0") if raw)
+            if path.endswith((".py", ".pyi"))
+            if (module := module_identity(path)) is not None
+        )
+    except UnicodeDecodeError as exc:
+        raise InvalidMeasurement("Git tree contains a non-UTF-8 source path") from exc
+
+
+def _weak_settings_by_module(source: str, modules: Iterable[str]) -> dict[str, frozenset[str]]:
+    _validate_generated_mypy_section(source, WEAK_SECTION)
+    try:
+        section = marked_section(source, WEAK_SECTION)
+        if section is None:
+            overrides = []
+        else:
+            parsed = tomllib.loads(source[section.content_start : section.content_end])
+            overrides = parsed["tool"]["mypy"]["overrides"] if parsed else []
+    except (InvalidMarkedSection, tomllib.TOMLDecodeError) as exc:
+        raise InvalidMeasurement(f"generated mypy section {WEAK_SECTION!r} is invalid: {exc}") from exc
+
+    settings: dict[str, set[str]] = {module: set() for module in modules}
+    for override in overrides:
+        options = set(WEAK_OPTIONS)
+        for module in settings:
+            if any(_module_pattern_matches(pattern, module) for pattern in override["module"]):
+                settings[module].update(options)
+    return {module: frozenset(options) for module, options in settings.items()}
+
+
+def _module_pattern_matches(pattern: str, module: str) -> bool:
+    pattern_parts = pattern.split(".")
+    module_parts = module.split(".")
+    recursive = pattern_parts[-1] in {"*", "**"}
+    if recursive:
+        pattern_parts.pop()
+        if len(module_parts) < len(pattern_parts):
+            return False
+    elif len(pattern_parts) != len(module_parts):
+        return False
+    return all(
+        expected == "*" or expected == actual
+        for expected, actual in zip(pattern_parts, module_parts)
+    )
+
+
+def _policy_changes(
+    repo: Path,
+    parent_tree: str,
+    candidate_tree: str,
+    *,
+    source_changes: Sequence[str] | None = None,
+) -> tuple[str, ...]:
     changed = []
     for relative_path in _POLICY_PATHS:
         if _tree_file(repo, parent_tree, relative_path) != _tree_file(
@@ -3184,7 +3249,49 @@ def _policy_changes(repo: Path, parent_tree: str, candidate_tree: str) -> tuple[
     for section_name in (ERROR_SECTION, WEAK_SECTION):
         parent_pairs = _generated_mypy_pairs(parent_config.decode("utf-8"), section_name)
         candidate_pairs = _generated_mypy_pairs(candidate_config.decode("utf-8"), section_name)
-        if candidate_pairs - parent_pairs:
+        if section_name == WEAK_SECTION and candidate_pairs - parent_pairs:
+            additions = candidate_pairs - parent_pairs
+            removed_wildcards = {
+                pattern
+                for pattern, _option in parent_pairs - candidate_pairs
+                if "*" in pattern
+            }
+            if not removed_wildcards or any("*" in pattern for pattern, _option in additions):
+                changed.append("pyproject.toml")
+                break
+            modules = _tree_modules(repo, parent_tree) | _tree_modules(repo, candidate_tree)
+            if any(
+                not any(_module_pattern_matches(pattern, module) for module in modules)
+                for pattern, _option in additions
+            ):
+                changed.append("pyproject.toml")
+                break
+            parent_settings = _weak_settings_by_module(parent_config.decode("utf-8"), modules)
+            candidate_settings = _weak_settings_by_module(candidate_config.decode("utf-8"), modules)
+            added = {
+                (module, option)
+                for module, options in candidate_settings.items()
+                for option in options - parent_settings[module]
+            }
+            if added:
+                changed.append("pyproject.toml")
+                break
+            if source_changes is None:
+                source_changes = _changed_source_paths(repo, parent_tree, candidate_tree)
+            changed_modules = {
+                module
+                for path in source_changes
+                if (module := module_identity(path)) is not None
+            }
+            removed_modules = {
+                module
+                for module, options in parent_settings.items()
+                if options - candidate_settings[module]
+            }
+            if removed_modules - changed_modules:
+                changed.append("pyproject.toml")
+                break
+        elif candidate_pairs - parent_pairs:
             changed.append("pyproject.toml")
             break
     if parent_policy != candidate_policy:
@@ -3637,7 +3744,7 @@ def _command_evaluate_series(
                 "parent_tree": parent_tree,
                 "transitions": transitions,
             }
-        changed_policy = _policy_changes(repo, previous_tree, candidate_tree)
+        changed_policy = _policy_changes(repo, previous_tree, candidate_tree, source_changes=())
         if changed_policy:
             reasons = [
                 "candidate changes evaluator policy: " + ", ".join(changed_policy)
