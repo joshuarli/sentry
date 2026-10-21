@@ -2776,6 +2776,92 @@ def _any_obligation_delta(
     return tuple(additions), tuple(removals)
 
 
+def _reviewed_unchanged_source_any(
+    parent: TreeMeasurement,
+    candidate: TreeMeasurement,
+    targeted_profiles: Mapping[str, tuple[ProfileMeasurement, ProfileMeasurement]],
+) -> tuple[AnyObligation, ...]:
+    additions, _ = _any_obligation_delta(parent.any_obligations, candidate.any_obligations)
+    unchanged_paths = {
+        path
+        for path in set(parent.source_digests) & set(candidate.source_digests)
+        if parent.source_digests[path] == candidate.source_digests[path]
+    }
+    reviewed: list[AnyObligation] = []
+    for path in sorted(unchanged_paths & targeted_profiles.keys()):
+        parent_profile, candidate_profile = targeted_profiles[path]
+        if (
+            parent_profile.profile != Profile.PRECISION
+            or candidate_profile.profile != Profile.PRECISION
+            or parent_profile.source_count != len(targeted_profiles)
+            or candidate_profile.source_count != len(targeted_profiles)
+        ):
+            raise InvalidMeasurement(f"source-scoped Any review did not cover its precision targets: {path}")
+        parent_keys = {
+            item.key for item in parent_profile.any_obligations if item.path == path
+        }
+        candidate_keys = {
+            item.key for item in candidate_profile.any_obligations if item.path == path
+        }
+        reviewed.extend(
+            item
+            for item in additions
+            if item.path == path and item.key in parent_keys and item.key in candidate_keys
+        )
+    return tuple(sorted(reviewed, key=lambda item: item.key))
+
+
+def _measure_unchanged_source_any(
+    parent: TreeMeasurement,
+    candidate: TreeMeasurement,
+    output: Path,
+) -> tuple[AnyObligation, ...]:
+    additions, _ = _any_obligation_delta(parent.any_obligations, candidate.any_obligations)
+    unchanged_paths = {
+        path
+        for path in set(parent.source_digests) & set(candidate.source_digests)
+        if parent.source_digests[path] == candidate.source_digests[path]
+    }
+    paths = tuple(
+        sorted(
+            {
+                item.path
+                for item in additions
+                if item.path in unchanged_paths and not item.path.startswith("tests/")
+            }
+        )
+    )
+    if not paths:
+        return ()
+
+    profiles: dict[str, ProfileMeasurement] = {}
+    review_root = output / "unchanged-source-any" / hashlib.sha256(
+        "\n".join(paths).encode()
+    ).hexdigest()
+    for name, measurement in (("parent", parent), ("candidate", candidate)):
+        profile_output = review_root / name
+        profile_output.mkdir(parents=True)
+        profile = run_profile(
+            Profile.PRECISION,
+            measurement.root,
+            measurement.tree,
+            profile_output,
+            source_paths=paths,
+        )
+        if profile.adapter_status != 0:
+            raise InvalidMeasurement(f"source-scoped Any review failed for {name}")
+        if profile.source_count != len(paths):
+            raise InvalidMeasurement(
+                f"source-scoped Any review covered {profile.source_count} of {len(paths)} requested paths"
+            )
+        profiles[name] = profile
+    return _reviewed_unchanged_source_any(
+        parent,
+        candidate,
+        {path: (profiles["parent"], profiles["candidate"]) for path in paths},
+    )
+
+
 def _precision_residual_summary(
     profile: ProfileMeasurement | None,
     obligations: Sequence[AnyObligation],
@@ -2800,6 +2886,7 @@ def decide_candidate(
     *,
     require_adoption_credit: bool,
     precision_calibrated: bool = False,
+    unchanged_source_any: Sequence[AnyObligation] = (),
 ) -> Decision:
     core_profiles = (Profile.CONFIGURED, Profile.UNSUPPRESSED, Profile.ALL_STRONG)
     missing_profiles = [
@@ -2950,14 +3037,23 @@ def decide_candidate(
             )
         )
     )
-    exposed_dynamic_any_keys = {item.debt_key for item in exposed_dynamic_any}
+    exposed_dynamic_any_debt_keys = {item.debt_key for item in exposed_dynamic_any}
+    unchanged_source_any_keys = {item.key for item in unchanged_source_any}
+    exposed_dynamic_any = tuple(
+        sorted(
+            {item.key: item for item in (*exposed_dynamic_any, *unchanged_source_any)}.values(),
+            key=lambda item: item.key,
+        )
+    )
     test_precision_any_additions = tuple(
         item for item in any_additions if item.path.startswith("tests/")
     )
     any_additions = tuple(
         item
         for item in any_additions
-        if item.debt_key not in exposed_dynamic_any_keys and not item.path.startswith("tests/")
+        if item.debt_key not in exposed_dynamic_any_debt_keys
+        and item.key not in unchanged_source_any_keys
+        and not item.path.startswith("tests/")
     )
     any_metadata_changes = [
         {
@@ -3155,6 +3251,9 @@ def decide_candidate(
         "test_precision_error_additions": test_precision_diagnostics,
         "exposed_dynamic_any_obligations": [
             asdict(item) for item in sorted(exposed_dynamic_any, key=lambda obligation: obligation.key)
+        ],
+        "unchanged_source_any_obligations": [
+            asdict(item) for item in sorted(unchanged_source_any, key=lambda obligation: obligation.key)
         ],
         "exposed_dynamic_diagnostics": exposed_dynamic_diagnostics,
         "any_obligation_metadata_changes": any_metadata_changes,
@@ -4071,11 +4170,17 @@ def _command_compare(
             reuse_from=parent_measurement if reuse_allstrong else None,
             reuse_contracts_from=parent_measurement,
         )
+    unchanged_source_any = _measure_unchanged_source_any(
+        parent_measurement,
+        candidate_measurement,
+        output,
+    )
     decision = decide_candidate(
         parent_measurement,
         candidate_measurement,
         require_adoption_credit=command == "evaluate",
         precision_calibrated=precision_calibration is not None,
+        unchanged_source_any=unchanged_source_any,
     )
     report: dict[str, object] = {
         "command": command,
