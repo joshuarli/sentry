@@ -2876,7 +2876,8 @@ def test_any_obligation_occurrence_reindex_preserves_multiplicity() -> None:
     )
 
     assert decision.outcome == Outcome.REJECTED
-    assert len(decision.details["new_any_obligations"]) == 1
+    new_any = cast(list[dict[str, object]], decision.details["new_any_obligations"])
+    assert len(new_any) == 1
 
 
 def test_precision_any_origin_and_position_changes_keep_the_same_debt_identity() -> None:
