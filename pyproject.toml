@@ -888,7 +888,6 @@ module = [
     "sentry.issues.endpoints.group_tagkey_values",
     "sentry.issues.endpoints.group_tags",
     "sentry.issues.endpoints.group_user_reports",
-    "sentry.issues.endpoints.organization_codeowners_associations",
     "sentry.issues.endpoints.organization_event_details",
     "sentry.issues.endpoints.organization_group_search_view_details_starred",
     "sentry.issues.endpoints.organization_group_search_view_starred_order",
