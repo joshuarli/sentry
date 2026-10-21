@@ -39,9 +39,9 @@ class BroadcastDetailsEndpoint(Endpoint):
         self,
         request: Request,
         broadcast_id: int | str,
-        *args,
-        **kwargs,
-    ):
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         if request.access.has_permission("broadcasts.admin"):
             queryset = Broadcast.objects.all()
         else:
@@ -61,12 +61,12 @@ class BroadcastDetailsEndpoint(Endpoint):
             return AdminBroadcastValidator
         return BroadcastValidator
 
-    def _get_serializer(self, request: Request):
+    def _get_serializer(self, request: Request) -> type[BroadcastSerializer]:
         if request.access.has_permission("broadcasts.admin"):
             return AdminBroadcastSerializer
         return BroadcastSerializer
 
-    def _serialize_response(self, request: Request, broadcast):
+    def _serialize_response(self, request: Request, broadcast: Broadcast) -> Response:
         serializer_cls = self._get_serializer(request)
         return self.respond(serialize(broadcast, request.user, serializer=serializer_cls()))
 
