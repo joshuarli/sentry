@@ -585,7 +585,6 @@ module = [
     "sentry.api.serializers.models.grouptombstone",
     "sentry.api.serializers.models.organization",
     "sentry.api.serializers.models.organization_access_request",
-    "sentry.api.serializers.models.organizationmemberinvite",
     "sentry.api.serializers.models.project",
     "sentry.api.serializers.models.project_transaction_threshold",
     "sentry.api.serializers.models.projectcodeowners",
