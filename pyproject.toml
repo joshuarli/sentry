@@ -1372,7 +1372,6 @@ module = [
     "sentry.web.frontend.auth_logout",
     "sentry.web.frontend.auth_organization_login",
     "sentry.web.frontend.base",
-    "sentry.web.frontend.csrf_failure",
     "sentry.web.frontend.disabled_member_view",
     "sentry.web.frontend.generic",
     "sentry.web.frontend.group_event_json",
