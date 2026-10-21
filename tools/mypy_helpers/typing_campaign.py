@@ -2545,7 +2545,7 @@ def _newly_typed_unchanged_scopes(
 
 
 def _any_expression_anchor(anchor: str) -> str:
-    return re.sub(r":any-leaf:\d+$", "", anchor)
+    return re.sub(r"#\d+(?=:any-leaf:)|:any-leaf:\d+$", "", anchor)
 
 
 def _signature_regressions(
@@ -2654,6 +2654,66 @@ def _any_obligations_by_debt_key(
     obligations: Iterable[AnyObligation],
 ) -> dict[tuple[str, str, str, str, str, str], AnyObligation]:
     return {item.debt_key: item for item in sorted(obligations, key=lambda item: item.key)}
+
+
+def _any_obligation_comparison_key(item: AnyObligation) -> tuple[str, str, str, str, str, str]:
+    anchor = item.anchor
+    if ":any-leaf:" in anchor:
+        anchor = re.sub(r"#\d+(?=:any-leaf:)", "", anchor)
+    return (
+        item.path,
+        anchor,
+        item.type_position,
+        item.origin,
+        item.exception or "",
+        item.scope or "",
+    )
+
+
+def _any_obligation_delta(
+    parent: Iterable[AnyObligation], candidate: Iterable[AnyObligation]
+) -> tuple[tuple[AnyObligation, ...], tuple[AnyObligation, ...]]:
+    parent_items = tuple(sorted(parent, key=lambda item: item.key))
+    candidate_items = tuple(sorted(candidate, key=lambda item: item.key))
+    parent_exact_counts = Counter(item.debt_key for item in parent_items)
+    candidate_exact_counts = Counter(item.debt_key for item in candidate_items)
+
+    parent_exact_seen: Counter[tuple[str, str, str, str, str, str]] = Counter()
+    parent_unmatched = []
+    for item in parent_items:
+        parent_exact_seen[item.debt_key] += 1
+        if parent_exact_seen[item.debt_key] > candidate_exact_counts[item.debt_key]:
+            parent_unmatched.append(item)
+
+    candidate_exact_seen: Counter[tuple[str, str, str, str, str, str]] = Counter()
+    candidate_unmatched = []
+    for item in candidate_items:
+        candidate_exact_seen[item.debt_key] += 1
+        if candidate_exact_seen[item.debt_key] > parent_exact_counts[item.debt_key]:
+            candidate_unmatched.append(item)
+
+    parent_counts = Counter(_any_obligation_comparison_key(item) for item in parent_unmatched)
+    candidate_counts = Counter(
+        _any_obligation_comparison_key(item) for item in candidate_unmatched
+    )
+
+    candidate_seen: Counter[tuple[str, str, str, str, str, str]] = Counter()
+    additions = []
+    for item in candidate_unmatched:
+        key = _any_obligation_comparison_key(item)
+        candidate_seen[key] += 1
+        if candidate_seen[key] > parent_counts[key]:
+            additions.append(item)
+
+    parent_seen: Counter[tuple[str, str, str, str, str, str]] = Counter()
+    removals = []
+    for item in parent_unmatched:
+        key = _any_obligation_comparison_key(item)
+        parent_seen[key] += 1
+        if parent_seen[key] > candidate_counts[key]:
+            removals.append(item)
+
+    return tuple(additions), tuple(removals)
 
 
 def _precision_residual_summary(
@@ -2779,9 +2839,8 @@ def decide_candidate(
     omission_additions = candidate.signature_omissions - parent.signature_omissions
     parent_any_by_debt_key = _any_obligations_by_debt_key(parent.any_obligations)
     candidate_any_by_debt_key = _any_obligations_by_debt_key(candidate.any_obligations)
-    any_additions = tuple(
-        candidate_any_by_debt_key[key]
-        for key in sorted(candidate_any_by_debt_key.keys() - parent_any_by_debt_key.keys())
+    any_additions, removed_any = _any_obligation_delta(
+        parent.any_obligations, candidate.any_obligations
     )
     changed_signature_keys = {
         key
@@ -2839,10 +2898,6 @@ def decide_candidate(
         item
         for item in any_additions
         if item.debt_key not in exposed_dynamic_any_keys and not item.path.startswith("tests/")
-    )
-    removed_any = tuple(
-        parent_any_by_debt_key[key]
-        for key in sorted(parent_any_by_debt_key.keys() - candidate_any_by_debt_key.keys())
     )
     any_metadata_changes = [
         {
