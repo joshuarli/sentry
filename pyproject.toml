@@ -904,7 +904,6 @@ module = [
     "sentry.issues.endpoints.project_issues_resolved_in_release",
     "sentry.issues.endpoints.project_ownership",
     "sentry.issues.endpoints.project_performance_issue_settings",
-    "sentry.issues.endpoints.project_stacktrace_source_context",
     "sentry.issues.endpoints.project_user_issue",
     "sentry.issues.endpoints.serializers",
     "sentry.issues.escalating",
