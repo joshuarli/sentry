@@ -483,7 +483,6 @@ module = [
     "sentry.api.endpoints.organization_artifactbundle_assemble",
     "sentry.api.endpoints.organization_attribute_mappings",
     "sentry.api.endpoints.organization_auth_provider_details",
-    "sentry.api.endpoints.organization_auth_providers",
     "sentry.api.endpoints.organization_auth_token_details",
     "sentry.api.endpoints.organization_auth_tokens",
     "sentry.api.endpoints.organization_events",
