@@ -45,8 +45,10 @@ from tools.mypy_helpers.typing_campaign import (
     _mypy_config_policy,
     _policy_changes,
     _precision_any_obligations,
+    _reusable_source_contract_paths,
     _run_precision_canaries,
     _source_contracts,
+    _tree_contracts,
     _validate_targets,
     classify_source,
     compare_error_debt,
@@ -91,6 +93,7 @@ def _tree(
     bypasses: frozenset[tuple[str, str]] = frozenset(),
     omissions: frozenset[tuple[str, str, str]] = frozenset(),
     any_obligations: frozenset[AnyObligation] = frozenset(),
+    source_contract_any_obligations: frozenset[AnyObligation] | None = None,
     precision_any_obligations: tuple[AnyObligation, ...] = (),
     unanchored_any_count: int = 0,
     source_digests: dict[str, str] | None = None,
@@ -133,6 +136,9 @@ def _tree(
         signatures or {},
         omissions,
         any_obligations,
+        source_contract_any_obligations
+        if source_contract_any_obligations is not None
+        else any_obligations,
         frozenset(record.path for record in inventory),
         source_digests or {record.path: "unchanged" for record in inventory},
     )
@@ -746,7 +752,17 @@ def test_evaluate_series_reuses_adjacent_configuration_measurements(
     templates = {parent_tree: parent, first_tree: first, second_tree: second}
     measured: list[tuple[str, TreeMeasurement | None]] = []
 
-    def fake_measure_tree(_repo, revision, tree, _output, _profiles, *, reuse_from=None):
+    def fake_measure_tree(
+        _repo,
+        revision,
+        tree,
+        _output,
+        _profiles,
+        *,
+        reuse_from=None,
+        reuse_contracts_from=None,
+    ):
+        assert reuse_contracts_from is None or reuse_contracts_from.tree == parent_tree
         measured.append((tree, reuse_from))
         return replace(templates[tree], revision=revision)
 
@@ -818,7 +834,17 @@ def test_evaluate_series_stops_after_rejected_transition(tmp_path: Path) -> None
     }
     measured: list[str] = []
 
-    def fake_measure_tree(_repo, revision, tree, _output, _profiles, *, reuse_from=None):
+    def fake_measure_tree(
+        _repo,
+        revision,
+        tree,
+        _output,
+        _profiles,
+        *,
+        reuse_from=None,
+        reuse_contracts_from=None,
+    ):
+        assert reuse_contracts_from is None or reuse_contracts_from.tree == parent_tree
         measured.append(tree)
         return replace(templates[tree], revision=revision)
 
@@ -891,7 +917,17 @@ def test_evaluate_series_stops_allstrong_reuse_after_ineligible_transition(
     templates = {parent_tree: parent, first_tree: first, second_tree: second}
     measurements: list[tuple[str, TreeMeasurement | None]] = []
 
-    def fake_measure_tree(_repo, revision, tree, _output, _profiles, *, reuse_from=None):
+    def fake_measure_tree(
+        _repo,
+        revision,
+        tree,
+        _output,
+        _profiles,
+        *,
+        reuse_from=None,
+        reuse_contracts_from=None,
+    ):
+        assert reuse_contracts_from is None or reuse_contracts_from.tree == parent_tree
         measurements.append((tree, reuse_from))
         return replace(templates[tree], revision=revision)
 
@@ -962,7 +998,17 @@ def test_evaluate_series_rechecks_allstrong_reuse_for_each_candidate(
     templates = {parent_tree: parent, first_tree: first, second_tree: second}
     measurements: list[tuple[str, TreeMeasurement | None]] = []
 
-    def fake_measure_tree(_repo, revision, tree, _output, _profiles, *, reuse_from=None):
+    def fake_measure_tree(
+        _repo,
+        revision,
+        tree,
+        _output,
+        _profiles,
+        *,
+        reuse_from=None,
+        reuse_contracts_from=None,
+    ):
+        assert reuse_contracts_from is None or reuse_contracts_from.tree == parent_tree
         measurements.append((tree, reuse_from))
         return replace(templates[tree], revision=revision)
 
@@ -1342,6 +1388,89 @@ mapping: dict[str, list[Any]]
             (source_path, "broad-dict-any:dict[str, list[Any]]"),
             (source_path, "erasing-cast:cast(Any, value)"),
         }
+    )
+
+
+def test_tree_contracts_reuse_exact_source_paths_and_reextract_changed_paths(
+    tmp_path: Path,
+) -> None:
+    unchanged_path = "src/sentry/unchanged.py"
+    changed_path = "src/sentry/changed.py"
+    unchanged = SourceFile(
+        unchanged_path, "sentry.unchanged", SourceKind.OWNED_IMPLEMENTATION
+    )
+    changed = SourceFile(changed_path, "sentry.changed", SourceKind.OWNED_IMPLEMENTATION)
+    unchanged_any = AnyObligation(
+        unchanged_path, "signature:unchanged", "return:0", "explicit"
+    )
+    changed_any = AnyObligation(changed_path, "signature:changed", "return:0", "explicit")
+    unchanged_precision_any = AnyObligation(
+        unchanged_path, "precision:ast:unchanged#0", "expression:0", "unannotated"
+    )
+    parent = _tree(
+        bypasses=frozenset({(unchanged_path, "bypass:unchanged")}),
+        signatures={(unchanged_path, "sentry.unchanged.run#1", "return"): "Any"},
+        omissions=frozenset(
+            {(unchanged_path, "sentry.unchanged.run#1", "parameter:value")}
+        ),
+        any_obligations=frozenset({unchanged_any, unchanged_precision_any}),
+        source_contract_any_obligations=frozenset({unchanged_any}),
+        source_digests={unchanged_path: "same", changed_path: "before"},
+        inventory=(unchanged, changed),
+    )
+    candidate_digests = {unchanged_path: "same", changed_path: "after"}
+    reusable_paths = _reusable_source_contract_paths(
+        parent, (unchanged, changed), candidate_digests
+    )
+    reclassified = SourceFile(
+        "src/sentry/reclassified.py", "sentry.reclassified", SourceKind.OWNED_STUB
+    )
+    parent_reclassified = replace(
+        parent,
+        inventory=parent.inventory
+        + (
+            SourceFile(
+                reclassified.path,
+                reclassified.module,
+                SourceKind.OWNED_IMPLEMENTATION,
+            ),
+        ),
+        source_digests={**parent.source_digests, reclassified.path: "same"},
+    )
+
+    assert _reusable_source_contract_paths(
+        parent_reclassified,
+        (unchanged, changed, reclassified),
+        {**candidate_digests, reclassified.path: "same"},
+    ) == reusable_paths
+
+    with patch(
+        "tools.mypy_helpers.typing_campaign._source_contracts",
+        return_value=(
+            frozenset({(changed_path, "bypass:changed")}),
+            {(changed_path, "sentry.changed.run#1", "return"): "User"},
+            frozenset(),
+            frozenset({changed_any}),
+        ),
+    ) as source_contracts:
+        contracts = _tree_contracts(
+            (unchanged, changed),
+            tmp_path,
+            reuse_from=parent,
+            reusable_paths=reusable_paths,
+        )
+
+    source_contracts.assert_called_once_with(changed_path, tmp_path)
+    assert contracts == (
+        frozenset(
+            {(unchanged_path, "bypass:unchanged"), (changed_path, "bypass:changed")}
+        ),
+        {
+            (unchanged_path, "sentry.unchanged.run#1", "return"): "Any",
+            (changed_path, "sentry.changed.run#1", "return"): "User",
+        },
+        frozenset({(unchanged_path, "sentry.unchanged.run#1", "parameter:value")}),
+        frozenset({unchanged_any, changed_any}),
     )
 
 
