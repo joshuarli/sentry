@@ -410,6 +410,60 @@ def _is_declaration_any_sentinel(expression_kind: str, origin: str) -> bool:
     return origin == "special_form" and expression_kind in DECLARATION_ANY_SENTINELS
 
 
+def _typed_dict_field_targets(tree: ast.Module) -> set[tuple[int, int, int, int]]:
+    typed_dict_names: set[str] = set()
+    typing_modules: set[str] = set()
+    for statement in tree.body:
+        if isinstance(statement, ast.ImportFrom) and statement.module in {
+            "typing",
+            "typing_extensions",
+        }:
+            typed_dict_names.update(
+                alias.asname or alias.name
+                for alias in statement.names
+                if alias.name == "TypedDict"
+            )
+        elif isinstance(statement, ast.Import):
+            typing_modules.update(
+                alias.asname or alias.name.partition(".")[0]
+                for alias in statement.names
+                if alias.name in {"typing", "typing_extensions"}
+            )
+
+    def is_typed_dict_base(base: ast.expr) -> bool:
+        if isinstance(base, ast.Name):
+            return base.id in typed_dict_names
+        return (
+            isinstance(base, ast.Attribute)
+            and base.attr == "TypedDict"
+            and isinstance(base.value, ast.Name)
+            and base.value.id in typing_modules
+        )
+
+    targets: set[tuple[int, int, int, int]] = set()
+    for statement in tree.body:
+        if not isinstance(statement, ast.ClassDef) or not any(
+            is_typed_dict_base(base) for base in statement.bases
+        ):
+            continue
+        for field in statement.body:
+            if (
+                isinstance(field, ast.AnnAssign)
+                and isinstance(field.target, ast.Name)
+                and field.target.end_lineno is not None
+                and field.target.end_col_offset is not None
+            ):
+                targets.add(
+                    (
+                        field.target.lineno,
+                        field.target.col_offset,
+                        field.target.end_lineno,
+                        field.target.end_col_offset,
+                    )
+                )
+    return targets
+
+
 def _ast_expression_anchors(
     path: str,
 ) -> tuple[
@@ -423,9 +477,11 @@ def _ast_expression_anchors(
     TypeAliasRhsAnchorMap,
     RoleAnchorMap,
     dict[str, tuple[str, ...]],
+    set[tuple[int, int, int, int]],
 ]:
     with open(path, encoding="utf-8") as source_file:
         tree = ast.parse(source_file.read(), filename=path)
+    typed_dict_field_targets = _typed_dict_field_targets(tree)
     expected_nodes = {
         "NameExpr": ("Name",),
         "MemberExpr": ("Attribute",),
@@ -626,6 +682,7 @@ def _ast_expression_anchors(
         type_alias_rhs_anchors,
         role_anchors,
         expected_nodes,
+        typed_dict_field_targets,
     )
 
 
@@ -658,6 +715,7 @@ def _any_obligations(result, origins: dict[int, str]) -> dict[str, object]:
                 type_alias_rhs_anchors,
                 role_anchors,
                 expected_nodes,
+                typed_dict_field_targets,
             ) = _ast_expression_anchors(str(source_path))
         else:
             anchors = {}
@@ -670,6 +728,7 @@ def _any_obligations(result, origins: dict[int, str]) -> dict[str, object]:
             type_alias_rhs_anchors = {}
             role_anchors = {}
             expected_nodes = {}
+            typed_dict_field_targets = set()
         for expression in _expressions(state.tree):
             typ = result.types.get(expression)
             if typ is None:
@@ -680,6 +739,18 @@ def _any_obligations(result, origins: dict[int, str]) -> dict[str, object]:
                     int(any_type.type_of_any), f"unknown-{any_type.type_of_any}"
                 )
                 if _is_declaration_any_sentinel(expression_kind, origin):
+                    continue
+                if (
+                    origin == "from_error"
+                    and expression_kind == "NameExpr"
+                    and (
+                        expression.line,
+                        expression.column,
+                        getattr(expression, "end_line", None),
+                        getattr(expression, "end_column", None),
+                    )
+                    in typed_dict_field_targets
+                ):
                     continue
                 expected_kinds = expected_nodes.get(expression_kind, ())
                 if expression_kind == "OpExpr":
