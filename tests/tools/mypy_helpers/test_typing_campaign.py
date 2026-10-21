@@ -90,6 +90,7 @@ def _tree(
     suppressed: frozenset[tuple[str, str]] = frozenset(),
     diagnostics: tuple[DiagnosticRecord, ...] = (),
     configured_diagnostics: tuple[DiagnosticRecord, ...] = (),
+    precision_diagnostics: tuple[DiagnosticRecord, ...] = (),
     bypasses: frozenset[tuple[str, str]] = frozenset(),
     omissions: frozenset[tuple[str, str, str]] = frozenset(),
     any_obligations: frozenset[AnyObligation] = frozenset(),
@@ -121,6 +122,8 @@ def _tree(
                 if profile == Profile.ALL_STRONG
                 else configured_diagnostics
                 if profile == Profile.CONFIGURED
+                else precision_diagnostics
+                if profile == Profile.PRECISION
                 else (),
                 graph,
                 precision_any_obligations if profile == Profile.PRECISION else (),
@@ -1741,12 +1744,14 @@ def test_precision_any_obligations_normalizes_each_raw_path_once(tmp_path: Path)
             "ast:one#0",
             "expression:0",
             "explicit",
+            line=None,
         ),
         AnyObligation(
             "src/sentry/example.py",
             "ast:three#0",
             "expression:1",
             "explicit",
+            line=None,
         ),
     )
 
@@ -1777,7 +1782,40 @@ def test_precision_any_obligation_records_enclosing_function(tmp_path: Path) -> 
             "expression:0",
             "from_error",
             scope="sentry.example.convert#1",
+            line=2,
         ),
+    )
+
+
+def test_signature_ignore_anchor_survives_annotation_change(tmp_path: Path) -> None:
+    path = "src/sentry/example.py"
+    parent_root = tmp_path / "parent"
+    candidate_root = tmp_path / "candidate"
+    (parent_root / path).parent.mkdir(parents=True)
+    (candidate_root / path).parent.mkdir(parents=True)
+    (parent_root / path).write_text(
+        "def convert(self, data: list[str] | str) -> list[str] | str: "
+        "# type: ignore[override]\n    return data\n"
+    )
+    (candidate_root / path).write_text(
+        "def convert(self, data: list[object] | str) -> list[object] | str: "
+        "# type: ignore[override]\n    return data\n"
+    )
+
+    parent_bypasses = _source_contracts(path, parent_root)[0]
+    candidate_bypasses = _source_contracts(path, candidate_root)[0]
+
+    assert candidate_bypasses == parent_bypasses
+
+    (candidate_root / path).write_text(
+        (candidate_root / path).read_text().replace(
+            "return data", "return data  # type: ignore[arg-type]"
+        )
+    )
+    added_bypasses = _source_contracts(path, candidate_root)[0] - parent_bypasses
+
+    assert added_bypasses == frozenset(
+        {(path, "comment:return data:type: ignore[arg-type]")}
     )
 
 
@@ -2484,6 +2522,60 @@ def test_new_all_strong_diagnostic_rejects_candidate() -> None:
     assert any("new all-strong error" in reason for reason in decision.reasons)
 
 
+def test_test_precision_any_is_reported_separately_from_application_debt() -> None:
+    test_path = "tests/sentry/example_test.py"
+    test_diagnostic = DiagnosticRecord(
+        test_path, "misc", 'Expression has type "Any"', 2
+    )
+    test_any = AnyObligation(
+        test_path,
+        "precision:ast:test-call#0:any-leaf:0",
+        "expression:0",
+        "from_error",
+    )
+    parent = _tree(
+        source_digests={"src/sentry/example.py": "same"}, profiles=tuple(Profile)
+    )
+    candidate = _tree(
+        any_obligations=frozenset({test_any}),
+        precision_any_obligations=(test_any,),
+        precision_diagnostics=(test_diagnostic,),
+        source_digests={"src/sentry/example.py": "same", test_path: "new"},
+        inventory=(
+            SourceFile("src/sentry/example.py", "sentry.example", SourceKind.OWNED_IMPLEMENTATION),
+            SourceFile(test_path, "sentry.example_test", SourceKind.OWNED_IMPLEMENTATION),
+        ),
+        profiles=tuple(Profile),
+    )
+
+    decision = decide_candidate(
+        parent, candidate, require_adoption_credit=False, precision_calibrated=True
+    )
+
+    assert decision.outcome == Outcome.COMPLETE, decision.reasons
+    assert not decision.precision_complete
+    assert decision.details["new_any_obligations"] == []
+    assert decision.details["test_precision_error_additions"] == [
+        {
+            "path": test_path,
+            "code": "misc",
+            "message": 'Expression has type "Any"',
+            "line": 2,
+        }
+    ]
+    assert decision.details["new_test_precision_any_obligations"] == [
+        {
+            "path": test_path,
+            "anchor": test_any.anchor,
+            "type_position": test_any.type_position,
+            "origin": test_any.origin,
+            "exception": None,
+            "scope": None,
+            "line": None,
+        }
+    ]
+
+
 def test_weak_policy_removal_that_exposes_errors_is_rejected() -> None:
     all_strong_error = DiagnosticRecord(
         "src/sentry/example.py", "arg-type", "new all-strong error"
@@ -2975,16 +3067,27 @@ def test_new_annotation_can_expose_existing_untyped_call(tmp_path: Path) -> None
     (candidate_root / source_path).write_text(candidate_source)
     inventory = (SourceFile(source_path, "sentry.example", SourceKind.OWNED_IMPLEMENTATION),)
     diagnostic = DiagnosticRecord(source_path, "no-untyped-call", "Call to untyped function", 2)
-    exposed_any = AnyObligation(
+    parent_any = AnyObligation(
         source_path,
         "precision:ast:call#0:any-leaf:0",
         "expression:0",
+        "unannotated",
+        scope=symbol,
+        line=2,
+    )
+    exposed_any = AnyObligation(
+        source_path,
+        "precision:ast:call#0:any-leaf:1",
+        "expression:0.1",
         "from_error",
         scope=symbol,
+        line=2,
     )
     signature = (source_path, symbol, "parameter:value")
     parent = replace(
         _tree(
+            any_obligations=frozenset({parent_any}),
+            precision_any_obligations=(parent_any,),
             signatures={signature: "<missing>"},
             source_digests={source_path: "parent"},
             inventory=inventory,
@@ -3019,6 +3122,7 @@ def test_new_annotation_can_expose_existing_untyped_call(tmp_path: Path) -> None
             "origin": exposed_any.origin,
             "exception": None,
             "scope": symbol,
+            "line": 2,
         }
     ]
     exposed_diagnostics = cast(
@@ -3029,6 +3133,79 @@ def test_new_annotation_can_expose_existing_untyped_call(tmp_path: Path) -> None
             "path": source_path,
             "code": "no-untyped-call",
             "message": "Call to untyped function",
+            "line": 2,
+        }
+    ]
+
+
+def test_new_annotation_exposes_omitted_generic_in_unchanged_function(tmp_path: Path) -> None:
+    source_path = "src/sentry/example.py"
+    symbol = "sentry.example.convert#1"
+    parent_root = tmp_path / "parent"
+    candidate_root = tmp_path / "candidate"
+    (parent_root / source_path).parent.mkdir(parents=True)
+    (candidate_root / source_path).parent.mkdir(parents=True)
+    source = "def convert(data):\n    return data.copy()\n"
+    (parent_root / source_path).write_text(source)
+    (candidate_root / source_path).write_text(
+        "from collections.abc import Mapping\n\n"
+        "def convert(data: Mapping[str, object]):\n    return data.copy()\n"
+    )
+    inventory = (SourceFile(source_path, "sentry.example", SourceKind.OWNED_IMPLEMENTATION),)
+    parent_any = AnyObligation(
+        source_path,
+        "precision:ast:copy#0:any-leaf:0",
+        "expression:0",
+        "unannotated",
+        scope=symbol,
+        line=2,
+    )
+    newly_exposed_any = AnyObligation(
+        source_path,
+        "precision:ast:copy#0:any-leaf:1",
+        "expression:0.1",
+        "from_omitted_generics",
+        scope=symbol,
+        line=2,
+    )
+    signature = (source_path, symbol, "parameter:data")
+    parent = replace(
+        _tree(
+            any_obligations=frozenset({parent_any}),
+            precision_any_obligations=(parent_any,),
+            signatures={signature: "<missing>"},
+            source_digests={source_path: "parent"},
+            inventory=inventory,
+            profiles=tuple(Profile),
+        ),
+        root=parent_root,
+    )
+    candidate = replace(
+        _tree(
+            any_obligations=frozenset({newly_exposed_any}),
+            precision_any_obligations=(newly_exposed_any,),
+            signatures={signature: "Mapping[str, object]"},
+            source_digests={source_path: "candidate"},
+            inventory=inventory,
+            profiles=tuple(Profile),
+        ),
+        root=candidate_root,
+    )
+
+    decision = decide_candidate(
+        parent, candidate, require_adoption_credit=False, precision_calibrated=True
+    )
+
+    assert decision.outcome == Outcome.COMPLETE, decision.reasons
+    assert decision.details["new_any_obligations"] == []
+    assert decision.details["exposed_dynamic_any_obligations"] == [
+        {
+            "path": source_path,
+            "anchor": newly_exposed_any.anchor,
+            "type_position": newly_exposed_any.type_position,
+            "origin": newly_exposed_any.origin,
+            "exception": None,
+            "scope": symbol,
             "line": 2,
         }
     ]
