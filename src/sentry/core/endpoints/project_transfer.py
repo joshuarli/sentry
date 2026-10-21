@@ -116,7 +116,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        unique_user_ids: set[int] = set()
+        unique_user_ids: set[int] = set[int]()
         for owner in owners:
             user_id = owner.user_id
             if user_id is not None:
