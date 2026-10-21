@@ -990,7 +990,6 @@ module = [
     "sentry.models.grouptombstone",
     "sentry.models.latestreporeleaseenvironment",
     "sentry.models.organization",
-    "sentry.models.organizationaccessrequest",
     "sentry.models.organizationcontributors",
     "sentry.models.organizationmember",
     "sentry.models.organizationmemberinvite",
