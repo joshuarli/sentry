@@ -44,6 +44,15 @@ class OrganizationMemberSerializerTest(TestCase):
         assert result["inviteStatus"] == "requested_to_join"
         assert result["inviterName"] == "bob"
 
+    def test_invite_status_can_be_null(self) -> None:
+        member = self.create_member(
+            organization=self.org,
+            email="foo@sentry.io",
+            invite_status=None,
+        )
+        result = serialize(member, self.user_2, OrganizationMemberSerializer())
+        assert result["inviteStatus"] is None
+
     def test_user(self) -> None:
         user = self.create_user(name="bob")
         member = self.create_member(

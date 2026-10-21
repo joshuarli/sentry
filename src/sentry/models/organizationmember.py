@@ -15,6 +15,7 @@ from django.conf import settings
 from django.db import models, router, transaction
 from django.db.models import Q, QuerySet
 from django.db.models.base import ModelBase
+from django.db.models.expressions import Combinable
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -222,12 +223,16 @@ class OrganizationMember(ReplicatedCellModel):
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE", null=True, blank=True)
     # This email indicates the invite state of this membership -- it will be cleared when the user is set.
     # it does not necessarily represent the final email of the user associated with the membership, see user_email.
-    email = models.EmailField(null=True, blank=True, max_length=75)
+    email: models.EmailField[str | Combinable | None, str | None] = models.EmailField(
+        null=True, blank=True, max_length=75
+    )
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
 
     flags = typed_dict_bitfield(_OrganizationMemberFlags, default=0)
 
-    token = models.CharField(max_length=64, null=True, blank=True, unique=True)
+    token: models.Field[str | int | Combinable | None, str | None] = models.CharField(
+        max_length=64, null=True, blank=True, unique=True
+    )
     date_added = models.DateTimeField(default=timezone.now)
     token_expires_at = models.DateTimeField(default=None, null=True)
     has_global_access = models.BooleanField(default=True)
