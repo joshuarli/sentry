@@ -705,7 +705,6 @@ module = [
     "sentry.insights.endpoints.*",
     "sentry.insights.models",
     "sentry.integrations",
-    "sentry.integrations.analytics",
     "sentry.integrations.api.bases.*",
     "sentry.integrations.api.endpoints",
     "sentry.integrations.api.endpoints.data_forwarding_details",
