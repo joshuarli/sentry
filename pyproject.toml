@@ -597,7 +597,6 @@ module = [
     "sentry.api.serializers.models.role",
     "sentry.api.serializers.models.seer_agentic_triage_run",
     "sentry.api.serializers.models.tagvalue",
-    "sentry.api.serializers.models.team",
     "sentry.api.serializers.models.userreport",
     "sentry.api.serializers.models.userrollback",
     "sentry.api.serializers.rest_framework",
