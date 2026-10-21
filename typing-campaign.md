@@ -8,22 +8,22 @@ Freeze the upstream base at `7b44563f0d26cc60e8bcc2cbe6a44021cb0c4ba4` for the n
 
 The latest accepted checkpoint is `19584dd180166a58c1a17045ce34e2dac6abcda6`, followed by documentation commit `92a1ff5c3e8`. Eight post-rebase metadata removals were accepted there. The comparable core measurements reported 115 configured, 178 unsuppressed, and 11,821 all-strong diagnostics, with complete core source coverage. These are existing errors, not a green configured baseline. The recorded precision inventory remains unfinished and is not a count of independent coding tasks.
 
-Lane work through `68576caa486` is consolidated as provisional work. Seven pending metadata commits were already on the branch. Five further metadata candidates and eleven prepared application modules are now integrated. The interrupted seven-transition evaluator run produced no final acceptance report. Integration alone does not give those commits global acceptance. Preserve this accepted checkpoint while repairing policy and validating combined waves. Core typing completion and precision completion remain separate, unfinished milestones.
+Lane work through `68576caa486` is consolidated as provisional work. Seven pending metadata commits were already on the branch. Five further metadata candidates and eleven prepared application modules are now integrated. The bounded evaluator correction and `EmptyListField` repair are implemented. The evaluator tests pass 101 cases, the field tests pass five cases, all-strong mypy passes on both changed production files, and read-only Ruff passes on the changed files. These focused checks do not establish global acceptance. Evaluate the exact combined tree against a corrected-policy baseline derived from `92a1ff5c3e8` before promoting the pending source and metadata work. Core typing completion and precision completion remain separate, unfinished milestones.
 
 ## Execute the revised roadmap
 
-The owner's 2026-10-21 steering replaces earlier requirements for one-module credit, per-commit cold acceptance, runtime tests for unchanged metadata-only modules, and infrastructure-first scheduling. Historical instructions and results below document earlier execution; they do not override this roadmap. The current evaluator does not yet implement every requirement below. Until the bounded correction passes, do not claim it enforces the revised acceptance policy.
+The owner's 2026-10-21 steering replaces earlier requirements for one-module credit, per-commit cold acceptance, runtime tests for unchanged metadata-only modules, and infrastructure-first scheduling. Historical instructions and results below document earlier execution; they do not override this roadmap. The evaluator now permits cross-module benefits and dependency clusters, distinguishes narrowly scoped newly exposed dynamic debt, reports non-mechanical signature changes for review, and compares diagnostic messages as well as mapped locations. Exact combined-tree acceptance remains pending.
 
 | Step | Scope | Required result |
 | --- | --- | --- |
 | Consolidate | Existing lane work and campaign worktrees | Keep useful application work on `typing-hillclimb`. Mark unverified work provisional. Retain ambiguous, dirty, parked, or unintegrated worktrees. Remove only proven clean completed worktrees. |
-| Correct acceptance | Existing evaluator and its focused tests | Implement the bounded corrections below. Separate evaluator changes from adoption credit. |
-| Repair EmptyListField | Its implementation, callers, overrides, and existing tests | Describe the configurable child's actual contract without changing runtime acceptance or adding suppressions. |
+| Correct acceptance | Existing evaluator and its focused tests | Keep the bounded corrections covered by focused tests. Review evaluator changes separately from adoption credit. |
+| Repair EmptyListField | Its implementation, callers, overrides, and existing tests | Preserve configurable child behavior and test its input and output contract. |
 | Deliver a source wave | Approximately 5–10 related low-risk source changes | Pass focused checks per candidate, then global acceptance of the exact combined tree. Prioritize shared contracts and whole-module completion. |
 | Continue production | Related source waves and separate metadata waves | Freeze evaluator features through ten substantive source promotions after the correction. Allow exceptions only for demonstrated invalid measurement or unsafe acceptance. |
 | Finish | Core completion, then precision completion | Remove both migration overrides and reach zero all-strong diagnostics with complete owned-source coverage. Separately resolve or justify dynamic boundaries and pass the final precision audit. |
 
-The next checkpoint delivers the bounded acceptance correction, the EmptyListField repair or a precise tested blocker, and one substantive related source wave. Parked work is not completed work. Permanent guard integration follows application progress and needs its own explicit CI assignment. Do not activate the parked CI guard during consolidation.
+The next checkpoint evaluates the exact combined source and metadata tree with the corrected policy, then promotes only the verified wave. Parked work is not completed work. Permanent guard integration follows application progress and needs its own explicit CI assignment. Do not activate the parked CI guard during consolidation.
 
 ## Make one bounded acceptance correction
 
@@ -37,7 +37,7 @@ Implement these changes with focused regression tests in the existing helper tes
 
 Reproduce each blocker before changing its acceptance. Review the earlier campaign-added ignores and Any as well as changes after the latest baseline. Separate behavioral bug fixes from typing repairs.
 
-Repair `EmptyListField` in `src/sentry/api/serializers/rest_framework/list.py` to describe its child-dependent input and output contract. Cover empty-string passthrough, no supplied child, integer child, string child, and invalid input in existing tests. Include `EmptyListField(child=serializers.IntegerField()).to_internal_value(["1"])` and its integer-valued result. Preserve current runtime behavior. Do not impose string-only validation to justify `list[str]` or add more suppressions.
+`EmptyListField` in `src/sentry/api/serializers/rest_framework/list.py` now accepts `object` and returns `list[object] | str`, preserving the empty-string passthrough and the configured child's output. Its focused tests cover empty strings, no supplied child, integer and string children, and invalid input. The integer-child case returns `[1]` for `["1"]`. The existing two type-ignore sites remain necessary for the mismatch with DRF's base annotation; the repair adds no suppressions or runtime validation.
 
 ## Accept related waves
 
