@@ -162,6 +162,7 @@ class TreeMeasurement:
     signatures: Mapping[tuple[str, str, str], str]
     signature_omissions: frozenset[tuple[str, str, str]]
     any_obligations: frozenset[AnyObligation]
+    source_contract_any_obligations: frozenset[AnyObligation]
     coverage: frozenset[str]
     source_digests: Mapping[str, str]
     source_contracts_reused_from_tree: str | None = None
@@ -1880,7 +1881,11 @@ def _source_contracts(
 
 
 def _tree_contracts(
-    inventory: Sequence[SourceFile], root: Path
+    inventory: Sequence[SourceFile],
+    root: Path,
+    *,
+    reuse_from: TreeMeasurement | None = None,
+    reusable_paths: frozenset[str] = frozenset(),
 ) -> tuple[
     frozenset[tuple[str, str]],
     Mapping[tuple[str, str, str], str],
@@ -1891,8 +1896,25 @@ def _tree_contracts(
     all_signatures: dict[tuple[str, str, str], str] = {}
     all_omissions: set[tuple[str, str, str]] = set()
     all_any: set[AnyObligation] = set()
+    if reuse_from is not None and reusable_paths:
+        all_bypasses.update(
+            item for item in reuse_from.bypasses if item[0] in reusable_paths
+        )
+        all_signatures.update(
+            (key, value)
+            for key, value in reuse_from.signatures.items()
+            if key[0] in reusable_paths
+        )
+        all_omissions.update(
+            item for item in reuse_from.signature_omissions if item[0] in reusable_paths
+        )
+        all_any.update(
+            item
+            for item in reuse_from.source_contract_any_obligations
+            if item.path in reusable_paths
+        )
     for record in inventory:
-        if record.kind == SourceKind.VENDORED:
+        if record.kind == SourceKind.VENDORED or record.path in reusable_paths:
             continue
         bypasses, signatures, omissions, any_obligations = _source_contracts(record.path, root)
         all_bypasses.update(bypasses)
@@ -2852,6 +2874,7 @@ def _measure_tree(
     output: Path,
     profiles: Sequence[Profile],
     reuse_from: TreeMeasurement | None = None,
+    reuse_contracts_from: TreeMeasurement | None = None,
 ) -> TreeMeasurement:
     root = extract_tree(repo, tree, output)
     inventory = tree_inventory(repo, tree, root)
@@ -2897,16 +2920,18 @@ def _measure_tree(
                 f"{profile.value} source coverage differs from configured: "
                 f"missing={missing[:10]}, extra={extra[:10]}"
             )
+    contracts_from = reuse_contracts_from or reuse_from
     reusable_contracts = (
-        reuse_from
-        if reuse_from is not None
-        and not reuse_from.gaps
-        and Profile.PRECISION not in reuse_from.profiles
+        contracts_from
+        if contracts_from is not None
+        and not contracts_from.gaps
+        and Profile.PRECISION not in contracts_from.profiles
         and Profile.PRECISION not in profiles
-        and reuse_from.inventory == inventory
-        and reuse_from.source_digests == source_digests
+        and contracts_from.inventory == inventory
+        and contracts_from.source_digests == source_digests
         else None
     )
+    source_contracts_reused_from_tree: str | None
     if reusable_contracts is not None:
         bypasses = reusable_contracts.bypasses
         signatures = reusable_contracts.signatures
@@ -2914,8 +2939,15 @@ def _measure_tree(
         explicit_any = reusable_contracts.any_obligations
         source_contracts_reused_from_tree = reusable_contracts.tree
     else:
-        bypasses, signatures, omissions, explicit_any = _tree_contracts(inventory, root)
-        source_contracts_reused_from_tree = None
+        reusable_paths = _reusable_source_contract_paths(
+            contracts_from, inventory, source_digests
+        )
+        bypasses, signatures, omissions, explicit_any = _tree_contracts(
+            inventory, root, reuse_from=contracts_from, reusable_paths=reusable_paths
+        )
+        source_contracts_reused_from_tree = (
+            contracts_from.tree if contracts_from is not None and reusable_paths else None
+        )
     owned_paths = {
         record.path for record in inventory if record.kind != SourceKind.VENDORED
     }
@@ -2943,6 +2975,7 @@ def _measure_tree(
         signatures,
         omissions,
         frozenset(all_any),
+        frozenset(explicit_any),
         core_coverage[Profile.ALL_STRONG],
         source_digests,
         source_contracts_reused_from_tree,
@@ -2955,6 +2988,25 @@ def _source_digests(inventory: Sequence[SourceFile], root: Path) -> dict[str, st
         for record in inventory
         if record.kind != SourceKind.VENDORED
     }
+
+
+def _reusable_source_contract_paths(
+    parent: TreeMeasurement | None,
+    inventory: Sequence[SourceFile],
+    source_digests: Mapping[str, str],
+) -> frozenset[str]:
+    if parent is None:
+        return frozenset()
+    parent_inventory = {record.path: record for record in parent.inventory}
+    return frozenset(
+        record.path
+        for record in inventory
+        if record.kind != SourceKind.VENDORED
+        and parent_inventory.get(record.path) == record
+        and parent.source_digests.get(record.path) == source_digests.get(record.path)
+        and record.path in parent.source_digests
+        and record.path in source_digests
+    )
 
 
 def _reusable_profile(
@@ -3512,6 +3564,7 @@ def _command_compare(
             output,
             profiles,
             reuse_from=parent_measurement if reuse_allstrong else None,
+            reuse_contracts_from=parent_measurement,
         )
     decision = decide_candidate(
         parent_measurement,
@@ -3629,6 +3682,7 @@ def _command_evaluate_series(
             output,
             _CORE_PROFILES,
             reuse_from=original if reuse_allstrong else None,
+            reuse_contracts_from=original,
         )
         previous_measurement = measurements[-1]
         decision = decide_candidate(
