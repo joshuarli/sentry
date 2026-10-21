@@ -3387,6 +3387,88 @@ def test_signature_refinement_is_reported_for_contract_review() -> None:
     ]
 
 
+def test_explicit_parameters_can_replace_untyped_variadics_for_review() -> None:
+    source_path = "src/sentry/example.py"
+    symbol = "sentry.example.Model.save#1"
+    parent_signatures = {
+        (source_path, symbol, "parameter:args"): "<missing>",
+        (source_path, symbol, "parameter:kwargs"): "<missing>",
+        (source_path, symbol, "return"): "<missing>",
+    }
+    candidate_signatures = {
+        (source_path, symbol, "parameter:force_insert"): "bool",
+        (source_path, symbol, "parameter:force_update"): "bool",
+        (source_path, symbol, "parameter:using"): "str | None",
+        (source_path, symbol, "parameter:update_fields"): "Iterable[str] | None",
+        (source_path, symbol, "return"): "None",
+    }
+    parent = _tree(
+        signatures=parent_signatures,
+        source_digests={source_path: "before"},
+        profiles=tuple(Profile),
+    )
+    candidate = _tree(
+        signatures=candidate_signatures,
+        source_digests={source_path: "after"},
+        profiles=tuple(Profile),
+    )
+
+    decision = decide_candidate(
+        parent,
+        candidate,
+        require_adoption_credit=False,
+        precision_calibrated=True,
+    )
+
+    assert decision.outcome == Outcome.COMPLETE, decision.reasons
+    assert decision.details["signature_changes_for_review"] == [
+        {
+            "path": source_path,
+            "symbol": symbol,
+            "position": "parameter:args",
+            "parent": "<missing>",
+            "candidate": "explicit parameters: force_insert, force_update, update_fields, using",
+        },
+        {
+            "path": source_path,
+            "symbol": symbol,
+            "position": "parameter:kwargs",
+            "parent": "<missing>",
+            "candidate": "explicit parameters: force_insert, force_update, update_fields, using",
+        },
+    ]
+
+
+def test_removed_untyped_variadics_without_explicit_replacements_are_rejected() -> None:
+    source_path = "src/sentry/example.py"
+    symbol = "sentry.example.Model.save#1"
+    parent = _tree(
+        signatures={
+            (source_path, symbol, "parameter:args"): "<missing>",
+            (source_path, symbol, "parameter:kwargs"): "<missing>",
+        },
+        source_digests={source_path: "before"},
+        profiles=tuple(Profile),
+    )
+    candidate = _tree(
+        signatures={},
+        source_digests={source_path: "after"},
+        profiles=tuple(Profile),
+    )
+
+    decision = decide_candidate(
+        parent,
+        candidate,
+        require_adoption_credit=False,
+        precision_calibrated=True,
+    )
+
+    assert decision.outcome == Outcome.REJECTED
+    assert (
+        sum("signature disappeared or was renamed" in reason for reason in decision.reasons) == 2
+    )
+
+
 def test_signature_any_obligations_allow_a_precise_return_improvement() -> None:
     source_path = "src/sentry/example.py"
     symbol = "sentry.example.lookup#1"
