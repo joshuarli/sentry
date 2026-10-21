@@ -1366,7 +1366,6 @@ module = [
     "sentry.utils.settings",
     "sentry.utils.snuba",
     "sentry.utils.strings",
-    "sentry.utils.tag_normalization",
     "sentry.utils.time_window",
     "sentry.utils.types",
     "sentry.utils.validators",
