@@ -409,6 +409,93 @@ strict_equality = false
     assert changes == ()
 
 
+def _weak_policy_config(modules: tuple[str, ...]) -> str:
+    module_values = ", ".join(f'"{module}"' for module in modules)
+    return (
+        "[tool.mypy]\n"
+        f"# begin: {WEAK_SECTION}\n"
+        "[[tool.mypy.overrides]]\n"
+        f"module = [{module_values}]\n"
+        "disallow_any_generics = false\n"
+        "disallow_untyped_defs = false\n"
+        "strict_equality = false\n"
+        f"# end: {WEAK_SECTION}\n"
+    )
+
+
+def _compare_weak_policy_expansion(
+    parent_config: str,
+    candidate_config: str,
+    *,
+    changed_modules: tuple[str, ...],
+    inventory_modules: tuple[str, ...],
+) -> tuple[str, ...]:
+    with (
+        patch("tools.mypy_helpers.typing_campaign._POLICY_PATHS", ()),
+        patch(
+            "tools.mypy_helpers.typing_campaign._tree_file",
+            side_effect=lambda _repo, tree, path: {
+                ("parent", "pyproject.toml"): parent_config.encode(),
+                ("candidate", "pyproject.toml"): candidate_config.encode(),
+            }.get((tree, path)),
+        ),
+        patch(
+            "tools.mypy_helpers.typing_campaign._tree_modules",
+            return_value=frozenset(inventory_modules),
+        ),
+    ):
+        return _policy_changes(
+            Path("."),
+            "parent",
+            "candidate",
+            source_changes=tuple(f"src/{module.replace('.', '/')}.py" for module in changed_modules),
+        )
+
+
+def test_policy_accepts_coverage_preserving_weak_wildcard_expansion() -> None:
+    parent_config = _weak_policy_config(("sentry.geo.*",))
+    candidate_config = _weak_policy_config(("sentry.geo.base", "sentry.geo.models"))
+
+    changes = _compare_weak_policy_expansion(
+        parent_config,
+        candidate_config,
+        changed_modules=("sentry.geo",),
+        inventory_modules=("sentry.geo", "sentry.geo.base", "sentry.geo.models"),
+    )
+
+    assert changes == ()
+
+
+def test_policy_rejects_weak_wildcard_expansion_missing_a_sibling() -> None:
+    parent_config = _weak_policy_config(("sentry.geo.*",))
+    candidate_config = _weak_policy_config(("sentry.geo.base",))
+
+    changes = _compare_weak_policy_expansion(
+        parent_config,
+        candidate_config,
+        changed_modules=("sentry.geo",),
+        inventory_modules=("sentry.geo", "sentry.geo.base", "sentry.geo.models"),
+    )
+
+    assert changes == ("pyproject.toml",)
+
+
+def test_policy_rejects_weak_wildcard_expansion_to_unrelated_module() -> None:
+    parent_config = _weak_policy_config(("sentry.geo.*",))
+    candidate_config = _weak_policy_config(
+        ("sentry.geo.base", "sentry.geo.models", "sentry.other")
+    )
+
+    changes = _compare_weak_policy_expansion(
+        parent_config,
+        candidate_config,
+        changed_modules=("sentry.geo",),
+        inventory_modules=("sentry.geo", "sentry.geo.base", "sentry.geo.models", "sentry.other"),
+    )
+
+    assert changes == ("pyproject.toml",)
+
+
 def test_policy_rejects_new_generated_error_code() -> None:
     parent_config = """\
 [tool.mypy]
