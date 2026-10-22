@@ -1,10 +1,77 @@
 # Sentry typing hillclimb
 
-**Status: winding down.** No new campaign items will be started. Finish or park work already in flight, integrate coherent safe changes, then leave a reboot-ready handoff.
+**Status: paused 2026-10-22.** The winddown is complete. Do not start a new source wave until the owner resumes the campaign.
 
-## Current checkpoint
+## Handoff
 
-Continue the existing migration on `typing-hillclimb`. Optimize verified application typing debt retired. Report metadata cleanup separately from application signatures, generics, and all-strong diagnostics retired.
+### Resume
+
+Run `codex --model gpt-6-luna -C /Users/josh/dev/sentry`. Set reasoning effort to High, then resume from this handoff. Read `AGENTS.md`, the orchestration skill, and the campaign-winddown skill before changing code.
+
+### State
+
+- The winddown source checkpoint on `typing-hillclimb` is `7bcd77c1fde`. Its application source and typing policy match the accepted parent used for the Explore evaluation. That commit reverts the rejected five-file Explore wave; this handoff follows it.
+- `upstream` points to `git@github.com:getsentry/sentry.git`. The settled upstream base is `c8c25290cb180470cccb5c91795a6fbc623b6a2d`. Do not rebase routinely.
+- Nothing was pushed. The local branch is ahead of `origin/typing-hillclimb`.
+- `static/packages/icons/CHANGELOG.md` is a pre-existing owner edit. Leave it untouched.
+
+### Direction
+
+- Keep the owner acceptance policy and the ten-source-promotion evaluator freeze. Do not start new source, metadata, or infrastructure work while paused.
+- Continue to report metadata removals separately from typed application contracts. Keep core completion and precision completion separate.
+- Getsentry is unavailable on this machine. Do not use it for verification. Do not run formatters or change workflows.
+- Keep the upstream base frozen. Use the existing `.venv`; if it stops working, follow the Python steps in `devenv/sync.py` without invoking `devenv`.
+
+### Open lanes
+
+- The Explore saved-query wave is rejected. Exact evaluation compared parent `671b8191b9c48fc3b954c2046189ae8f2fc15e70` with candidate tree `f91e7117f6c50256947b20625af5928f94d3d079`. It found new precision errors in the model serializer, new Any obligations, and a new `dict[str, Any]` bypass in `ExploreSavedQueryBase.convert_args`. The integration was reverted in `7bcd77c1fde`. The candidate remains on `typing-hillclimb-p10-explore-saved-queries` at `799aa3798ac`.
+- The project-transfer payload annotation is an unverified draft on `typing-p6-transfer-draft` at `0bbef064d57`. It has no focused check or exact-tree acceptance. Do not treat it as merged.
+- The typing guard draft is parked on `p5-typing-guard` at `8ec4365af05`. It changes `.github/workflows/backend.yml`, so it remains out of the integration branch under the repository's workflow rule.
+- The superseded GitLab repository proposal is preserved on `typing-p8-gitlab-client` at `d6333741cfb`. The accepted GitLab client source remains in the integration tree.
+- The rejected internal beacon metrics proposal remains on `p4-internal-beacon-e69e` at `478ce1c4b07`. It added Any obligations.
+- The P3 metadata removals are already reflected in the current strong override. The accepted P4 and P7 source contracts are already present or superseded by stronger current versions. No cherry-pick is needed for those lanes.
+- The remaining no-merged branch refs are historical or superseded. Cleanup kept every branch ref. It removed every child worktree.
+
+Historical P3 refs:
+
+```text
+p3-apidocs-constants, p3-auth-providers, p3-codeowners-associations, p3-frontend-version, p3-integrations-analytics, p3-issue-starred, p3-member-invite, p3-meta-three-accepted, p3-metadata-jobs, p3-metadata-next, p3-model-followup, p3-model-followup-2, p3-project-key, p3-release-details-types, p3-release-search, p3-search-base, p3-serializer-types, p3-utils-hashlib, p3-warmup, p3-web-followup, p3-web-followup-2
+```
+
+Historical P4 refs with source or policy effects already present or superseded:
+
+```text
+p4-api-application-serializer, p4-api-tokens, p4-auth-token-details, p4-auth-token-details-after-artifactbundle, p4-auth-token-details-rebased, p4-auth-token-details-refresh, p4-broadcast-details, p4-broadcast-details-ready, p4-broadcast-details-ready-2, p4-broadcast-details-ready-3, p4-broadcast-details-ready-4, p4-broadcast-validator, p4-catchall, p4-debug-file-serializer, p4-email-capture, p4-event-apple-crash-report, p4-filechange, p4-geo-interface, p4-health-middleware, p4-internal-beacon, p4-internal-beacon-2ba08f, p4-internal-beacon-ready, p4-organization-api-key-index, p4-organization-artifactbundle, p4-organization-artifactbundle-current, p4-organization-artifactbundle-fresh, p4-organization-fork, p4-organization-onboarding, p4-organization-onboarding-4190, p4-organization-onboarding-51fd32, p4-organization-onboarding-current, p4-organization-onboarding-de6a, p4-organization-onboarding-latest, p4-organization-recent-searches, p4-project-artifact-file, p4-project-commits, p4-project-filter-details, p4-project-filters, p4-project-keys, p4-project-member-index, p4-user-org-integrations-2ba08f, p4-user-org-integrations-4190, p4-user-organizationintegrations, p4-user-organizationintegrations-auth-token, p4-user-organizationintegrations-current, p4-user-organizationintegrations-de6a, p4-user-organizationintegrations-latest, p4-user-subscriptions, p4-user-subscriptions-next
+```
+
+Other historical refs:
+
+```text
+p5-serializer-containment, p5-stub-precision, typing-loop-speed, typing-loop-speed-20261021, typing-p3-projectplatform, typing-p4-organization-pipeline, typing-p7-organizationmember-wave, typing/p3-grouping-actions
+```
+
+### Cleanup
+
+- `git worktree list` has only the integration worktree. No campaign evaluator or test process remains.
+- Available disk space rose from 93 GiB to 133 GiB after worktree cleanup. The rejected evaluator report is compressed at `.work/tmp/typing-campaign-explore-wave-20261022-run1/report.json.gz`; its temporary snapshots and caches were removed.
+- `.work/` remains ignored through `.git/info/exclude`. No campaign wakeup was scheduled.
+
+### Not started
+
+- Core migration completion and the final precision milestone remain open. The accepted branch-wide checkpoint still has 135 test-only Any obligations and 29 test precision diagnostics. The final independent cold checks have not run.
+- `EmptyListField` remains parked because the installed DRF stub cannot express its child-dependent output and empty-string passthrough without suppressions.
+- Dashboard widget and query work remains parked while Snuba and objectstore are unavailable. `devservices` is missing. Do not retry the same setup failures per module.
+
+### Verified
+
+- Before integration, the five-file Explore candidate passed configured and all-strong targeted mypy, targeted Ruff, `git diff --check`, and `tests/sentry/explore/endpoints/test_explore_saved_queries.py` with 66 tests. The detail and starred endpoint suites were not run because their setup requires unavailable Snuba.
+- The exact full-scope evaluator rejected the candidate. Its report records new serializer precision errors, new Any obligations from explicit, error, special-form, and omitted-generic origins, and the broad-dict Any bypass. The report is retained in compressed form above.
+- The Explore revert removed all five candidate source changes. The integration branch has no accepted or provisional Explore wave.
+- Cleanup inspected dirty worktrees and their ignored contents, restored only superseded or rejected tracked drafts, removed all child worktrees without force, and kept every named branch ref.
+
+## Historical checkpoint before winddown
+
+The active objective at this checkpoint was to optimize verified application typing debt retired. Metadata cleanup was reported separately from application signatures, generics, and all-strong diagnostics retired.
 
 The `upstream` remote points to `git@github.com:getsentry/sentry.git`. The rebase is settled on `c8c25290cb180470cccb5c91795a6fbc623b6a2d`; keep this base frozen through the next production phase. Nothing was pushed. Getsentry is unavailable and is not part of verification.
 
@@ -90,9 +157,9 @@ The first access-management candidate tree `6921930d8053a68d335b7e88690578835a9e
 
 The bounded evaluator correction now compares unmatched Any obligations by expression fingerprint, scope, type position, origin, and multiplicity while ignoring only the unstable occurrence ordinal. Exact anchor matches still preserve origin/type-position metadata comparisons. Focused regression tests cover reindexing and multiplicity; four relevant evaluator tests pass. The evaluator requires its trusted code to match committed HEAD, so commit this separately as policy work, then rerun exact acceptance for the unchanged endpoint candidate against the new evaluator-policy parent. Keep the source candidate provisional until that run passes. No further evaluator changes are authorized unless another invalid measurement or unsafe acceptance is demonstrated.
 
-## Execute the current roadmap
+## Historical roadmap before the rejected Explore wave
 
-The owner's acceptance policy remains in force. The 2026-10-22 rebase and branch-wide comparison are settled. Core adoption passed; migration and precision completion remain open.
+The table records the plan before the Explore evaluation. The paused handoff above supersedes it. The owner's acceptance policy remains in force. The 2026-10-22 rebase and branch-wide comparison are settled. Core adoption passed; migration and precision completion remain open.
 
 | Step | Scope | Required result |
 | --- | --- | --- |
@@ -175,11 +242,11 @@ Both commands used `SENTRY_SKIP_SERVICE_VALIDATION=1 TMPDIR=/Users/josh/dev/sent
 
 Read-only Ruff passed for the twelve changed Python files, and `git diff --check` passed. No formatter ran. The branch-wide exact report is the full configured, unsuppressed, all-strong, and precision comparison for the current source tree. API application model tests do not replace serializer consumer coverage. The existing CI guard draft remains parked in its worktree and is not activated.
 
-Cleanup used source checkpoint `68576caa4868c6ad0171cb188ab3bd25fe5ad912`. Seventeen clean completed worktrees were removed after ancestry or patch-equivalence proof. The coordinator reran `git worktree list --porcelain` and confirmed every removed path is absent. Sixty-five lane worktrees remain alongside the integration checkout: 31 have tracked or untracked changes, 33 have unmatched commits under the cleanup proof, and the clean flag-hooks lane retains its historical rejection record. Some retained trees have overlapping reasons. Retention does not imply their source changes are missing from the consolidated branch. Branches were preserved. The CI guard stays parked, and stub-precision completion remains unproven. Detailed paths and reasons are available in `.work/tmp/cleanup-results.md`. Recheck the actual trees before any later removal.
+An earlier cleanup at checkpoint `68576caa4868c6ad0171cb188ab3bd25fe5ad912` removed seventeen worktrees and left 65 lane worktrees. The 2026-10-22 winddown audit supersedes that count. It removed every child worktree and kept all named branch refs.
 
 ## Historical reference and execution record
 
-The following sections describe earlier policy and measurements. Use the revised roadmap above for future work. Historical acceptance claims apply only to the recorded trees and checks.
+The following sections describe earlier policy and measurements. Use the paused handoff at the top if the owner resumes work. Historical acceptance claims apply only to the recorded trees and checks.
 
 ## Reference: how typing currently works
 
@@ -257,6 +324,7 @@ Append one line per consequential executor judgment: item, decision, evidence an
 
 Append one short entry per phase and parked item. Include accepted commits, changed contracts, exact verification commands, outcomes, elapsed times, remaining obligations and retry conditions. Keep raw transient checker output in scratch. Persist only the findings needed to resume or assess the campaign.
 
+- 2026-10-22 campaign winddown: exact evaluation of candidate tree `f91e7117f6c50256947b20625af5928f94d3d079` against parent `671b8191b9c48fc3b954c2046189ae8f2fc15e70` rejected the five-file Explore saved-query proposal. The command was `TMPDIR=.work/tmp .venv/bin/python -m tools.mypy_helpers.typing_campaign evaluate --parent 671b8191b9c48fc3b954c2046189ae8f2fc15e70 --candidate-tree f91e7117f6c50256947b20625af5928f94d3d079 --output .work/tmp/typing-campaign-explore-wave-20261022-run1`. The final in-progress process check showed 33:24 elapsed; the completed run took longer. The report is compressed at `.work/tmp/typing-campaign-explore-wave-20261022-run1/report.json.gz`. It records new serializer precision errors, Any obligations, and a broad-dict Any bypass in `ExploreSavedQueryBase.convert_args`. Revert `7bcd77c1fde` removed the proposal from `typing-hillclimb`; its branch remains for later review. The focused saved-query suite passed 66 tests, but detail and starred suites were not run because Snuba is unavailable. P5 guard, P6 transfer, and P8 GitLab drafts are parked on named branches. All child worktrees were removed, all named refs were retained, and nothing was pushed.
 - 2026-10-22 accepted source wave and rebase: the corrected source comparison accepted tree `71207eeedacfd5c42f56a083505974928a342a83` against parent `6730ff881ce26eab8ceab86a491ee39beceab71a`. It retired 10 all-strong diagnostics, 18 signature omissions, 107 precision diagnostics, and 152 Any obligations with no additions in the measured profiles. The preceding accepted GitLab/serializer wave is `d8cb20981423ede376e9d8fa6db4e0206f430168`, report `.work/tmp/typing-campaign-full-7d16eb2/report.json`. Rebased 220 commits onto `upstream/master` `c8c25290cb1`; its only change since the GitLab comparison base is one TSX line, so Python, evaluator, and policy inputs still match. The dashboard widget/query persistence methods are parked because Snuba is unavailable. The next source proposal is the Bitbucket client, pending response-boundary review.
 - 2026-10-21 latest-master steering checkpoint: reviewed the accepted GitLab client change, rejected GitLab candidates, P2 loop-speed result, and completed P3 scouts. The limiting stage is full-scope acceptance, not proposal supply. Froze cache/evaluator work and new metadata scouting. Updated the active roadmap and notified the affected completed lanes. The current-master baseline is `.work/wt/typing-master-baseline/.work/tmp/typing-baseline-master-20261021-current/report.json`: tree `1f4428acf88890ef68ba9718c37a17aa54de4b5a`, 8,356 inventory paths, 8,324 graph targets, zero core gaps, and 108/171/11,833 configured/unsuppressed/all-strong diagnostics. Profile elapsed times were 134.13/132.51/132.18 seconds, with peak RSS of 3.27 GB. The baseline command did not measure repository-wide precision.
 - 2026-10-21 GitLab repository-provider proposal: annotated seven provider methods with GitLab project, commit, diff, and commit-output shapes. Narrowed `IntegrationRepositoryProvider.format_date` to its implemented `datetime | None` result. Configured mypy and read-only Ruff passed. Focused all-strong mypy leaves one `no-untyped-def` on `repository_external_slug`, which is parked because its integer-capable runtime value conflicts with the declared string response contract. `tests/sentry/integrations/gitlab/test_repository.py` passed 26 tests. The source change remains provisional until exact wave acceptance.
@@ -352,6 +420,6 @@ Append one short entry per phase and parked item. Include accepted commits, chan
 - 2026-10-14 P2 exact-tree acceptance: `TMPDIR=/Users/josh/dev/sentry/.work/tmp PYTHONWARNINGS=error::RuntimeWarning .venv/bin/python -m tools.mypy_helpers.typing_campaign evaluate --parent a14fe390435 --candidate-tree 77e271e946fd3e2fd91a95f7d3c72a18122a9018 --output .work/tmp/p2-eval-api-owners-repaired` accepted commit `9c28a9c57d912098957f1dafb7319ce4db519df1` with adoption credit and no configured, unsuppressed, or all-strong additions. It removed three weak option pairs for `sentry.api.api_owners`; profile totals remained 33/77/3,224. Core coverage was complete across 8,266 paths. Precision remains incomplete.
 - 2026-10-14 P2 loop improvement: added fail-closed same-evaluation reuse for a candidate whose only changed path is `pyproject.toml` and whose weaklist-cleared policy, source inventory, and source digests match the just-measured parent. Candidate configured and unsuppressed profiles still run; only candidate all-strong checking is reused, with explicit parent-tree provenance. Identical source contracts also reuse the in-memory parent analysis when precision is absent on both sides. Reuse cannot load older artifacts and falls back to fresh evaluation whenever its invariants differ. `TMPDIR=/Users/josh/dev/sentry/.work/tmp .venv/bin/pytest --basetemp=.work/tmp/pytest-p2-reuse -q tests/tools/mypy_helpers/test_typing_campaign.py` passed 59 tests in 7.96 seconds; read-only Ruff, targeted mypy, and `git diff --check` passed. This infrastructure change earns no adoption credit.
 
-## Resume from this checkpoint
+## Historical resume note
 
-Use the current checkpoint at the top of this document. The rebase and branch-wide core comparison are settled. Continue with one grouped application source wave from the current all-strong profile, then run focused checks and exact acceptance on the combined tree. Keep the 135 test-only Any obligations visible and precision completion open. Do not start evaluator or cache work unless invalid measurement or unsafe acceptance is reproduced. Keep service-dependent tests parked until Snuba or objectstore setup changes. Getsentry is unavailable; do not try it. Do not rebase routinely, activate the CI guard, change workflows, or run formatters.
+Use the paused handoff at the top of this document. The directions in this historical note no longer authorize a new source wave.
