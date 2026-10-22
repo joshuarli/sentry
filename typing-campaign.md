@@ -1,5 +1,7 @@
 # Sentry typing hillclimb
 
+**Status: winding down.** No new campaign items will be started. Finish or park work already in flight, integrate coherent safe changes, then leave a reboot-ready handoff.
+
 ## Current checkpoint
 
 Continue the existing migration on `typing-hillclimb`. Optimize verified application typing debt retired. Report metadata cleanup separately from application signatures, generics, and all-strong diagnostics retired.
