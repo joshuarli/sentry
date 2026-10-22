@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -23,9 +23,9 @@ class ApiKeySerializer(Serializer[ApiKeySerializerResponse]):
     def serialize(
         self,
         obj: ApiKey,
-        attrs: Mapping[str, Any],
+        attrs: Mapping[object, object],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> ApiKeySerializerResponse:
         return {
             "id": str(obj.id),

@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, NotRequired, TypedDict
+from typing import NotRequired, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -26,11 +26,11 @@ class OrgAuthTokenSerializer(Serializer[OrgAuthTokenSerializerResponse]):
     def serialize(
         self,
         obj: OrgAuthToken,
-        attrs: Mapping[str, Any],
+        attrs: Mapping[object, object],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> OrgAuthTokenSerializerResponse:
-        token = kwargs["token"]
+        token = cast(str | None, kwargs["token"])
         data: OrgAuthTokenSerializerResponse = {
             "id": str(obj.id),
             "name": obj.name,
