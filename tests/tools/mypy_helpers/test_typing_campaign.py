@@ -1924,6 +1924,9 @@ def test_precision_adapter_accounts_for_declaration_expression_sentinels(
         "TypeVarTuple, TypedDict\n\n"
         "Alias: TypeAlias = list[Any]\n"
         "T = TypeVar('T')\n"
+        "class Model:\n"
+        "    pass\n"
+        "AvatarObjectT = TypeVar('AvatarObjectT', bound=Model)\n"
         "P = ParamSpec('P')\n"
         "Ts = TypeVarTuple('Ts')\n"
         "Point = NamedTuple('Point', [('value', Any)])\n"
@@ -1955,6 +1958,20 @@ def test_precision_adapter_accounts_for_declaration_expression_sentinels(
     assert measurement.unanchored_any_count == 0
     assert all(
         not item.anchor.startswith("unanchored:")
+        for item in measurement.any_obligations
+        if item.path == source_path
+    )
+    example_module = ast.parse((root / source_path).read_text())
+    typevar_assignments = {
+        statement.targets[0].id: statement
+        for statement in example_module.body
+        if isinstance(statement, ast.Assign)
+        and isinstance(statement.targets[0], ast.Name)
+        and statement.targets[0].id == "AvatarObjectT"
+    }
+    avatar_typevar_line = typevar_assignments["AvatarObjectT"].lineno
+    assert not any(
+        item.line == avatar_typevar_line and item.origin == "special_form"
         for item in measurement.any_obligations
         if item.path == source_path
     )
