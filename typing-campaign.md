@@ -1,28 +1,71 @@
 # Sentry typing hillclimb
 
-**Status: winding down, 2026-10-22.** The campaign is frozen. Finish and reconcile work already in flight, then leave the reboot-ready handoff below. Do not start new lanes or waves. Do not push.
+**Status: paused 2026-10-22.** No campaign lane is active. Do not dispatch new work until the owner resumes the campaign.
 
-## Current checkpoint
+## Resume
 
-- The current `upstream/master` is `9ea8f75f35f`. The local integration branch was rebased from `c25d6b051f763b34d255b81c52e8058f1b320dd3`; all 240 campaign commits replayed without conflicts. The rebase was required to establish current-master baselines. Nothing was pushed.
-- Current `HEAD` is `2bcd23b5b452c01c2774598055fd588f56f493cc`. Its `.github/` tree matches upstream. The worktree is clean and the existing `.venv` runs Python 3.13.15.
-- The prior full comparison was based on `c25d6b0` and its evaluated candidate included an inherited deletion of 110 `.github/` paths. That report was rejected only for 24 removed owned sources and their 367 missing-signature records. Its app-only results are historical; they do not establish acceptance on `9ea8f75f35f`.
-- The limiting stage is a fresh fixed-policy full-scope comparison on the rebased tree. Build a synthetic parent from `upstream/master` with the candidate's exact `pyproject.toml`, `tools/mypy_helpers/`, and `tests/tools/mypy_helpers/`, verify trusted policy and source inventory, then run `evaluate` against the exact `HEAD`. This provides current-master configured, unsuppressed, all-strong, and precision measurements in one parent/candidate run. Do not start another source wave before it completes.
-- The last comparable c25 application result retired 186 all-strong diagnostics and 348 signature omissions, with zero added configured, unsuppressed, all-strong, or application Any debt. Precision findings remain: 135 test-only Any obligations and 29 test precision diagnostics. Treat these figures as historical until the current-master evaluation finishes.
-- Accepted P3 metadata changes and accepted P4/P7 source work are integrated. Keep metadata cleanup separate from application contracts. The Explore saved-query wave and internal beacon proposal remain rejected; the P6 transfer proposal remains unverified; the P8 GitLab draft is superseded; `EmptyListField` has a documented child-dependent stub blocker; dashboard/query work is parked for unavailable Snuba and objectstore.
-- Regression enforcement is still an open deliverable. Review the local `typing_campaign guard` and parked P5 proposal. Repository rules prohibit workflow changes during this campaign, so determine what can be completed in the local guard without adding CI changes.
-- One read-only guard review is in progress. Do not open more preparation lanes while global acceptance is the bottleneck. Use GPT-6-Luna at high reasoning for campaign work. Do not run formatters or Getsentry verification; continue setting up directly without `devenv` if the existing environment stops working.
+Resume prompt: `Resume the paused typing hillclimb campaign on joshuarli/sentry:typing-hillclimb. Use GPT-6-Luna at high reasoning. Skip Getsentry checks because its checkout is unavailable. Do not invoke devenv; if setup is needed, follow devenv/sync.py directly. Do not run formatters or push. Re-read the current owner instructions, this handoff, and the orchestrate parent steering checkpoint before selecting work.`
 
-### Steering and scope
+First command: `git status --short --branch && git log -1 --oneline && git remote -v`
 
-- The owner requirements remain fixed: preserve runtime and public API behavior, source coverage, locked dependencies, focused runtime checks, full configured and all-strong acceptance, the final precision audit, and separate core/precision milestones.
-- Review the baseline and current rejected/parked proposals against source, callers, tests, and available evidence. Reclassify newly exposed existing dynamic debt separately from regressions. Do not hide truthful contracts or weaken acceptance.
-- After current-master acceptance, choose one related source or precision wave that removes substantive debt and can be verified on the exact combined tree. Keep a bounded batch and preserve independent cold audit requirements. Keep service-dependent work parked once with its retry condition.
-- Resolve only a demonstrated acceptance defect or an unsafe measurement while the ten-source-promotion evaluator freeze is active. Do not expand infrastructure for its own sake.
+## State
+
+- The freeze checkpoint is `b99c2b71d340683d8bf389497accb7c73c1f291e`. The local handoff commit follows it and changes only this document. The measured application and policy tree is `2bcd23b5b452c01c2774598055fd588f56f493cc`.
+- `upstream/master` is pinned at `9ea8f75f35f`. The rebase from `c25d6b051f763b34d255b81c52e8058f1b320dd3` replayed 240 campaign commits without conflicts. The candidate `.github/` tree matches upstream. `origin/typing-hillclimb` points at the freeze checkpoint, and its reflog records a push at 15:49. This agent did not issue that push. The handoff commit is one local commit ahead of origin.
+- The current-master parent is `013bd5d8586d52d05a12aff11551d14054242a00`. The exact comparison completed with `outcome=complete`, core adoption credit, and `precision_complete=false`. It compared 8,395 inventoried paths with coverage across all 8,395. Each profile measured 8,362 graph targets.
+- Configured errors fell from 158 to 114. Unsuppressed errors fell from 221 to 177. All-strong errors fell from 11,829 to 11,643. The comparison found no additions in these three profiles. Signature omissions fell from 24,840 to 24,504. Any obligations fell from 1,660,846 to 1,659,395. The report classified 45 Any obligations as existing dynamic behavior and found no unmatched application Any obligations.
+- Precision errors fell from 550,533 to 549,390. The candidate removed 1,192 and added 49 precision diagnostics, including 20 in application files and 29 in tests. It also surfaced 135 test-only Any obligations. The final precision inventory still has 66 unanchored expressions and 12 Any obligations in seven unchanged source files. Core adoption passed; precision completion did not.
+- The comparison covered 83 changed source paths and took about 40 minutes end to end. Its raw report and snapshots were removed after recording these results. The existing `.venv` uses Python 3.13.15.
+- No accepted patch is missing from `origin/typing-hillclimb`. The stale `typing-hillclimb-resume-20261022` ref has no unique commits and omits current-master updates. Do not merge it.
+- Historical `.work/tmp` paths in the log describe past runs. Their results are summarized in this document. Those files are not needed to resume.
+
+## Direction
+
+Keep core typing completion separate from precision completion. The latest-master comparison accepts the current core candidate. It does not complete the precision audit or the migration. The next limiting work is to classify the 20 application precision additions and 29 test additions, then repair truthful contracts without hiding existing dynamic behavior.
+
+Do not expand evaluator infrastructure. Use the current exact comparison as the accepted checkpoint. Preserve runtime behavior, public APIs, source coverage, locked dependencies, and focused runtime checks. The local `typing_campaign guard` is manual. The P5 CI proposal remains parked because it changes `.github/workflows/backend.yml` and the current repository instructions require explicit authorization for workflow work.
+
+Use GPT-6-Luna at high reasoning for campaign work. Do not run formatters or Getsentry checks. Do not invoke `devenv`. If the existing environment fails, inspect `devenv/sync.py` and run its setup directly.
+
+## Open lanes
+
+- **Precision follow-up, parked.** The exact report adds precision diagnostics in `src/sentry/api/bases/avatar.py`, `src/sentry/api/endpoints/broadcast_details.py`, `src/sentry/api/endpoints/organization_recent_searches.py`, `src/sentry/api/endpoints/project_member_index.py`, `src/sentry/api/serializers/models/apiapplication.py`, `src/sentry/api/serializers/models/projectownership.py`, `src/sentry/backup/dependencies.py`, `src/sentry/core/endpoints/organization_member_details.py`, `src/sentry/integrations/gitlab/client.py`, and `src/sentry/notifications/notifications/organization_request/abstract_invite_request.py`. Review these findings and the 29 test findings before the next precision claim.
+- **P5 typing guard, parked** on `p5-typing-guard` at `8ec4365af05`. Its CI workflow change is stale and it does not wire the local hook. Retry only after the owner authorizes workflow changes and the current parent is fixed. The existing local guard remains available for manual wave checks.
+- **P6 transfer, parked** on `typing-p6-transfer-draft` at `0bbef064d57`. Its `unsign()` result is cast to `ProjectTransferPayload` without validating the runtime shape. Retry after validating that payload and adding focused coverage.
+- **P10 Explore saved queries, rejected** on `typing-hillclimb-p10-explore-saved-queries` at `799aa3798ac`. The exact evaluation found new serializer precision errors, Any obligations, and a broad `dict[str, Any]` bypass. Do not merge this candidate.
+- **P4 internal beacon, rejected** on `p4-internal-beacon-e69e` at `478ce1c4b07`. Its `MetricsSerializer` change added six Any obligations. Do not merge this candidate.
+- **P8 GitLab client, superseded** on `typing-p8-gitlab-client` at `d6333741cfb`. Its accepted source changes are present in the integration branch. Do not cherry-pick it again.
+- **`EmptyListField`, blocked** by the child-dependent DRF contract. Preserve empty-string passthrough and arbitrary child output. Do not claim `list[str]` or add string-only validation to make that annotation fit.
+- **Dashboard and query tests, parked** until Snuba and objectstore are available. Getsentry is absent and must not be used for verification.
+- The remaining no-merged refs are parked, accepted, superseded, or historical. Every branch name appears under [Retained lane refs](#retained-lane-refs) or in the historical lane lists below. No active lane worktree remains.
+
+## Cleanup
+
+- Winddown cleanup removed one superseded P10 checkout. Earlier cleanup had already removed the other lane checkouts; its count and disk use were not recorded. This pass removed 26 generated `.pyc` files from the retained baseline checkout and 4.5 GiB of current-master comparison output after recording the summary.
+- Keep `.work/wt/typing-current-master-baseline-20261022` on branch `typing-current-master-baseline-20261022` at `013bd5d8586d52d05a12aff11551d14054242a00`. The checkout is clean. It is the exact parent for reproducing the current-master comparison. Its on-disk size is about 276 MiB.
+- `.work/` is ignored through `.git/info/exclude` and resides on APFS. The final disk check showed about 134 GiB available. The baseline is the only retained non-integration worktree.
+
+## Not started
+
+1. Classify the 20 application and 29 test precision additions from the current comparison.
+2. Review the 135 test-only Any obligations and repair `EmptyListField` only after confirming the child-dependent runtime contract.
+3. Re-read the current all-strong inventory, perform a parent steering checkpoint, then choose one grouped source wave. Do not restart the rejected P10 wave.
+4. Revisit automated guard enforcement only if the owner authorizes workflow changes. Keep Snuba and objectstore work parked until both required services are available.
+
+No owner decision is needed to keep the campaign paused. Automatic CI enforcement needs explicit workflow authorization before P5 can resume.
+
+## Verified
+
+- Rebase replayed 240 commits without conflicts. The `.github/` tree matches `upstream/master` at `9ea8f75f35f`.
+- The exact current-master evaluator completed with core adoption accepted, full source coverage, and precision completion still pending. No Sentry runtime tests were run for this documentation-only closeout.
+- All campaign subagents have completed. The only live checkout besides the integration branch is the clean comparison baseline named above. The closeout guard allows that path for its current comparison use.
+- `.work/` is ignored and on APFS. Campaign temporary paths in this document are under `.work/tmp`. No campaign process or scheduled wakeup remains.
+- The `/hooks` UI is unavailable in this API session, so the Stop hook could not be reviewed. The manual `typing_campaign guard` was not run during winddown. No formatter or Getsentry check ran.
+- The first command under Resume was rehearsed from a clean shell. This agent made no push. The handoff commit remains one commit ahead of origin.
 
 ## Winddown record (2026-10-22)
 
-This section preserves the prior winddown; the active checkpoint above supersedes its pause and baseline instructions.
+This section preserves the earlier winddown history. The paused handoff above is authoritative.
 
 ### Handoff at winddown
 
@@ -59,8 +102,11 @@ p4-api-application-serializer, p4-api-tokens, p4-auth-token-details, p4-auth-tok
 Other historical refs:
 
 ```text
-p5-serializer-containment, p5-stub-precision, typing-loop-speed, typing-loop-speed-20261021, typing-p3-projectplatform, typing-p4-organization-pipeline, typing-p7-organizationmember-wave, typing/p3-grouping-actions
+p5-serializer-containment, p5-stub-precision, typing-current-master-baseline-20261022, typing-hillclimb-resume-20261022, typing-loop-speed, typing-loop-speed-20261021, typing-p3-projectplatform, typing-p4-organization-pipeline, typing-p7-organizationmember-wave, typing/p3-grouping-actions
 ```
+
+- `typing-current-master-baseline-20261022` at `013bd5d8586` is the exact parent used for the current comparison. Its clean checkout stays under `.work/wt/typing-current-master-baseline-20261022` for one reproducible current-master baseline.
+- `typing-hillclimb-resume-20261022` at `617a8382e7b` is based on the old `c25d6b0` tree. Its commits are patch-equivalent to the rebased branch, and its tree lacks current-master changes. Do not merge it.
 
 ### Cleanup
 
@@ -431,6 +477,7 @@ Append one short entry per phase and parked item. Include accepted commits, chan
 - 2026-10-14 P2 acceptance repair: the first exact-tree comparison completed all six parent/candidate core profiles but failed postprocessing on an owned generated migration whose inventory module is absent. The evaluator now reads module identity from mypy's graph for owned generated paths, compares configured diagnostics against the parent, rejects added generated weak or suppression pairs, and checks the committed evaluator policy. Regression tests cover each case, including unmatched module patterns and new suppression codes. The evaluator test file passed 57 tests. The serial helper corpus passed 158 tests in 89.45 seconds. Targeted mypy, Ruff, and `git diff --check` passed. Saved profile outputs do not record enough evaluator or tree-integrity data for safe reuse, so the exact candidate comparison must run again. Do not promote until that comparison passes. This infrastructure repair receives no adoption credit.
 - 2026-10-14 P2 exact-tree acceptance: `TMPDIR=/Users/josh/dev/sentry/.work/tmp PYTHONWARNINGS=error::RuntimeWarning .venv/bin/python -m tools.mypy_helpers.typing_campaign evaluate --parent a14fe390435 --candidate-tree 77e271e946fd3e2fd91a95f7d3c72a18122a9018 --output .work/tmp/p2-eval-api-owners-repaired` accepted commit `9c28a9c57d912098957f1dafb7319ce4db519df1` with adoption credit and no configured, unsuppressed, or all-strong additions. It removed three weak option pairs for `sentry.api.api_owners`; profile totals remained 33/77/3,224. Core coverage was complete across 8,266 paths. Precision remains incomplete.
 - 2026-10-14 P2 loop improvement: added fail-closed same-evaluation reuse for a candidate whose only changed path is `pyproject.toml` and whose weaklist-cleared policy, source inventory, and source digests match the just-measured parent. Candidate configured and unsuppressed profiles still run; only candidate all-strong checking is reused, with explicit parent-tree provenance. Identical source contracts also reuse the in-memory parent analysis when precision is absent on both sides. Reuse cannot load older artifacts and falls back to fresh evaluation whenever its invariants differ. `TMPDIR=/Users/josh/dev/sentry/.work/tmp .venv/bin/pytest --basetemp=.work/tmp/pytest-p2-reuse -q tests/tools/mypy_helpers/test_typing_campaign.py` passed 59 tests in 7.96 seconds; read-only Ruff, targeted mypy, and `git diff --check` passed. This infrastructure change earns no adoption credit.
+- 2026-10-22 winddown: the current-master comparison accepted core adoption across 83 source paths, removing 186 all-strong diagnostics and 336 signature omissions with no configured, unsuppressed, or all-strong additions. Precision remains incomplete. The campaign is paused with rejected, superseded, and service-blocked work retained on named refs.
 
 ## Historical resume note
 
