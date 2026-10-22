@@ -39,6 +39,7 @@ from tools.mypy_helpers.typing_campaign import (
     _diagnostic_record,
     _effective_option_changes,
     _effective_pairs,
+    _function_scopes,
     _known_environment_warnings,
     _measure_tree,
     _merge_profiles,
@@ -3210,6 +3211,87 @@ def test_new_annotation_can_expose_existing_untyped_call(tmp_path: Path) -> None
             "line": 2,
         }
     ]
+
+
+def test_precision_diagnostic_on_decorator_maps_to_function_scope(tmp_path: Path) -> None:
+    source_path = "src/sentry/example.py"
+    symbol = "sentry.example.endpoint#1"
+    parent_root = tmp_path / "parent"
+    candidate_root = tmp_path / "candidate"
+    (parent_root / source_path).parent.mkdir(parents=True)
+    (candidate_root / source_path).parent.mkdir(parents=True)
+    (parent_root / source_path).write_text(
+        "def endpoint(request):\n    return request\n"
+    )
+    (candidate_root / source_path).write_text(
+        "from typing import cast\n"
+        "@extend_schema\n"
+        "def endpoint(request: Request) -> Response:\n"
+        "    return cast(Response, request)\n"
+    )
+    inventory = (SourceFile(source_path, "sentry.example", SourceKind.OWNED_IMPLEMENTATION),)
+    signature = (source_path, symbol, "parameter:request")
+    diagnostic = DiagnosticRecord(
+        source_path,
+        "misc",
+        'Expression type contains "Any" (has type "Callable[..., Any]")',
+        2,
+    )
+    parent = replace(
+        _tree(
+            signatures={signature: "<missing>"},
+            source_digests={source_path: "parent"},
+            inventory=inventory,
+            profiles=tuple(Profile),
+        ),
+        root=parent_root,
+    )
+    candidate = replace(
+        _tree(
+            precision_diagnostics=(diagnostic,),
+            signatures={signature: "Request"},
+            source_digests={source_path: "candidate"},
+            inventory=inventory,
+            profiles=tuple(Profile),
+        ),
+        root=candidate_root,
+    )
+
+    decision = decide_candidate(
+        parent, candidate, require_adoption_credit=False, precision_calibrated=True
+    )
+
+    assert decision.outcome == Outcome.COMPLETE, decision.reasons
+    exposed_diagnostics = cast(
+        dict[str, list[dict[str, object]]], decision.details["exposed_dynamic_diagnostics"]
+    )
+    assert exposed_diagnostics["precision"] == [
+        {
+            "path": source_path,
+            "code": "misc",
+            "message": diagnostic.message,
+            "line": 2,
+        }
+    ]
+
+
+def test_function_scope_does_not_normalize_shadowed_cast(tmp_path: Path) -> None:
+    parent = ast.parse("def endpoint(value):\n    return value\n")
+    candidate = ast.parse(
+        "from typing import cast\n"
+        "def endpoint(value):\n"
+        "    cast = identity\n"
+        "    return cast(object, value)\n"
+    )
+
+    parent_body = _function_scopes(parent, "sentry.example")[1][
+        "sentry.example.endpoint#1"
+    ]
+    candidate_body = _function_scopes(candidate, "sentry.example")[1][
+        "sentry.example.endpoint#1"
+    ]
+
+    assert candidate_body != parent_body
 
 
 def test_new_annotation_exposes_omitted_generic_in_unchanged_function(tmp_path: Path) -> None:
