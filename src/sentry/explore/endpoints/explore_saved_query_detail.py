@@ -1,5 +1,3 @@
-from typing import Any
-
 from django.db.models import F
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -38,14 +36,7 @@ class ExploreSavedQueryBase(OrganizationEndpoint):
     owner = ApiOwner.EXPLORE
     permission_classes = (ExploreSavedQueryPermission,)
 
-    def convert_args(
-        self,
-        request: Request,
-        organization_id_or_slug: int | str | None,
-        id: int | str,
-        *args: Any,
-        **kwargs: Any,
-    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+    def convert_args(self, request: Request, organization_id_or_slug, id, *args, **kwargs):
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
         try:
@@ -68,7 +59,7 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def has_feature(self, organization: Organization, request: Request) -> bool:
+    def has_feature(self, organization, request):
         return features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         )
@@ -191,14 +182,12 @@ class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def has_feature(self, organization: Organization, request: Request) -> bool:
+    def has_feature(self, organization, request):
         return features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         )
 
-    def post(
-        self, request: Request, organization: Organization, query: ExploreSavedQuery
-    ) -> Response:
+    def post(self, request: Request, organization, query) -> Response:
         """
         Update last_visited and increment visits counter
         """
