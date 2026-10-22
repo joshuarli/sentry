@@ -43,7 +43,6 @@ from sentry.explore.models import (
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.search.utils import tokenize_query
-from sentry.users.models.user import User
 from sentry.utils.locking import UnableToAcquireLock
 
 PREBUILT_SAVED_QUERIES = [
@@ -194,7 +193,7 @@ PREBUILT_SAVED_QUERIES = [
 ]
 
 
-def sync_prebuilt_queries(organization: Organization) -> None:
+def sync_prebuilt_queries(organization):
     """
     Queries the database to check if prebuilt queries have an ExploreSavedQuery record and
     creates them if they don't, updates them if they're outdated, or deletes them if they
@@ -269,7 +268,7 @@ def sync_prebuilt_queries(organization: Organization) -> None:
             ).delete()
 
 
-def sync_prebuilt_queries_starred(organization: Organization, user: User) -> None:
+def sync_prebuilt_queries_starred(organization, user):
     """
     Queries the database to check if prebuilt queries have an ExploreSavedQueryStarred record for the user_id, and creates them if they don't.
     This ensures that prebuilt queries are starred by default for all users.
@@ -322,7 +321,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EXPLORE
     permission_classes = (ExploreSavedQueryPermission,)
 
-    def has_feature(self, organization: Organization, request: Request) -> bool:
+    def has_feature(self, organization, request):
         return features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         )
@@ -507,7 +506,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
 
         queryset = queryset.order_by(*order_by)
 
-        def data_fn(offset: int, limit: int) -> list[ExploreSavedQuery]:
+        def data_fn(offset, limit):
             return list(queryset[offset : offset + limit])
 
         return self.paginate(

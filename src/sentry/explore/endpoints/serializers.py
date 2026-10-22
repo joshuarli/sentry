@@ -1,6 +1,5 @@
 import logging
-from datetime import datetime, timedelta
-from typing import Literal, NotRequired, TypedDict, cast
+from datetime import timedelta
 
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError, ValidationError
@@ -15,62 +14,6 @@ MAX_CROSS_EVENT_QUERIES = 2
 MAX_CROSS_EVENT_RANGE = timedelta(days=7)
 
 logger = logging.getLogger(__name__)
-
-
-class AggregateFieldData(TypedDict, total=False):
-    chartType: int
-    yAxes: list[str]
-    groupBy: str
-
-
-class VisualizeData(TypedDict):
-    yAxes: list[str]
-    chartType: NotRequired[int]
-
-
-class CrossEventData(TypedDict):
-    query: str
-    type: Literal["spans", "logs", "metrics"]
-    metric: NotRequired[dict[str, str | None] | None]
-
-
-class QueryDataOptional(TypedDict, total=False):
-    fields: list[str] | None
-    orderby: str | None
-    groupby: list[str] | None
-    query: str | None
-    visualize: list[VisualizeData] | None
-    aggregateField: list[AggregateFieldData] | None
-    aggregateOrderby: str | None
-    metric: dict[str, str | None] | None
-    caseInsensitive: bool
-
-
-class QueryData(QueryDataOptional):
-    mode: Literal["samples", "aggregate"]
-
-
-class ExploreSavedQueryInput(TypedDict):
-    name: str
-    projects: list[int] | set[int]
-    dataset: Literal["spans", "logs", "segment_spans", "metrics", "replays", "ai_conversations"]
-    query: list[QueryData]
-    start: NotRequired[datetime | None]
-    end: NotRequired[datetime | None]
-    range: NotRequired[str | None]
-    statsPeriod: NotRequired[str | None]
-    environment: NotRequired[list[str] | None]
-    interval: NotRequired[str | None]
-    crossEvents: NotRequired[list[CrossEventData] | None]
-    agent: NotRequired[list[str] | None]
-    errorsOnly: NotRequired[bool | None]
-
-
-class ExploreSavedQueryValidatedData(TypedDict):
-    name: str
-    project_ids: list[int] | set[int]
-    query: dict[str, object]
-    dataset: int
 
 
 class VisualizeSerializer(serializers.Serializer):
@@ -90,7 +33,7 @@ class AggregateFieldSerializer(serializers.Serializer):
     # group bys
     groupBy = serializers.CharField(required=False)
 
-    def validate(self, data: AggregateFieldData) -> AggregateFieldData:
+    def validate(self, data):
         visualize_serializer = VisualizeSerializer(data=data)
 
         group_by_serializer = GroupBySerializer(data=data)
@@ -224,7 +167,7 @@ class CrossEventSerializer(serializers.Serializer):
         help_text="The metric configuration (only used when type is metrics).",
     )
 
-    def validate(self, data: CrossEventData) -> CrossEventData:
+    def validate(self, data):
         if data.get("type") == "metrics" and not data.get("metric"):
             raise serializers.ValidationError(
                 "Metric field is required for metrics cross-event entries"
@@ -236,9 +179,7 @@ class CrossEventSerializer(serializers.Serializer):
         return data
 
 
-class ExploreSavedQuerySerializer(
-    serializers.Serializer[object, ExploreSavedQueryValidatedData]
-):
+class ExploreSavedQuerySerializer(serializers.Serializer):
     name = serializers.CharField(
         required=True, max_length=255, help_text="The user-defined saved query name."
     )
@@ -302,14 +243,14 @@ class ExploreSavedQuerySerializer(
         help_text="The Explore query definitions to save.",
     )
 
-    def validate_projects(self, projects: list[int]) -> set[int]:
+    def validate_projects(self, projects):
         from sentry.api.validators import validate_project_ids
 
         return validate_project_ids(projects, self.context["params"]["project_id"])
 
     # Avoid including any side-effecting logic here, since this logic is also used when generating prebuilt queries on first read
-    def validate(self, data: ExploreSavedQueryInput) -> ExploreSavedQueryValidatedData:
-        query: dict[str, object] = {}
+    def validate(self, data):
+        query = {}
         query_keys = [
             "environment",
             "statsPeriod",
@@ -336,11 +277,11 @@ class ExploreSavedQuerySerializer(
 
         for key in query_keys:
             if data.get(key) is not None:
-                value = data.get(key)
+                value = data[key]
                 if key in ("start", "end"):
-                    value = cast(datetime, value).isoformat()
+                    value = value.isoformat()
                 if key == "crossEvents":
-                    value = [dict(ce) for ce in cast(list[CrossEventData], value)]
+                    value = [dict(ce) for ce in value]
                 query[key] = value
 
         if query.get("crossEvents"):
@@ -352,8 +293,7 @@ class ExploreSavedQuerySerializer(
                     raise serializers.ValidationError("Cross event queries are limited to 7 days.")
 
         if "query" in data:
-            inner_queries: list[dict[str, object]] = []
-            query["query"] = inner_queries
+            query["query"] = []
             for q in data["query"]:
                 if "metric" in q and data["dataset"] != "metrics":
                     raise serializers.ValidationError(
@@ -371,11 +311,11 @@ class ExploreSavedQuerySerializer(
                     raise serializers.ValidationError(
                         "Metric field is required for non-equation queries on the metrics dataset"
                     )
-                inner_query: dict[str, object] = {}
+                inner_query = {}
                 for key in inner_query_keys:
                     if key in q:
-                        inner_query[key] = q.get(key)
-                inner_queries.append(inner_query)
+                        inner_query[key] = q[key]
+                query["query"].append(inner_query)
 
         if data["projects"] == ALL_ACCESS_PROJECTS:
             data["projects"] = []
@@ -383,7 +323,7 @@ class ExploreSavedQuerySerializer(
 
         if "query" in query:
             if "interval" in query:
-                interval = parse_stats_period(cast(str, query["interval"]))
+                interval = parse_stats_period(query["interval"])
                 if interval is None:
                     raise serializers.ValidationError("Interval could not be parsed")
                 date_range = self.context["params"]["end"] - self.context["params"]["start"]
