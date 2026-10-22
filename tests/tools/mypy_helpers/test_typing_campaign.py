@@ -3237,6 +3237,12 @@ def test_precision_diagnostic_on_decorator_maps_to_function_scope(tmp_path: Path
         'Expression type contains "Any" (has type "Callable[..., Any]")',
         2,
     )
+    decorated_diagnostic = DiagnosticRecord(
+        source_path,
+        "misc",
+        'Type of decorated function contains type "Any"',
+        3,
+    )
     parent = replace(
         _tree(
             signatures={signature: "<missing>"},
@@ -3248,7 +3254,7 @@ def test_precision_diagnostic_on_decorator_maps_to_function_scope(tmp_path: Path
     )
     candidate = replace(
         _tree(
-            precision_diagnostics=(diagnostic,),
+            precision_diagnostics=(diagnostic, decorated_diagnostic),
             signatures={signature: "Request"},
             source_digests={source_path: "candidate"},
             inventory=inventory,
@@ -3271,6 +3277,12 @@ def test_precision_diagnostic_on_decorator_maps_to_function_scope(tmp_path: Path
             "code": "misc",
             "message": diagnostic.message,
             "line": 2,
+        },
+        {
+            "path": source_path,
+            "code": "misc",
+            "message": decorated_diagnostic.message,
+            "line": 3,
         }
     ]
 
