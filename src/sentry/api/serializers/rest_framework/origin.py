@@ -4,13 +4,10 @@ from sentry.utils.http import parse_uri_match
 
 
 class OriginField(serializers.CharField):
-    # Special case origins that don't fit the normal regex pattern, but are valid
     WHITELIST_ORIGINS = "*"
 
-    def to_internal_value(self, data: str) -> str | None:  # type: ignore[override]  # None passthrough for blank input
+    def to_internal_value(self, data: str) -> str:
         rv = super().to_internal_value(data)
-        if not rv:
-            return None
         self.validate_origin(rv)
         return rv
 
