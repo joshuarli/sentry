@@ -3188,7 +3188,11 @@ def decide_candidate(
                 profile_name == Profile.PRECISION.value
                 and item.code == "misc"
                 and item.message.startswith(
-                    ('Expression type contains "Any"', 'Expression has type "Any"')
+                    (
+                        'Expression type contains "Any"',
+                        'Expression has type "Any"',
+                        'Type of decorated function contains type "Any"',
+                    )
                 )
                 and scope is not None
                 and (item.path, scope) in unchanged_scopes
