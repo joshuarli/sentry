@@ -1,27 +1,28 @@
 # Sentry typing hillclimb
 
-**Status: paused after winddown, 2026-10-22.** All accepted campaign work is integrated locally on `typing-hillclimb`. Do not resume waves or push without a new owner instruction. Core typing completion, precision completion, and regression enforcement remain unfinished.
+**Status: winding down, 2026-10-22.** The campaign is frozen. Finish and reconcile work already in flight, then leave the reboot-ready handoff below. Do not start new lanes or waves. Do not push.
 
-## Final handoff
+## Current checkpoint
 
-- `upstream` points to `git@github.com:getsentry/sentry.git`; the frozen base is `c25d6b051f763b34d255b81c52e8058f1b320dd3`.
-- The rebased integration candidate is `c6d0de91ba8e49dfe5246154d54f6350cd6db610` before this handoff commit. It includes the accepted campaign changes and excludes the inherited `delete ci` commit. That commit removed 110 workflow/config paths and 24 owned Python sources, outside campaign scope and contrary to the instruction not to change workflows. The final `.github/` tree exactly matches the fixed-policy parent and latest master.
-- The synthetic parent is commit `ca4a9c056db4187a2d65b3041a95c0aca5fc6aa3` (tree `8213b145cae66b93f03fe4be512681849cbbc8e3`). The full evaluator ran for about 37 minutes against candidate tree `df320e0754e29cd1900184e270aa0e8446287d59`, then rejected it for 391 reasons: 24 removed `.github/` owned sources and 367 signatures that disappeared with those files. All rejection reasons were confined to `.github/`.
-- The candidate after dropping `delete ci` has the same application sources, policy, evaluator, dependencies, and environment as the measured candidate; `.github/` is restored exactly to the parent. I reused the measured application results rather than rerunning the full evaluator. This is qualified evidence, not a claim that the evaluator command passed on the final exact tree. The compressed report and inventory are retained under `.work/tmp/typing-campaign-current-master-20261022/`.
-- The measured application delta added zero configured, unsuppressed, or all-strong errors; zero application Any obligations, bypasses, suppressions, or weak settings; and no signature omissions. It removed 186 all-strong errors and improved 348 signature entries. The precision profile removed 1,192 diagnostics and added 49. Precision is incomplete; the run also recorded 135 test-only Any obligations and 29 test precision diagnostics. Core comparison coverage was complete, but the evaluator outcome was rejected solely by the out-of-scope `.github/` deletion.
-- Accepted P3 metadata changes and accepted P4/P7 source work are already present or superseded by stronger integrated versions. No accepted or completed lane proposal remains to cherry-pick. Metadata cleanup is separate from application signature and diagnostic reductions.
-- Parked or rejected proposals remain out of the branch: unverified P6 transfer draft (`typing-p6-transfer-draft`), P5 workflow guard (`p5-typing-guard`), superseded P8 GitLab draft (`typing-p8-gitlab-client`), rejected P4 beacon (`p4-internal-beacon-e69e`), rejected Explore saved-query wave (`typing-hillclimb-p10-explore-saved-queries`), `EmptyListField` pending a sound child-dependent contract, and dashboard/query work blocked by unavailable Snuba and objectstore. Retain their branch refs; do not call them completed.
-- Getsentry was unavailable and was not used for verification. The environment was set up with the Python dependency step corresponding to `devenv/sync.py`, invoked directly through `uv sync --frozen --inexact --python /Users/josh/dev/sentry/.venv/bin/python`; no `devenv` command was used. No formatter was run. Nothing was pushed.
-- The campaign is paused. On resumption, use only GPT-6-Luna at high reasoning for campaign agents, keep the current master base frozen unless the owner requests another rebase, and continue toward the separate core and precision milestones.
+- The current `upstream/master` is `9ea8f75f35f`. The local integration branch was rebased from `c25d6b051f763b34d255b81c52e8058f1b320dd3`; all 240 campaign commits replayed without conflicts. The rebase was required to establish current-master baselines. Nothing was pushed.
+- Current `HEAD` is `2bcd23b5b452c01c2774598055fd588f56f493cc`. Its `.github/` tree matches upstream. The worktree is clean and the existing `.venv` runs Python 3.13.15.
+- The prior full comparison was based on `c25d6b0` and its evaluated candidate included an inherited deletion of 110 `.github/` paths. That report was rejected only for 24 removed owned sources and their 367 missing-signature records. Its app-only results are historical; they do not establish acceptance on `9ea8f75f35f`.
+- The limiting stage is a fresh fixed-policy full-scope comparison on the rebased tree. Build a synthetic parent from `upstream/master` with the candidate's exact `pyproject.toml`, `tools/mypy_helpers/`, and `tests/tools/mypy_helpers/`, verify trusted policy and source inventory, then run `evaluate` against the exact `HEAD`. This provides current-master configured, unsuppressed, all-strong, and precision measurements in one parent/candidate run. Do not start another source wave before it completes.
+- The last comparable c25 application result retired 186 all-strong diagnostics and 348 signature omissions, with zero added configured, unsuppressed, all-strong, or application Any debt. Precision findings remain: 135 test-only Any obligations and 29 test precision diagnostics. Treat these figures as historical until the current-master evaluation finishes.
+- Accepted P3 metadata changes and accepted P4/P7 source work are integrated. Keep metadata cleanup separate from application contracts. The Explore saved-query wave and internal beacon proposal remain rejected; the P6 transfer proposal remains unverified; the P8 GitLab draft is superseded; `EmptyListField` has a documented child-dependent stub blocker; dashboard/query work is parked for unavailable Snuba and objectstore.
+- Regression enforcement is still an open deliverable. Review the local `typing_campaign guard` and parked P5 proposal. Repository rules prohibit workflow changes during this campaign, so determine what can be completed in the local guard without adding CI changes.
+- One read-only guard review is in progress. Do not open more preparation lanes while global acceptance is the bottleneck. Use GPT-6-Luna at high reasoning for campaign work. Do not run formatters or Getsentry verification; continue setting up directly without `devenv` if the existing environment stops working.
 
-### Final steering and scope
+### Steering and scope
 
-- There are no active workers, candidate waves, or remaining integration tasks. The remaining proposals are parked or rejected, not accepted work waiting to merge.
-- The integration is local only. Preserve all campaign refs; do not push or delete branch refs during cleanup.
+- The owner requirements remain fixed: preserve runtime and public API behavior, source coverage, locked dependencies, focused runtime checks, full configured and all-strong acceptance, the final precision audit, and separate core/precision milestones.
+- Review the baseline and current rejected/parked proposals against source, callers, tests, and available evidence. Reclassify newly exposed existing dynamic debt separately from regressions. Do not hide truthful contracts or weaken acceptance.
+- After current-master acceptance, choose one related source or precision wave that removes substantive debt and can be verified on the exact combined tree. Keep a bounded batch and preserve independent cold audit requirements. Keep service-dependent work parked once with its retry condition.
+- Resolve only a demonstrated acceptance defect or an unsafe measurement while the ten-source-promotion evaluator freeze is active. Do not expand infrastructure for its own sake.
 
 ## Winddown record (2026-10-22)
 
-This section preserves an earlier winddown checkpoint; the final handoff above supersedes it.
+This section preserves the prior winddown; the active checkpoint above supersedes its pause and baseline instructions.
 
 ### Handoff at winddown
 
