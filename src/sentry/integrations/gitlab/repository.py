@@ -35,11 +35,6 @@ class GitLabRepositorySetupConfig(TypedDict):
     identifier: str | int
 
 
-class GitLabRepositoryConfig(TypedDict):
-    project_id: str | int
-    webhook_id: NotRequired[str | int]
-
-
 class GitLabCommit(TypedDict):
     id: str
     author_email: str
@@ -74,13 +69,12 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
     def get_repository_data(
         self, organization: Organization, config: MutableMapping[str, object]
     ) -> MutableMapping[str, object]:
-        setup_config = cast(GitLabRepositorySetupConfig, config)
         installation = self.get_installation(
-            setup_config.get("installation"), organization.id
+            cast(GitLabRepositorySetupConfig, config).get("installation"), organization.id
         )
         client = installation.get_client()
 
-        repo_id = setup_config["identifier"]
+        repo_id = cast(GitLabRepositorySetupConfig, config)["identifier"]
         instance = cast(str, installation.model.metadata["instance"])
 
         try:
@@ -181,8 +175,7 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
 
     def on_delete_repository(self, repo: Repository) -> None:
         """Clean up the attached webhook"""
-        config = cast(GitLabRepositoryConfig, repo.config)
-        webhook_id = config.get("webhook_id")
+        webhook_id = repo.config.get("webhook_id")
         # A repository whose hook creation failed has no webhook_id. There is no hook to
         # clean up then, and raising would only stop the user from deleting the repository.
         if not webhook_id:
@@ -190,7 +183,7 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
         try:
-            client.delete_project_webhook(config["project_id"], webhook_id)
+            client.delete_project_webhook(repo.config["project_id"], webhook_id)
         except ApiError as e:
             if e.code == 404:
                 return
@@ -202,17 +195,28 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         """Fetch the commit list and diffed files between two SHAs"""
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
-        config = cast(GitLabRepositoryConfig, repo.config)
         try:
             if start_sha is None:
-                response = client.get_last_commits(config["project_id"], end_sha)
-                commits = cast(Sequence[GitLabCommit], response)
-            else:
-                comparison = client.compare_commits(
-                    config["project_id"], start_sha, end_sha
+                res = cast(
+                    object,
+                    client.get_last_commits(repo.config["project_id"], end_sha),
                 )
-                commits = cast(Sequence[GitLabCommit], comparison["commits"])
-            return self._format_commits(client, repo, commits)
+                return self._format_commits(
+                    client, repo, cast(Sequence[GitLabCommit], res)
+                )
+            else:
+                res = cast(
+                    object,
+                    client.compare_commits(repo.config["project_id"], start_sha, end_sha),
+                )
+                return self._format_commits(
+                    client,
+                    repo,
+                    cast(
+                        Sequence[GitLabCommit],
+                        cast(Mapping[str, object], res)["commits"],
+                    ),
+                )
         except Exception as e:
             raise installation.raise_error(e)
 
@@ -242,9 +246,8 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         """GitLab commit lists don't come with diffs so we have
         to make additional round trips.
         """
-        config = cast(GitLabRepositoryConfig, repo.config)
         diffs = cast(
-            Sequence[GitLabDiff], client.get_diff(config["project_id"], sha)
+            Sequence[GitLabDiff], client.get_diff(repo.config["project_id"], sha)
         )
         return self._transform_patchset(diffs)
 
