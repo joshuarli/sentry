@@ -74,7 +74,7 @@ class OrgAuthToken(ReplicatedControlModel):
     def get_allowed_origins(self) -> list[str]:
         return []
 
-    def get_scopes(self):
+    def get_scopes(self) -> list[str]:
         return self.scope_list
 
     def has_scope(self, scope):

@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -26,8 +26,8 @@ class ProjectPlatformSerializer(Serializer[ProjectPlatformSerializerResponse]):
     def serialize(
         self,
         obj: ProjectPlatform,
-        attrs: Mapping[str, Any],
+        attrs: Mapping[object, object],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> ProjectPlatformSerializerResponse:
         return {"platform": obj.platform, "dateCreated": obj.date_added}

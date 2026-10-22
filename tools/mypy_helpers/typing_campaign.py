@@ -2994,6 +2994,9 @@ def decide_candidate(
         for key in set(parent.signatures) & set(candidate.signatures)
         if parent.signatures[key] != candidate.signatures[key]
     }
+    changed_signature_scopes = {
+        (path, symbol) for path, symbol, _ in changed_signature_keys
+    }
     candidate_any_positions = _signature_any_positions(
         candidate.any_obligations, changed_signature_keys
     )
@@ -3032,8 +3035,8 @@ def decide_candidate(
             (item.path, _any_expression_anchor(item.anchor), item.scope)
             in parent_any_expressions
             or (
-                item.origin in {"from_error", "from_omitted_generics"}
-                and (item.path, item.scope) in newly_typed_scopes
+                item.type_position.startswith("expression:")
+                and (item.path, item.scope) in changed_signature_scopes
             )
         )
     )
@@ -3089,7 +3092,10 @@ def decide_candidate(
             elif (
                 item.code == "no-untyped-call"
                 and scope is not None
-                and (item.path, scope) in newly_typed_scopes
+                and (
+                    (item.path, scope) in newly_typed_scopes
+                    or (item.path, scope) in changed_signature_scopes
+                )
             ):
                 exposed_dynamic_diagnostics[profile_name].append(asdict(item))
             elif (
@@ -3103,6 +3109,7 @@ def decide_candidate(
                 and (
                     (item.path, item.line, scope) in preexisting_candidate_any_lines
                     or (item.path, scope) in newly_typed_scopes
+                    or (item.path, scope) in changed_signature_scopes
                 )
             ):
                 exposed_dynamic_diagnostics[profile_name].append(asdict(item))

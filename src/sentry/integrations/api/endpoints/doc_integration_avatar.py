@@ -11,7 +11,9 @@ from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvat
 
 
 @control_silo_endpoint
-class DocIntegrationAvatarEndpoint(AvatarMixin[DocIntegrationAvatar], DocIntegrationBaseEndpoint):
+class DocIntegrationAvatarEndpoint(
+    AvatarMixin[DocIntegrationAvatar, DocIntegration], DocIntegrationBaseEndpoint
+):
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -21,5 +23,5 @@ class DocIntegrationAvatarEndpoint(AvatarMixin[DocIntegrationAvatar], DocIntegra
     model = DocIntegrationAvatar
     serializer_cls = DocIntegrationAvatarSerializer
 
-    def get_avatar_filename(self, obj: DocIntegration) -> str:  # type: ignore[override]  # convert_args only ever supplies DocIntegration
+    def get_avatar_filename(self, obj: DocIntegration) -> str:
         return f"{obj.slug}.png"
