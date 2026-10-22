@@ -1,6 +1,9 @@
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Literal, TypedDict
+from typing import Any, Literal, TypedDict, cast
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -11,6 +14,8 @@ from sentry.explore.models import (
     ExploreSavedQueryStarred,
 )
 from sentry.users.api.serializers.user import UserSerializerResponse
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
@@ -102,24 +107,39 @@ class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
     changedReason: ExploreSavedQueryChangedReasonType | None
 
 
+class ExploreSavedQueryAttrs(TypedDict, total=False):
+    created_by: UserSerializerResponse | None
+    user_last_visited: datetime | None
+    starred: bool
+    position: int | None
+
+
 @register(ExploreSavedQuery)
 class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
-    def get_attrs(self, item_list, user, **kwargs):
-        result: defaultdict[str, dict] = defaultdict(lambda: {"created_by": {}})
+    def get_attrs(
+        self,
+        item_list: Sequence[ExploreSavedQuery],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> defaultdict[ExploreSavedQuery, ExploreSavedQueryAttrs]:
+        result: defaultdict[ExploreSavedQuery, ExploreSavedQueryAttrs] = defaultdict(
+            lambda: {"created_by": None, "starred": False, "position": None}
+        )
+        user_id_filter = {"user_id": user.id}
 
         starred_queries = dict(
             ExploreSavedQueryStarred.objects.filter(
                 explore_saved_query__in=item_list,
-                user_id=user.id,
                 organization=item_list[0].organization if item_list else None,
                 starred=True,
+                **user_id_filter,
             ).values_list("explore_saved_query_id", "position")
         )
         user_last_visited = dict(
             ExploreSavedQueryLastVisited.objects.filter(
                 explore_saved_query__in=item_list,
-                user_id=user.id,
                 organization=item_list[0].organization if item_list else None,
+                **user_id_filter,
             ).values_list("explore_saved_query_id", "last_visited")
         )
 
@@ -133,7 +153,9 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
             },
             as_user=user if user.id else None,
         )
-        serialized_users = {user["id"]: user for user in service_serialized}
+        serialized_users: dict[str, UserSerializerResponse] = {
+            user["id"]: user for user in service_serialized
+        }
 
         for explore_saved_query in item_list:
             result[explore_saved_query]["created_by"] = serialized_users.get(
@@ -152,7 +174,13 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
 
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs) -> ExploreSavedQueryResponse:
+    def serialize(
+        self,
+        obj: ExploreSavedQuery,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> ExploreSavedQueryResponse:
         query_keys = [
             "environment",
             "query",
@@ -174,7 +202,7 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
             "dateUpdated": obj.date_updated,
             "lastVisited": attrs.get("user_last_visited"),
             "createdBy": attrs.get("created_by"),
-            "starred": attrs.get("starred"),
+            "starred": cast(bool, attrs.get("starred")),
             "position": attrs.get("position"),
             "isPrebuilt": obj.prebuilt_id is not None,
             "changedReason": obj.changed_reason,
