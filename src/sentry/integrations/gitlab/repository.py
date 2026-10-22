@@ -30,6 +30,11 @@ class GitLabProject(TypedDict):
     web_url: str
 
 
+class GitLabRepositorySetupConfig(TypedDict):
+    installation: int
+    identifier: str | int
+
+
 class GitLabRepositoryConfig(TypedDict):
     project_id: str | int
     webhook_id: NotRequired[str | int]
@@ -67,13 +72,16 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
     repo_provider = IntegrationProviderSlug.GITLAB.value
 
     def get_repository_data(
-        self, organization: Organization, config: MutableMapping[str, Any]
-    ) -> MutableMapping[str, Any]:
-        installation = self.get_installation(config.get("installation"), organization.id)
+        self, organization: Organization, config: MutableMapping[str, object]
+    ) -> MutableMapping[str, object]:
+        setup_config = cast(GitLabRepositorySetupConfig, config)
+        installation = self.get_installation(
+            setup_config.get("installation"), organization.id
+        )
         client = installation.get_client()
 
-        repo_id = config["identifier"]
-        instance = installation.model.metadata["instance"]
+        repo_id = setup_config["identifier"]
+        instance = cast(str, installation.model.metadata["instance"])
 
         try:
             project = cast(GitLabProject, client.get_project(repo_id))

@@ -3285,6 +3285,73 @@ def test_new_annotation_exposes_omitted_generic_in_unchanged_function(tmp_path: 
     ]
 
 
+def test_refining_signature_exposes_existing_explicit_any_in_unchanged_body(
+    tmp_path: Path,
+) -> None:
+    source_path = "src/sentry/example.py"
+    symbol = "sentry.example.convert#1"
+    parent_root = tmp_path / "parent"
+    candidate_root = tmp_path / "candidate"
+    (parent_root / source_path).parent.mkdir(parents=True)
+    (candidate_root / source_path).parent.mkdir(parents=True)
+    source = "from typing import Any, cast\n\ndef convert(data):\n    return cast(Any, data)\n"
+    (parent_root / source_path).write_text(source)
+    (candidate_root / source_path).write_text(
+        "from collections.abc import Mapping\n"
+        "from typing import Any, cast\n\n"
+        "def convert(data: Mapping[str, object]):\n"
+        "    return cast(Any, data)\n"
+    )
+    inventory = (SourceFile(source_path, "sentry.example", SourceKind.OWNED_IMPLEMENTATION),)
+    existing_any = AnyObligation(
+        source_path,
+        "precision:ast:cast#0:any-leaf:0",
+        "expression:0.0",
+        "explicit",
+        scope=symbol,
+        line=4,
+    )
+    signature = (source_path, symbol, "parameter:data")
+    parent = replace(
+        _tree(
+            signatures={signature: "<missing>"},
+            source_digests={source_path: "parent"},
+            inventory=inventory,
+            profiles=tuple(Profile),
+        ),
+        root=parent_root,
+    )
+    candidate = replace(
+        _tree(
+            any_obligations=frozenset({existing_any}),
+            precision_any_obligations=(existing_any,),
+            signatures={signature: "Mapping[str, object]"},
+            source_digests={source_path: "candidate"},
+            inventory=inventory,
+            profiles=tuple(Profile),
+        ),
+        root=candidate_root,
+    )
+
+    decision = decide_candidate(
+        parent, candidate, require_adoption_credit=False, precision_calibrated=True
+    )
+
+    assert decision.outcome == Outcome.COMPLETE, decision.reasons
+    assert decision.details["new_any_obligations"] == []
+    assert decision.details["exposed_dynamic_any_obligations"] == [
+        {
+            "path": source_path,
+            "anchor": existing_any.anchor,
+            "type_position": existing_any.type_position,
+            "origin": existing_any.origin,
+            "exception": None,
+            "scope": symbol,
+            "line": 4,
+        }
+    ]
+
+
 def test_new_annotation_does_not_hide_any_from_changed_function_body(tmp_path: Path) -> None:
     source_path = "src/sentry/example.py"
     symbol = "sentry.example.consume#1"

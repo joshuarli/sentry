@@ -156,7 +156,6 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         left (TOKEN_MINIMUM_VALIDITY_S by default, at most half the token's lifetime), and until
         when to use it.
 
-<<<<<<< HEAD
         API requests refresh after GitLab answers 401, but a caller that hands the token on
         can't retry, so it needs one that's still valid.
         """
