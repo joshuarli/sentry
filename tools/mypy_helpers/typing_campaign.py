@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import copy
 import difflib
 import gzip
 import hashlib
@@ -1189,6 +1190,84 @@ def _function_scopes(
     line_scopes: dict[int, str] = {}
     body_digests: dict[str, str] = {}
     occurrences: Counter[str] = Counter()
+    imported_casts = {
+        alias.asname or alias.name
+        for node in tree.body
+        if isinstance(node, ast.ImportFrom)
+        and node.module in {"typing", "typing_extensions"}
+        for alias in node.names
+        if alias.name == "cast"
+    }
+
+    def static_type_expression(node: ast.expr) -> bool:
+        if isinstance(node, ast.Name):
+            return True
+        if isinstance(node, ast.Subscript):
+            return static_type_expression(node.value) and static_type_expression(node.slice)
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
+            return static_type_expression(node.left) and static_type_expression(node.right)
+        if isinstance(node, ast.Tuple):
+            return all(static_type_expression(element) for element in node.elts)
+        return False
+
+    def shadowed_casts(node: ast.FunctionDef | ast.AsyncFunctionDef) -> frozenset[str]:
+        local_names = {
+            argument.arg for argument in ast.walk(node) if isinstance(argument, ast.arg)
+        }
+        local_names.update(
+            descendant.id
+            for descendant in ast.walk(node)
+            if isinstance(descendant, ast.Name) and isinstance(descendant.ctx, ast.Store)
+        )
+        local_names.update(
+            alias.asname or alias.name.split(".")[0]
+            for descendant in ast.walk(node)
+            if isinstance(descendant, ast.Import)
+            for alias in descendant.names
+        )
+        local_names.update(
+            alias.asname or alias.name
+            for descendant in ast.walk(node)
+            if isinstance(descendant, ast.ImportFrom)
+            for alias in descendant.names
+        )
+        local_names.update(
+            descendant.name
+            for descendant in ast.walk(node)
+            if isinstance(descendant, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+            and descendant is not node
+        )
+        local_names.update(
+            descendant.name
+            for descendant in ast.walk(node)
+            if isinstance(descendant, ast.ExceptHandler) and descendant.name is not None
+        )
+        return frozenset(imported_casts & local_names)
+
+    class CastNormalizer(ast.NodeTransformer):
+        def __init__(self, blocked_names: frozenset[str]) -> None:
+            self.blocked_names = blocked_names
+
+        def visit_Call(self, node: ast.Call) -> ast.AST:
+            if (
+                isinstance(node.func, ast.Name)
+                and node.func.id in imported_casts
+                and node.func.id not in self.blocked_names
+                and len(node.args) == 2
+                and not node.keywords
+                and static_type_expression(node.args[0])
+            ):
+                return self.visit(node.args[1])
+            return self.generic_visit(node)
+
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> ast.AST:
+            return node
+
+        def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> ast.AST:
+            return node
+
+        def visit_Lambda(self, node: ast.Lambda) -> ast.AST:
+            return node
 
     def visit(node: ast.AST, parent_scope: tuple[str, ...]) -> None:
         if isinstance(node, ast.ClassDef):
@@ -1200,9 +1279,16 @@ def _function_scopes(
             occurrences[qualified_name] += 1
             symbol = f"{qualified_name}#{occurrences[qualified_name]}"
             end_line = node.end_lineno or node.lineno
+            for decorator in node.decorator_list:
+                decorator_end = decorator.end_lineno or decorator.lineno
+                for line in range(decorator.lineno, decorator_end + 1):
+                    line_scopes[line] = symbol
             for line in range(node.lineno, end_line + 1):
                 line_scopes[line] = symbol
-            body_digests[symbol] = ast.dump(ast.Module(body=node.body, type_ignores=[]))
+            body = CastNormalizer(shadowed_casts(node)).visit(
+                ast.Module(body=copy.deepcopy(node.body), type_ignores=[])
+            )
+            body_digests[symbol] = ast.dump(body)
             for child in node.body:
                 visit(child, (*parent_scope, node.name))
             return
