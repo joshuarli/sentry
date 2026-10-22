@@ -197,25 +197,20 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         client = installation.get_client()
         try:
             if start_sha is None:
-                res = cast(
-                    object,
+                commits = cast(
+                    Sequence[GitLabCommit],
                     client.get_last_commits(repo.config["project_id"], end_sha),
                 )
-                return self._format_commits(
-                    client, repo, cast(Sequence[GitLabCommit], res)
-                )
+                return self._format_commits(client, repo, commits)
             else:
-                res = cast(
-                    object,
+                comparison = cast(
+                    Mapping[str, object],
                     client.compare_commits(repo.config["project_id"], start_sha, end_sha),
                 )
                 return self._format_commits(
                     client,
                     repo,
-                    cast(
-                        Sequence[GitLabCommit],
-                        cast(Mapping[str, object], res)["commits"],
-                    ),
+                    cast(Sequence[GitLabCommit], comparison["commits"]),
                 )
         except Exception as e:
             raise installation.raise_error(e)
