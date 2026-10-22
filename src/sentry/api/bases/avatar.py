@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, Generic, Protocol, TypeVar, cast
+from typing import Any, ClassVar, Generic, TypeVar, cast
 
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -8,17 +8,14 @@ from rest_framework.response import Response
 
 from sentry.api.fields import AvatarField
 from sentry.api.serializers import serialize
+from sentry.db.models.base import Model
 from sentry.models.avatars.base import AvatarBase
 from sentry.models.avatars.control_base import ControlAvatarBase
 
 AvatarT = TypeVar("AvatarT", bound=AvatarBase)
 
 
-class _AvatarObject(Protocol):
-    id: int
-
-
-AvatarObjectT = TypeVar("AvatarObjectT", bound=_AvatarObject)
+AvatarObjectT = TypeVar("AvatarObjectT", bound=Model)
 
 
 class AvatarSerializer(serializers.Serializer[dict[str, Any]]):
