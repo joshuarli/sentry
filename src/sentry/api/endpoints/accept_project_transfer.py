@@ -1,4 +1,5 @@
 import logging
+from typing import TypedDict, cast
 
 from django.core.signing import BadSignature, SignatureExpired
 from django.http import Http404
@@ -34,6 +35,14 @@ class InvalidPayload(Exception):
     pass
 
 
+class ProjectTransferPayload(TypedDict):
+    actor_id: int
+    from_organization_id: int
+    project_id: int
+    user_id: int
+    transaction_id: str
+
+
 @cell_silo_endpoint
 class AcceptProjectTransferEndpoint(Endpoint):
     publish_status = {
@@ -43,20 +52,22 @@ class AcceptProjectTransferEndpoint(Endpoint):
     authentication_classes = (SessionAuthentication,)
     permission_classes = (SentryIsAuthenticated,)
 
-    def get_validated_data(self, data, user: User):
+    def get_validated_data(
+        self, data: object, user: User
+    ) -> tuple[ProjectTransferPayload, Project]:
         try:
-            data = unsign(force_str(data), salt=SALT)
+            payload = cast(ProjectTransferPayload, unsign(force_str(data), salt=SALT))
         except SignatureExpired:
             raise InvalidPayload("Project transfer link has expired.")
         except BadSignature:
             raise InvalidPayload("Could not approve transfer, please make sure link is valid.")
 
-        if data["user_id"] != user.id:
+        if payload["user_id"] != user.id:
             raise InvalidPayload("Invalid permissions")
 
         try:
             project = Project.objects.get(
-                id=data["project_id"], organization_id=data["from_organization_id"]
+                id=payload["project_id"], organization_id=payload["from_organization_id"]
             )
         except Project.DoesNotExist:
             raise InvalidPayload("Project no longer exists")
@@ -64,10 +75,10 @@ class AcceptProjectTransferEndpoint(Endpoint):
         expected_transaction_id = ProjectOption.objects.get_value(
             project, "sentry:project-transfer-transaction-id"
         )
-        if data["transaction_id"] != expected_transaction_id:
+        if payload["transaction_id"] != expected_transaction_id:
             raise InvalidPayload("Invalid transaction id")
 
-        return data, project
+        return payload, project
 
     @sudo_required
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-accept-project-transfer"])
@@ -81,7 +92,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
             raise Http404
 
         try:
-            data, project = self.get_validated_data(data, request.user)
+            validated_data, project = self.get_validated_data(data, request.user)
         except InvalidPayload as e:
             return Response({"detail": str(e)}, status=400)
 
@@ -113,11 +124,11 @@ class AcceptProjectTransferEndpoint(Endpoint):
             raise Http404
 
         try:
-            data, project = self.get_validated_data(data, request.user)
+            validated_data, project = self.get_validated_data(data, request.user)
         except InvalidPayload as e:
             return Response({"detail": str(e)}, status=400)
 
-        transaction_id = data["transaction_id"]
+        transaction_id = validated_data["transaction_id"]
 
         org_slug = request.data.get("organization")
         # DEPRECATED
