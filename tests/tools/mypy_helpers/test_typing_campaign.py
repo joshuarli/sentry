@@ -1995,6 +1995,10 @@ def test_precision_adapter_ignores_typed_dict_field_names_but_keeps_error_any(
         "class Payload(TypedDict):\n"
         "    name: str\n"
         "    extension: Any\n\n"
+        "class ExtendedPayload(Payload):\n"
+        "    additional: str\n\n"
+        "class NestedExtendedPayload(ExtendedPayload):\n"
+        "    nested: str\n\n"
         "def preserve_any(value: Any) -> Any:\n"
         "    return value\n\n"
         "def invalid_attribute(value: object) -> Any:\n"
@@ -2020,14 +2024,16 @@ def test_precision_adapter_ignores_typed_dict_field_names_but_keeps_error_any(
     )
 
     module = ast.parse((root / source_path).read_text())
-    typed_dict = next(
+    typed_dicts = [
         statement
         for statement in module.body
-        if isinstance(statement, ast.ClassDef) and statement.name == "Payload"
-    )
+        if isinstance(statement, ast.ClassDef)
+        and statement.name in {"Payload", "ExtendedPayload", "NestedExtendedPayload"}
+    ]
     field_fingerprints = {
         hashlib.sha256(ast.dump(statement.target, include_attributes=False).encode())
         .hexdigest()[:20]
+        for typed_dict in typed_dicts
         for statement in typed_dict.body
         if isinstance(statement, ast.AnnAssign)
         and isinstance(statement.target, ast.Name)

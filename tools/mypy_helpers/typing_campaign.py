@@ -450,11 +450,28 @@ def _typed_dict_field_targets(tree: ast.Module) -> set[tuple[int, int, int, int]
             and base.value.id in typing_modules
         )
 
+    class_definitions = [
+        statement for statement in tree.body if isinstance(statement, ast.ClassDef)
+    ]
+    typed_dict_classes: set[str] = set()
+    while True:
+        newly_typed_dict_classes = {
+            statement.name
+            for statement in class_definitions
+            if statement.name not in typed_dict_classes
+            and any(
+                is_typed_dict_base(base)
+                or isinstance(base, ast.Name) and base.id in typed_dict_classes
+                for base in statement.bases
+            )
+        }
+        if not newly_typed_dict_classes:
+            break
+        typed_dict_classes.update(newly_typed_dict_classes)
+
     targets: set[tuple[int, int, int, int]] = set()
-    for statement in tree.body:
-        if not isinstance(statement, ast.ClassDef) or not any(
-            is_typed_dict_base(base) for base in statement.bases
-        ):
+    for statement in class_definitions:
+        if statement.name not in typed_dict_classes:
             continue
         for field in statement.body:
             if (
