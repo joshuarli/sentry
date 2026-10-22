@@ -2,11 +2,14 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.avatar import AvatarMixin
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.db.models.base import Model
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 
 
 @cell_silo_endpoint
-class OrganizationAvatarEndpoint(AvatarMixin[OrganizationAvatar], OrganizationEndpoint):
+class OrganizationAvatarEndpoint(
+    AvatarMixin[OrganizationAvatar, Model], OrganizationEndpoint
+):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,

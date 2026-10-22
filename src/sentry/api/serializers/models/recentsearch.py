@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -24,9 +24,9 @@ class RecentSearchSerializer(Serializer[RecentSearchSerializerResponse]):
     def serialize(
         self,
         obj: RecentSearch,
-        attrs: Mapping[str, Any],
+        attrs: Mapping[object, object],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> RecentSearchSerializerResponse:
         return {
             "id": str(obj.id),

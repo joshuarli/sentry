@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -25,9 +25,9 @@ class UserSocialAuthSerializer(Serializer[UserSocialAuthSerializerResponse]):
     def serialize(
         self,
         obj: UserSocialAuth,
-        attrs: Mapping[str, Any],
+        attrs: Mapping[object, object],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> UserSocialAuthSerializerResponse:
         return {
             "id": str(obj.id),
