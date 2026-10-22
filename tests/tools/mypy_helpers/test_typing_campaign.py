@@ -2877,3 +2877,139 @@ def test_evaluate_series_cli_accepts_ordered_candidate_trees(
 def test_malformed_profile_sections_fail_closed(source: str) -> None:
     with pytest.raises(ValueError):
         profile_config(source, Profile.ALL_STRONG, Path("/candidate"))
+
+
+TYPING_POLICY_PATHS = (
+    "tools/mypy_helpers/typing_campaign.py",
+    "tools/mypy_helpers/mypy_output.py",
+    "tools/mypy_helpers/mypy_config.py",
+    "tools/mypy_helpers/config_sections.py",
+)
+
+
+def _make_typing_parent_repo(
+    repository: Path, *, policy_paths: tuple[str, ...] = TYPING_POLICY_PATHS
+) -> tuple[str, str]:
+    repository.mkdir()
+
+    def run_git(*arguments: str) -> str:
+        result = subprocess.run(
+            ("git", *arguments),
+            cwd=repository,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return result.stdout.strip()
+
+    run_git("init", "-q")
+    run_git("config", "user.name", "Typing guard")
+    run_git("config", "user.email", "typing-guard@example.invalid")
+    (repository / "pyproject.toml").write_text("[tool.mypy]\n", encoding="utf-8")
+    (repository / "src").mkdir()
+    (repository / "src" / "module.py").write_text("value = 1\n", encoding="utf-8")
+    for path in policy_paths:
+        file = repository / path
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_text(f"policy = {path!r}\n", encoding="utf-8")
+    run_git("add", ".")
+    run_git("commit", "-qm", "parent")
+    parent = run_git("rev-parse", "HEAD")
+    (repository / "src" / "module.py").write_text("value = 2\n", encoding="utf-8")
+    run_git("add", ".")
+    run_git("commit", "-qm", "candidate")
+    return parent, run_git("rev-parse", "HEAD")
+
+
+def _run_typing_parent(
+    repository: Path,
+    output: Path,
+    event: str,
+    pull_request_base: str = "",
+    push_before: str = "",
+) -> subprocess.CompletedProcess[str]:
+    script = Path(__file__).resolve().parents[3] / ".github/workflows/scripts/typing-parent.py"
+    return subprocess.run(
+        (
+            "python3",
+            str(script),
+            "--event",
+            event,
+            "--pull-request-base",
+            pull_request_base,
+            "--push-before",
+            push_before,
+            "--repository",
+            str(repository),
+            "--output",
+            str(output),
+        ),
+        cwd=repository,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+
+@pytest.mark.parametrize("event", ("pull_request", "push", "workflow_dispatch"))
+def test_workflow_parent_selection_uses_event_base(tmp_path: Path, event: str) -> None:
+    repository = tmp_path / "repo"
+    parent, candidate = _make_typing_parent_repo(repository)
+    output = tmp_path / "github-output"
+    result = _run_typing_parent(
+        repository, output, event, parent, parent
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert f"parent={parent}" in output.read_text(encoding="utf-8")
+    assert f"selected_parent={parent}" in output.read_text(encoding="utf-8")
+    assert "bootstrap=false" in output.read_text(encoding="utf-8")
+    assert candidate != parent
+
+
+def test_workflow_parent_selection_falls_back_for_all_zero_push(tmp_path: Path) -> None:
+    repository = tmp_path / "repo"
+    parent, _ = _make_typing_parent_repo(repository)
+    output = tmp_path / "github-output"
+    result = _run_typing_parent(repository, output, "push", push_before="0" * 40)
+
+    assert result.returncode == 0, result.stderr
+    assert f"selected_parent={parent}" in output.read_text(encoding="utf-8")
+
+
+def test_workflow_parent_bootstraps_current_policy_for_old_parent(tmp_path: Path) -> None:
+    repository = tmp_path / "repo"
+    original_parent, _ = _make_typing_parent_repo(repository, policy_paths=())
+    for path in TYPING_POLICY_PATHS:
+        file = repository / path
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_text(f"policy = {path!r}\n", encoding="utf-8")
+    subprocess.run(("git", "add", "."), cwd=repository, check=True)
+    subprocess.run(("git", "commit", "-qm", "add evaluator"), cwd=repository, check=True)
+    output = tmp_path / "github-output"
+    result = _run_typing_parent(
+        repository, output, "pull_request", pull_request_base=original_parent
+    )
+
+    assert result.returncode == 0, result.stderr
+    contents = output.read_text(encoding="utf-8")
+    assert f"selected_parent={original_parent}" in contents
+    assert "bootstrap=true" in contents
+    synthetic_parent = next(line.removeprefix("parent=") for line in contents.splitlines() if line.startswith("parent="))
+    assert synthetic_parent != original_parent
+    assert subprocess.run(
+        ("git", "show", f"{synthetic_parent}:src/module.py"),
+        cwd=repository,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip() == "value = 1"
+
+
+def test_workflow_parent_selection_rejects_missing_parent(tmp_path: Path) -> None:
+    repository = tmp_path / "repo"
+    _make_typing_parent_repo(repository)
+    result = _run_typing_parent(repository, tmp_path / "github-output", "pull_request")
+
+    assert result.returncode != 0
+    assert "parent is missing" in result.stderr

@@ -627,6 +627,27 @@ jobs:
       - run: PYTHONWARNINGS=error::RuntimeWarning mypy
         id: run
 
+      - name: Select typing guard parent
+        id: typing-parent
+        env:
+          PULL_REQUEST_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: >-
+          python3 .github/workflows/scripts/typing-parent.py
+          --event "$GITHUB_EVENT_NAME"
+          --pull-request-base "$PULL_REQUEST_BASE"
+          --push-before "$PUSH_BEFORE"
+          --output "$GITHUB_OUTPUT"
+
+      - name: Check typing regressions
+        env:
+          TYPING_PARENT: ${{ steps.typing-parent.outputs.parent }}
+        run: >-
+          PYTHONWARNINGS=error::RuntimeWarning .venv/bin/python
+          -m tools.mypy_helpers.typing_campaign guard
+          --parent "$TYPING_PARENT"
+          --output ".work/tmp/typing-guard-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
       - uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
         id: token
         continue-on-error: true
