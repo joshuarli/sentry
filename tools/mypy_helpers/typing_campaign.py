@@ -474,6 +474,88 @@ def _typed_dict_field_targets(tree: ast.Module) -> set[tuple[int, int, int, int]
     return targets
 
 
+TypeVarDeclarationTarget = tuple[int, int, int, int, str]
+
+
+def _is_typevar_declaration_sentinel(
+    expression_kind: str,
+    origin: str,
+    line: int,
+    column: int,
+    end_line: int | None,
+    end_column: int | None,
+    targets: set[TypeVarDeclarationTarget],
+) -> bool:
+    ast_kind = {"CallExpr": "Call", "NameExpr": "Name"}.get(expression_kind)
+    return (
+        origin == "special_form"
+        and ast_kind is not None
+        and end_line is not None
+        and end_column is not None
+        and (line, column, end_line, end_column, ast_kind) in targets
+    )
+
+
+def _typevar_declaration_targets(tree: ast.Module) -> set[TypeVarDeclarationTarget]:
+    typevar_names: set[str] = set()
+    typing_modules: set[str] = set()
+    for statement in tree.body:
+        if isinstance(statement, ast.ImportFrom) and statement.module in {
+            "typing",
+            "typing_extensions",
+        }:
+            typevar_names.update(
+                alias.asname or alias.name
+                for alias in statement.names
+                if alias.name == "TypeVar"
+            )
+        elif isinstance(statement, ast.Import):
+            typing_modules.update(
+                alias.asname or alias.name.partition(".")[0]
+                for alias in statement.names
+                if alias.name in {"typing", "typing_extensions"}
+            )
+
+    def is_typevar_factory(function: ast.expr) -> bool:
+        if isinstance(function, ast.Name):
+            return function.id in typevar_names
+        return (
+            isinstance(function, ast.Attribute)
+            and function.attr == "TypeVar"
+            and isinstance(function.value, ast.Name)
+            and function.value.id in typing_modules
+        )
+
+    targets: set[TypeVarDeclarationTarget] = set()
+    for statement in tree.body:
+        if isinstance(statement, ast.Assign):
+            assigned_names = [target for target in statement.targets if isinstance(target, ast.Name)]
+            value = statement.value
+        elif isinstance(statement, ast.AnnAssign) and isinstance(statement.target, ast.Name):
+            assigned_names = [statement.target]
+            value = statement.value
+        else:
+            continue
+        if not isinstance(value, ast.Call) or not is_typevar_factory(value.func):
+            continue
+        if value.end_lineno is not None and value.end_col_offset is not None:
+            targets.add(
+                (value.lineno, value.col_offset, value.end_lineno, value.end_col_offset, "Call")
+            )
+        for target in assigned_names:
+            if target.end_lineno is not None and target.end_col_offset is not None:
+                targets.add(
+                    (
+                        target.lineno,
+                        target.col_offset,
+                        target.end_lineno,
+                        target.end_col_offset,
+                        "Name",
+                    )
+                )
+    return targets
+
+
 def _ast_expression_anchors(
     path: str,
 ) -> tuple[
@@ -488,10 +570,12 @@ def _ast_expression_anchors(
     RoleAnchorMap,
     dict[str, tuple[str, ...]],
     set[tuple[int, int, int, int]],
+    set[TypeVarDeclarationTarget],
 ]:
     with open(path, encoding="utf-8") as source_file:
         tree = ast.parse(source_file.read(), filename=path)
     typed_dict_field_targets = _typed_dict_field_targets(tree)
+    typevar_declaration_targets = _typevar_declaration_targets(tree)
     expected_nodes = {
         "NameExpr": ("Name",),
         "MemberExpr": ("Attribute",),
@@ -693,6 +777,7 @@ def _ast_expression_anchors(
         role_anchors,
         expected_nodes,
         typed_dict_field_targets,
+        typevar_declaration_targets,
     )
 
 
@@ -726,6 +811,7 @@ def _any_obligations(result, origins: dict[int, str]) -> dict[str, object]:
                 role_anchors,
                 expected_nodes,
                 typed_dict_field_targets,
+                typevar_declaration_targets,
             ) = _ast_expression_anchors(str(source_path))
         else:
             anchors = {}
@@ -739,6 +825,7 @@ def _any_obligations(result, origins: dict[int, str]) -> dict[str, object]:
             role_anchors = {}
             expected_nodes = {}
             typed_dict_field_targets = set()
+            typevar_declaration_targets = set()
         for expression in _expressions(state.tree):
             typ = result.types.get(expression)
             if typ is None:
@@ -749,6 +836,16 @@ def _any_obligations(result, origins: dict[int, str]) -> dict[str, object]:
                     int(any_type.type_of_any), f"unknown-{any_type.type_of_any}"
                 )
                 if _is_declaration_any_sentinel(expression_kind, origin):
+                    continue
+                if _is_typevar_declaration_sentinel(
+                    expression_kind,
+                    origin,
+                    expression.line,
+                    expression.column,
+                    getattr(expression, "end_line", None),
+                    getattr(expression, "end_column", None),
+                    typevar_declaration_targets,
+                ):
                     continue
                 if (
                     origin == "from_error"
