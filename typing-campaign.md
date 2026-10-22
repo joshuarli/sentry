@@ -1,30 +1,50 @@
 # Sentry typing hillclimb
 
-**Status: paused 2026-10-22.** The winddown is complete. Do not start a new source wave until the owner resumes the campaign.
+**Status: active 2026-10-22.** The owner resumed the campaign. Continue toward core typing completion, precision completion, and regression enforcement; do not treat parked work as completed.
 
-## Handoff
+## Current checkpoint
 
-### Resume
+- Latest `upstream/master` is `c25d6b051f763b34d255b81c52e8058f1b320dd3`. The rebased integration candidate is on `typing-hillclimb-resume-20261022`; the original `typing-hillclimb` worktree remains at its pre-rebase checkpoint until the comparison is accepted.
+- The rebase replayed the branch's existing `delete ci` commit. Keep that history separate from typing adoption; make no additional workflow changes as part of source work.
+- The fixed-policy parent is synthetic commit `ca4a9c056db4187a2d65b3041a95c0aca5fc6aa3`, based on current master with the candidate's `pyproject.toml`, `tools/mypy_helpers/`, and `tests/tools/mypy_helpers/` copied exactly. Those policy and evaluator inputs match the candidate. The parent/candidate full-scope comparison has not run yet.
+- The candidate worktree's `.venv` was created with `uv sync --frozen --inexact --python /Users/josh/dev/sentry/.venv/bin/python`; this follows the Python dependency step in `devenv/sync.py` without invoking `devenv`. The three dependencies changed by the latest lock update now match `uv.lock`.
+- `static/packages/icons/CHANGELOG.md` remains an unrelated owner edit in the original worktree. Preserve it.
 
-Run `codex --model gpt-6-luna -C /Users/josh/dev/sentry`. Set reasoning effort to High, then resume from this handoff. Read `AGENTS.md`, the orchestration skill, and the campaign-winddown skill before changing code.
+### Steering
 
-### State
+- The limiting stage is full-scope acceptance. Run the fixed-policy comparison of the exact rebased candidate against the synthetic current-master parent before dispatching another source wave.
+- The Explore saved-query proposal remains rejected. It introduced serializer precision errors, new Any obligations, and a broad `dict[str, Any]` bypass. Do not retry it with broad mappings, suppressions, or weaker contracts; first establish a child-dependent serializer contract from implementation, callers, and tests.
+- Keep the ten-source-promotion evaluator freeze. Change evaluator policy only for a reproduced invalid measurement or unsafe acceptance. Reuse focused evidence when inputs still match, but do not repeat the rejected Explore proposal unchanged.
+- After the exact comparison, choose the next source group from its current all-strong and precision results. Prioritize truthful contracts and their callers, then resolve the 135 test-only Any obligations and 29 test precision diagnostics toward the separate precision milestone.
+- Regression enforcement is a required deliverable. Inspect the existing `typing_campaign guard` path and parked P5 draft after the baseline; keep local guard behavior distinct from any workflow change.
+- Use only GPT-6-Luna at high reasoning for campaign agents. Do not run formatters or Getsentry verification. The upstream base stays frozen at `c25d6b051f763b34d255b81c52e8058f1b320dd3` until a named rebase need arises.
 
-- The winddown source checkpoint on `typing-hillclimb` is `7bcd77c1fde`. Its application source and typing policy match the accepted parent used for the Explore evaluation. That commit reverts the rejected five-file Explore wave; this handoff follows it.
-- `upstream` points to `git@github.com:getsentry/sentry.git`. The settled upstream base is `c8c25290cb180470cccb5c91795a6fbc623b6a2d`. Do not rebase routinely.
-- Nothing was pushed. The local branch is ahead of `origin/typing-hillclimb`.
-- `static/packages/icons/CHANGELOG.md` is a pre-existing owner edit. Leave it untouched.
+### Outstanding proposals
 
-### Direction
+- The project-transfer payload annotation is an unverified draft on `typing-p6-transfer-draft` at `0bbef064d57`. Rebase and check it against the current parent before considering it.
+- The typing guard draft is parked on `p5-typing-guard` at `8ec4365af05`. Review its local guard behavior and scope before deciding whether it advances regression enforcement.
+- The superseded GitLab repository proposal remains on `typing-p8-gitlab-client` at `d6333741cfb`; accepted GitLab client source is already in the integration candidate.
+- The rejected internal beacon proposal remains on `p4-internal-beacon-e69e` at `478ce1c4b07` and added Any obligations. Do not revive it unchanged.
+- P3 metadata removals and accepted P4/P7 source contracts are present or superseded. Report metadata separately from application contracts; no cherry-picks are currently identified.
+- Dashboard widget and query work remains blocked by unavailable Snuba and objectstore. Do not retry those setup failures per module.
 
-- Keep the owner acceptance policy and the ten-source-promotion evaluator freeze. Do not start new source, metadata, or infrastructure work while paused.
-- Continue to report metadata removals separately from typed application contracts. Keep core completion and precision completion separate.
-- Getsentry is unavailable on this machine. Do not use it for verification. Do not run formatters or change workflows.
-- Keep the upstream base frozen. Use the existing `.venv`; if it stops working, follow the Python steps in `devenv/sync.py` without invoking `devenv`.
+## Winddown record (2026-10-22)
 
-### Open lanes
+This section preserves the prior winddown state. The current checkpoint above supersedes its pause and rebase instructions.
 
-- The Explore saved-query wave is rejected. Exact evaluation compared parent `671b8191b9c48fc3b954c2046189ae8f2fc15e70` with candidate tree `f91e7117f6c50256947b20625af5928f94d3d079`. It found new precision errors in the model serializer, new Any obligations, and a new `dict[str, Any]` bypass in `ExploreSavedQueryBase.convert_args`. The integration was reverted in `7bcd77c1fde`. The candidate remains on `typing-hillclimb-p10-explore-saved-queries` at `799aa3798ac`.
+### Handoff at winddown
+
+The winddown source checkpoint on `typing-hillclimb` was `7bcd77c1fde`; its application source and typing policy matched the accepted parent used for the Explore evaluation. The commit reverted the rejected five-file Explore wave.
+
+`upstream` was at `c8c25290cb180470cccb5c91795a6fbc623b6a2d`. That was the settled base at winddown; the resumed checkpoint above records the newer base.
+
+The exact Explore evaluation compared parent `671b8191b9c48fc3b954c2046189ae8f2fc15e70` with candidate tree `f91e7117f6c50256947b20625af5928f94d3d079`. It found new precision errors in the model serializer, new Any obligations, and a broad `dict[str, Any]` bypass in `ExploreSavedQueryBase.convert_args`. The candidate remains on `typing-hillclimb-p10-explore-saved-queries` at `799aa3798ac`.
+
+The local branch was ahead of `origin/typing-hillclimb`; nothing was pushed during the winddown. The user-owned icon changelog edit remains out of campaign scope.
+
+### Retained lane refs
+
+The P3 metadata removals and accepted P4/P7 source contracts were already present or superseded at winddown. The no-merged branch refs were retained during cleanup; the lists below record that cleanup state.
 - The project-transfer payload annotation is an unverified draft on `typing-p6-transfer-draft` at `0bbef064d57`. It has no focused check or exact-tree acceptance. Do not treat it as merged.
 - The typing guard draft is parked on `p5-typing-guard` at `8ec4365af05`. It changes `.github/workflows/backend.yml`, so it remains out of the integration branch under the repository's workflow rule.
 - The superseded GitLab repository proposal is preserved on `typing-p8-gitlab-client` at `d6333741cfb`. The accepted GitLab client source remains in the integration tree.
