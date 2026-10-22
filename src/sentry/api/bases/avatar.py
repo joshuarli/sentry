@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, Generic, TypeVar
+from typing import Any, ClassVar, Generic, Protocol, TypeVar, cast
 
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -8,12 +8,17 @@ from rest_framework.response import Response
 
 from sentry.api.fields import AvatarField
 from sentry.api.serializers import serialize
-from sentry.db.models.base import Model
 from sentry.models.avatars.base import AvatarBase
 from sentry.models.avatars.control_base import ControlAvatarBase
 
 AvatarT = TypeVar("AvatarT", bound=AvatarBase)
-AvatarObjectT = TypeVar("AvatarObjectT", bound=Model)
+
+
+class _AvatarObject(Protocol):
+    id: int
+
+
+AvatarObjectT = TypeVar("AvatarObjectT", bound=_AvatarObject)
 
 
 class AvatarSerializer(serializers.Serializer[dict[str, Any]]):
@@ -90,10 +95,14 @@ class AvatarMixin(Generic[AvatarT, AvatarObjectT]):
             color=result.get("color"),
         )
 
-    def put(self, request: Request, **kwargs: Any) -> Response:
+    def put(self, request: Request, **kwargs: Any) -> Response[dict[str, object]]:
         obj, serializer = self.parse(request, **kwargs)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                cast(dict[str, object], serializer.errors), status=status.HTTP_400_BAD_REQUEST
+            )
         self.save_avatar(obj, serializer)
         obj = kwargs.pop(self.object_type, None)  # serialize doesn't like these params
-        return Response(serialize(obj, request.user, **kwargs))
+        return Response(
+            cast(dict[str, object], serialize(obj, request.user, **kwargs))
+        )
