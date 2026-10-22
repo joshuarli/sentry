@@ -11,6 +11,7 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.plugins.providers.integration_repository import RepositoryConfig
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.response import MappingApiResponse, SequenceApiResponse
 
 if TYPE_CHECKING:
     from sentry.integrations.gitlab.integration import GitlabIntegration  # NOQA
@@ -146,11 +147,14 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
         try:
+            res: SequenceApiResponse | list[object] | MappingApiResponse
             if start_sha is None:
                 res = client.get_last_commits(repo.config["project_id"], end_sha)
                 return self._format_commits(client, repo, res)
             else:
-                res = client.compare_commits(repo.config["project_id"], start_sha, end_sha)
+                res = client.compare_commits(
+                    repo.config["project_id"], start_sha, end_sha
+                )
                 return self._format_commits(client, repo, res["commits"])
         except Exception as e:
             raise installation.raise_error(e)
