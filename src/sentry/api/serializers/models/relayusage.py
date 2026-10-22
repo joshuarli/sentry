@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -23,9 +23,9 @@ class RelayUsageSerializer(Serializer[OrganizationRelayResponse]):
     def serialize(
         self,
         obj: RelayUsage,
-        attrs: Mapping[str, Any],
+        attrs: Mapping[object, object],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> OrganizationRelayResponse:
         return {
             "relayId": obj.relay_id,
