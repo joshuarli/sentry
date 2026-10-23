@@ -1982,6 +1982,50 @@ def test_precision_adapter_accounts_for_declaration_expression_sentinels(
     )
 
 
+def test_precision_adapter_ignores_tuple_fallback_but_keeps_tuple_item_any(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "snapshot"
+    package = root / "src" / "sentry"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("")
+    source_path = "src/sentry/example.py"
+    (root / source_path).write_text(
+        "from typing import Any\n\n"
+        "def precise_tuple() -> tuple[int, str]:\n"
+        "    return 1, 'value'\n\n"
+        "def dynamic_tuple(value: Any) -> tuple[Any, int]:\n"
+        "    return value, 1\n"
+    )
+    (root / "pyproject.toml").write_text(
+        "[tool.mypy]\n"
+        "python_version = '3.13'\n"
+        "files = ['src/sentry']\n"
+        "mypy_path = ['src']\n"
+        "namespace_packages = true\n"
+        "explicit_package_bases = true\n"
+    )
+    output = tmp_path / "measurements"
+    output.mkdir()
+
+    measurement = run_profile(
+        Profile.PRECISION,
+        root,
+        "synthetic-tree",
+        output,
+        timeout_seconds=120,
+    )
+
+    obligations = [
+        item for item in measurement.any_obligations if item.path == source_path
+    ]
+    assert measurement.adapter_status == 0
+    assert measurement.checker_status == 1
+    assert not any(item.line == 4 and item.origin == "special_form" for item in obligations)
+    assert any(item.line == 7 and item.origin == "explicit" for item in obligations)
+    assert not any(item.line == 7 and item.origin == "special_form" for item in obligations)
+
+
 def test_precision_adapter_ignores_typed_dict_field_names_but_keeps_error_any(
     tmp_path: Path,
 ) -> None:
