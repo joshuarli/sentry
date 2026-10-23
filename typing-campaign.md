@@ -1,12 +1,22 @@
 # Sentry typing hillclimb
 
-**Status: active 2026-10-23.** The last accepted source commit is `7f66cfe6c40d329e29476ec1870806d258376cc1`; this handoff records the state after that accepted wave. The owner requested maximum safe preparation parallelism; the latest `perf-gate-ready -s` allows 14 lanes. Keep exact combined-tree acceptance serial and maintain one integration coordinator. Preparation lanes must own disjoint files in separate worktrees. The prior closeout marker was not active.
+**Status: active 2026-10-23.** The latest accepted source commit is `a1a8a056f4a4e81f105f2aae4614f2e832e7bad5`, compared with parent `b23d69306fa15851dbdf6959879c12853f874d35`. Keep the upstream base fixed at `503ad2e4e2a208a87d768a3e91bcfb55a778e7ba`. The user requested maximum safe lane use. The latest resource gate allowed 14 preparation lanes. Keep exact combined-tree acceptance serial and maintain one integration coordinator.
 
 ## Resume
 
-Use GPT-6-Luna at high reasoning for any campaign lane. Do not use Getsentry, invoke `devenv`, run formatters, or push. If setup is needed, follow the Python setup steps in `devenv/sync.py`. First command: `git status --short --branch && git log -1 --oneline && git remote -v`.
+Use GPT-6-Luna at high reasoning for campaign lanes. Use up to 14 disjoint preparation lanes when the resource gate permits. Keep only one next wave waiting for exact acceptance. Do not use Getsentry, invoke `devenv`, run formatters, or push. If setup is needed, follow the Python setup steps in `devenv/sync.py`. Preserve the owner's seven dirty files in the integration checkout.
 
 ## State
+
+- Accepted source commit `a1a8a056f4a4e81f105f2aae4614f2e832e7bad5` has tree `7e425e72c83015347882b43bab8feb918aa7abad`. It adds contracts for the Bitfield package, Release, and ReleaseFile. The exact report is `.work/wt/typing-wave-20261023-bitfield/.work/tmp/typing-wave-models-20261023-run2/report.json`.
+- The exact wave passed core adoption and precision comparison. Configured and unsuppressed diagnostics stayed at 114 and 177 with no additions. All-strong diagnostics fell by 62 with no additions. Signature omissions fell by 113. Precision diagnostics fell by 407 net, with 413 removed and 6 added. Any obligations fell by 734, with no new application or test obligations. Campaign-wide core and precision completion remain open.
+- Focused mypy passed for the five changed source files and the Release endpoint consumer. The Bitfield behavior selection passed 22 tests, ReleaseFile normalization passed 7, and pure semver tests passed 32. The Release metadata endpoint test remains runtime-blocked because PostgreSQL is unavailable at `/tmp:5432`; the type-only return change was statically checked.
+- Review kept dynamic Bitfield operators and Django descriptor boundaries untyped. `flags_from_annotations` now accepts `Mapping[str, object]` and returns its actual `list[str]`. The artifact-bundle count exposes the ORM result as `tuple[str, object] | None`, avoiding an unsupported integer claim.
+- The first candidate tree `813a3be6969384fb1cd535ee3a8c41f34f23552f` was rejected for two downstream precision errors and an inaccurate `_arg_flags` annotation. The accepted retry removes the inaccurate class annotation and uses `object` at the dynamic ORM boundary. No evaluator policy changed.
+- The fixed-policy current-master baseline at `503ad2e4e2a208a87d768a3e91bcfb55a778e7ba` is `.work/wt/typing-current-master-baseline-20261023/.work/tmp/typing-baseline-master-20261023-aligned2/report.json`. It covers 8,373 graph sources and reports 153 configured, 216 unsuppressed, and 11,826 all-strong diagnostics. Precision comparison is incomplete. Do not compare these totals directly with older inventories.
+- Exact acceptance remains the limiting stage. The latest source evaluation took about 35.5 minutes. Fourteen preparation lanes were used for disjoint readiness checks; GCS and the Release semver test annotations are the next ready proposals. Other proposals stay parked when their necessary service tests cannot run or their contracts remain unresolved.
+
+## Historical state at template-tag acceptance
 
 - The accepted template-tag wave is exact tree `478d9cdf4f6727766ac8d8be46ca0d527d13276a`, now integrated locally at `b70183a4c20`. It was compared with `cd7759a4b8e3`; the report is `.work/tmp/typing-campaign-templatetags-20261022-run6/report.json`.
 - Exact `BidirectionalMapping` candidate tree `4eeb9bac53855cac98fda0983da18944bbf580d5` was rejected against `b70183a4c20`. It removed eight all-strong errors with no configured or unsuppressed additions, but removed 70 precision diagnostics while adding one and introduced 31 omitted-generic Any obligations. The remaining expression Any is in `EventUser.iter_attributes`; the omitted-generic obligations are in the new generic mapping implementation and its callers. Report: `.work/tmp/typing-campaign-datastructures-20261022-run3/report.json`. Keep this proposal parked pending a truthful repair; do not alter evaluator policy to admit it. Keep the `sentry_helpers.py` annotations and tests parked and excluded.
@@ -79,13 +89,11 @@ Winddown removed the superseded candidate checkout and earlier lane checkouts. T
 
 ## Next checkpoint
 
-1. Prepare one coherent Bitfield package wave from the reviewed `types.py` proposal and the `models.py`/`query.py` lanes. Include `compat.py` only if its expression operand contract can be represented without narrowing callers. Preserve actual integer coercion, comparison, descriptor, metaclass, query, and serialization behavior; keep dynamic boundaries untyped where a truthful type is unavailable.
-2. Run focused direct mypy and executable Bitfield behavior tests for the exact candidate, recording PostgreSQL-dependent coverage as blocked if the service remains unavailable. Then run one serial exact-tree acceptance against the current branch tip after this handoff checkpoint; record that exact parent in the result and do not run global evaluators concurrently.
-3. Keep the rejected datastructures proposal, `sentry_helpers.py`, the inaccurate Bitfield signatures rejected by peer review, and unresolved test-precision cases parked and excluded. Preserve the independently reviewed Jira, uptime, dashboard, receiver, ReleaseFile, and social-auth proposals for later selection; do not combine unrelated groups merely to fill a wave.
-4. After this source wave, establish the full-tree current-master baseline at `503ad2e4e2a` under fixed policy. Do not compare its totals directly with `b70183a4c20` because source inventories differ. Reconcile the 16 additions, 9 removals, `pyproject.toml`, and Proguard overlap without a routine rebase.
-5. Keep test-only precision findings visible and report service-blocked runtime checks separately from static acceptance. Global precision completion remains open.
-
-The owner requested maximum safe lanes. Current resource gating permits 14; reduce width if focused checks or integration become the bottleneck. No formatter, Getsentry, devenv, push, CI change, or destructive cleanup is authorized.
+1. Assemble one candidate from the reviewed `src/sentry/services/filestore/gcs.py` proposal and the two `str` parameter annotations in `tests/sentry/models/test_release.py`. Keep the runtime file and test file changes provisional until the exact combined tree passes.
+2. Reuse the focused evidence where inputs are unchanged. The GCS retry suite passed 6 tests, the Release semver suite passed 32, focused mypy found no GCS diagnostics, and both diffs pass `git diff --check`. Run the focused checks on the combined candidate, then one serial exact evaluation against `a1a8a056f4a4e81f105f2aae4614f2e832e7bad5`.
+3. Preserve full configured, unsuppressed, all-strong, and precision acceptance. Do not run a second global evaluator concurrently. Keep source typing and test precision counts separate in the result.
+4. Continue using the maximum lane count allowed by a fresh resource gate for disjoint proposal work. Do not open another wave while this candidate waits for exact acceptance. Keep service-blocked proposals parked and the unresolved datastructures and `sentry_helpers.py` work excluded.
+5. Keep the current-master comparison pinned to `503ad2e4e2a208a87d768a3e91bcfb55a778e7ba`; do not routinely rebase. Keep campaign-wide core and precision completion open until their respective full milestones pass.
 
 ## Previous resume snapshot (2026-10-22)
 
