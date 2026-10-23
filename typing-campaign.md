@@ -1,6 +1,6 @@
 # Sentry typing hillclimb
 
-**Status: active 2026-10-22.** One coordinator is preparing the template-tag wave; no child lane is active. Keep one provisional wave waiting for serial exact acceptance. Use at most two disjoint preparation lanes only when integration is waiting for proposals. The prior closeout marker was not active.
+**Status: active 2026-10-23.** The current accepted integration commit is `7f66cfe6c40d329e29476ec1870806d258376cc1`, including the accepted Snuba/search wave. The owner requested maximum safe preparation parallelism; the latest `perf-gate-ready -s` allows 14 lanes. Keep exact combined-tree acceptance serial and maintain one integration coordinator. Preparation lanes must own disjoint files in separate worktrees. The prior closeout marker was not active.
 
 ## Resume
 
@@ -8,18 +8,28 @@ Use GPT-6-Luna at high reasoning for any campaign lane. Do not use Getsentry, in
 
 ## State
 
-- The accepted Explore source and this handoff are on the local integration branch; neither has been pushed. `upstream/master` is pinned at `9ea8f75f35ffb4964ce172c6ca26c9829cd1053e`; do not rebase during this wave.
+- The accepted template-tag wave is exact tree `478d9cdf4f6727766ac8d8be46ca0d527d13276a`, now integrated locally at `b70183a4c20`. It was compared with `cd7759a4b8e3`; the report is `.work/tmp/typing-campaign-templatetags-20261022-run6/report.json`.
+- Exact `BidirectionalMapping` candidate tree `4eeb9bac53855cac98fda0983da18944bbf580d5` was rejected against `b70183a4c20`. It removed eight all-strong errors with no configured or unsuppressed additions, but removed 70 precision diagnostics while adding one and introduced 31 omitted-generic Any obligations. The remaining expression Any is in `EventUser.iter_attributes`; the omitted-generic obligations are in the new generic mapping implementation and its callers. Report: `.work/tmp/typing-campaign-datastructures-20261022-run3/report.json`. Keep this proposal parked pending a truthful repair; do not alter evaluator policy to admit it. Keep the `sentry_helpers.py` annotations and tests parked and excluded.
+- Exact Snuba/search candidate tree `b87050dd3205601ac8466e2c5c2a9abdaeda121b` was rejected against `b70183a4c20`. Core adoption passed and removed 15 all-strong errors with no additions; precision removed 468 diagnostics but added 7. Two additions were `no-any-unimported` from the SDK `Function` annotation in `custom_time_processor`; five test precision additions came from specializing the organization-member serializer response. Report: `.work/tmp/typing-campaign-snuba-search-20261023-run1/report.json`.
+- Corrected Snuba/search candidate tree `0e1f007e6676fb1d22e8fa29253f3f38e6850ef7` was accepted against `b70183a4c20` and integrated locally as `7f66cfe6c40`. The wave changes three source files and one Insights test fixture. It removed 14 all-strong errors, 36 signature omissions, and 460 precision diagnostics, with zero configured, unsuppressed, all-strong, or precision additions; it introduced no Any obligations or signature regressions. The exact command was `.venv/bin/python -m tools.mypy_helpers.typing_campaign evaluate --parent b70183a4c20 --candidate-tree 0e1f007e6676 --output .work/tmp/typing-campaign-snuba-search-20261023-run2`; report: `.work/tmp/typing-campaign-snuba-search-20261023-run2/report.json`. `tests/sentry/search/events/test_fields.py` passed 78 tests, `tests/sentry/discover/translation/test_mep_to_eap.py` passed 53, and the selected Snuba utility tests passed 2 despite unavailable snapshot storage. The Insights fixture runtime test was blocked by unavailable PostgreSQL. This wave passed its precision gate; the campaign-wide precision milestone remains open.
+- The latest upstream master fetched for comparison is `503ad2e4e2a208a87d768a3e91bcfb55a778e7ba`. The accepted integration base remains `b70183a4c20`. Actual Git trees have 8,395 and 8,402 Python source paths respectively; 16 paths were added and 9 removed since the accepted base. A full-tree current-master baseline can be measured with fixed policy, but direct parent/candidate comparison needs source reconciliation first. The overlapping `pyproject.toml` and `src/sentry/lang/java/proguard.py` require explicit resolution; do not rebase as a shortcut.
+- Fourteen disjoint proposal lanes were prepared from `b70183a4c20`: nine application targets and five test-precision targets. Peer review corrected the BitHandler coercion domain and exposed the `Event | GroupEvent` signal contract; the latter now uses `BaseEvent` in the receiver and shared sourcemap helper. These, the Bitfield models/query/compat files, and the other lane proposals remain provisional until a new exact tree is evaluated. The `test_project.py` residual is blocked by the intentionally untyped child-dependent `EmptyListField`; `test_base.py` cannot be narrowed without changing fixture inputs; `test_organizationmember.py` retains a Django nullable-field boundary. Keep shared service-backed checks serialized and do not start a new evaluator or cache project.
+- The exact template-tag report passed core adoption and precision comparison for that wave. Global precision completion remains open.
+
+- At the accepted Explore comparison, `upstream/master` was `9ea8f75f35ffb4964ce172c6ca26c9829cd1053e`; neither the accepted source nor its handoff was pushed. That comparison is historical. Current `upstream/master` is `503ad2e4e2a208a87d768a3e91bcfb55a778e7ba` as recorded above.
 - The last exact accepted source tree before the latest-master rebase is `0c24333aee2e651c020ef13a23cefb45f7598a65`, reported in `.work/tmp/typing-campaign-branchwide-reconcile-20261022/report.json`. It covered 8,371 paths and 83 changed source paths. Configured, unsuppressed, and all-strong diagnostics fell by 44, 44, and 186; signature omissions fell by 336. Precision fell by 1,146 net, with 20 application and 29 test precision additions and 135 test-only Any obligations. Core adoption passed; precision completion did not. These figures are historical relative to the prior base.
 - The rebased source base is commit `c6d0de91ba8e49dfe5246154d54f6350cd6db610`, tree `5015d4c6637be9831e8a4d5aa67f0dfcb2620654`; `bb8847707e2` changes only the campaign document after it. It is based on `upstream/master` `9ea8f75f35ffb4964ce172c6ca26c9829cd1053e`. The current source proposal is now accepted for core adoption by the exact comparison below.
 - The template API, feature, asset, and organization response wave was evaluated as exact tree `478d9cdf4f6727766ac8d8be46ca0d527d13276a` against `cd7759a4b8e3`, whose application source matches accepted `c77dd9db062`. The result is complete with adoption credit and no reasons. Configured/unsuppressed/all-strong errors remain 114/177/11,614 with no additions; all-strong falls by 15. Signature omissions fall by 40. Precision diagnostics fall 549,232→549,064 (169 removed, one added); Any obligations fall 1,649,189→1,648,933, with no new application obligations or newly exposed dynamic Any. The precision comparison passed; the campaign's final precision-completion milestone remains open. Report: `.work/tmp/typing-campaign-templatetags-20261022-run6/report.json`.
-- The earlier current-master report `.work/tmp/typing-campaign-current-master-20261022/report.json.gz` was rejected for its incomplete `.github/` source inventory. The later exact comparison at `35404d9` supersedes it for the accepted source snapshot.
-- Keep `.work/wt/typing-current-master-baseline-20261022` at `013bd5d8586d52d05a12aff11551d14054242a00` for reproducing the recorded exact comparison. Use the accepted tree as the next wave's comparison parent; do not reconstruct an upstream synthetic baseline or routinely rebase.
+- The earlier current-master report `.work/tmp/typing-campaign-current-master-20261022/report.json.gz` was rejected for its incomplete `.github/` source inventory. The later exact comparison at `35404d9` supersedes it for the accepted source snapshot, but only against the then-current master at `9ea8f75`.
+- Keep `.work/wt/typing-current-master-baseline-20261022` at `013bd5d8586d52d05a12aff11551d14054242a00` for reproducing that historical exact comparison. Use `7f66cfe6c40` as the next application-wave comparison parent. The current-master comparison against `503ad2e4e2a` remains pending; refresh it once with fixed policy and full source coverage without routine rebasing.
 - The earlier Explore attempt `8d7ac23a2ec99f4c1757c5a23f342ef1f41859b9` measured tree `f91e7117f6c50256947b20625af5928f94d3d079` against pre-rebase parent `671b8191b9c48fc3b954c2046189ae8f2fc15e70`. That exact candidate was rejected with 18 new Any obligations and 26 precision additions. A later typed commit `6071b6f0c6699c4f194ee48e3a2ec26a87cd66bc` (tree `e90025aa1b01440185ec6521d147f1ba70c73175`) adjusted to the current `statsPeriod` contract but was reverted before the current source snapshot; it has no exact acceptance report. The invalid report at `.work/tmp/typing-campaign-explore-wave-20261022/report.json` is not evidence.
 - The first exact current-master attempt used tree `59d8fbc7f644a9cfb258ce4efb4ae638fac7e74f` and was rejected for 56 new Any obligations and seven precision diagnostics in Explore. The repaired candidate used exact tree `35404d993f883cbaf886f5e3d8fcc041af1a8320`; report: `.work/tmp/typing-campaign-explore-acceptance-20261022-run2/report.json`. The evaluator returned `outcome=complete`, core adoption credit, and no reasons. It covered 8,395 inventoried paths and 8,362 graph targets. Configured errors fell 158→114 (-44), unsuppressed errors 221→177 (-44), all-strong errors 11,829→11,629 (-200), signature omissions by 372, and precision errors 550,533→549,231 (-1,302). Precision removed 1,355 diagnostics and added 53 (24 application, 29 test). Any obligations fell 1,650,785→1,649,068 (-1,717); there were zero new application Any obligations, 50 classified existing dynamic exposures, and 135 test-only Any findings. Precision completion remains false. After the run, only this handoff document changed; the evaluated source and policy inputs are unchanged.
 - The accepted five-file Explore source proposal keeps the pinned parent function bodies unchanged after casts are normalized; the only body difference is the existing list endpoint's newly annotated nested `data_fn`. `get_attrs` remains parked because its bulk ORM results and opaque user-service response lack a sound typed interface in this wave. `createdBy` retains its existing `UserSerializerResponse` contract. Strong mypy, read-only Ruff, `git diff --check`, and the list endpoint suite (66 passed) succeed. Fresh-process collection imported the list, detail, and starred modules and collected 95 tests. Detail and starred runtime tests remain blocked by missing Snuba.
 - `.venv` is present; `devservices` is unavailable on PATH. The baseline worktree `.work/wt/typing-current-master-baseline-20261022` is clean at `013bd5d8586d52d05a12aff11551d14054242a00` and remains only for the recorded baseline consumer.
 
-## Direction
+## Historical direction at template-tag acceptance
+
+The following template-tag planning and rejection notes are historical. The current checkpoint above and the next checkpoint below control active work.
 
 Explore core adoption is accepted for tree `35404d9`; retain that result and its remaining labels. `get_attrs` is still an honest parked method, and detail/starred runtime suites remain blocked by Snuba. Continue to one executable application wave from existing diagnostics; do not reopen Explore without new evidence.
 
@@ -49,7 +59,9 @@ Target selection uses the exact accepted report, not old scout notes. The earlie
 
 Skip Getsentry because its checkout is unavailable. Do not change CI, dependencies, owner data, or unrelated cleanup. Preserve the pinned base, source coverage, last accepted checkpoint, and all useful work. Local integration commits may be made only for reviewed accepted changes; do not push.
 
-## Open lanes
+## Historical open lanes at template-tag acceptance
+
+These lane labels describe the state before the accepted template-tag commit and are not active assignments.
 
 - **Explore saved queries, core accepted at tree `35404d993f883cbaf886f5e3d8fcc041af1a8320`.** The exact report records no core additions and no new application Any obligations. The list suite passes; detail and starred runtime suites remain blocked by Snuba. `get_attrs` is parked at the opaque ORM and user-service boundary, and precision completion remains false.
 - **Test precision, in progress.** The current candidate types the test serializer output in `test_origin.py` and covers `small_count`. Keep the other recorded test Any obligations and precision additions visible. Do not add permissive mocks or suppressions.
@@ -67,13 +79,15 @@ Winddown removed the superseded candidate checkout and earlier lane checkouts. T
 
 ## Next checkpoint
 
-1. Commit the accepted four-module source wave and this checkpoint locally. Leave the separate `sentry_helpers.py` proposal and its tests uncommitted.
-2. Review the helper candidate's inherited unanchored `small_count` residual before choosing its next comparison scope. Do not untype the corrected context helpers to avoid the residual.
-3. Keep precision completion separate from core adoption. Continue to report the Snuba-blocked Explore suites accurately.
+1. Prepare one coherent Bitfield package wave from the reviewed `types.py` proposal plus `models.py`, `query.py`, and `compat.py` lanes. Preserve the actual integer-coercion, comparison, descriptor, metaclass, query, and serialization behavior; keep dynamic boundaries untyped where a truthful type is unavailable.
+2. Run focused direct mypy and executable Bitfield behavior tests for the exact candidate, recording PostgreSQL-dependent coverage as blocked if the service remains unavailable. Then run one serial exact-tree acceptance against `7f66cfe6c40`; do not run global evaluators concurrently.
+3. Keep the rejected datastructures proposal, `sentry_helpers.py`, the inaccurate Bitfield signatures rejected by peer review, and unresolved test-precision cases parked and excluded. Preserve the independently reviewed Jira, uptime, dashboard, receiver, ReleaseFile, and social-auth proposals for later selection; do not combine unrelated groups merely to fill a wave.
+4. After this source wave, establish the full-tree current-master baseline at `503ad2e4e2a` under fixed policy. Do not compare its totals directly with `b70183a4c20` because source inventories differ. Reconcile the 16 additions, 9 removals, `pyproject.toml`, and Proguard overlap without a routine rebase.
+5. Keep test-only precision findings visible and report service-blocked runtime checks separately from static acceptance. Global precision completion remains open.
 
-No owner decision is currently needed. No subagent is running, so there is no active lane to notify.
+The owner requested maximum safe lanes. Current resource gating permits 14; reduce width if focused checks or integration become the bottleneck. No formatter, Getsentry, devenv, push, CI change, or destructive cleanup is authorized.
 
-## Verified at resume
+## Previous resume snapshot (2026-10-22)
 
 - `git status --short --branch` was clean at resume; `HEAD` and `origin/typing-hillclimb` both resolved to `bb8847707e2deba23fdd25d32314beb863c95fa3`.
 - `upstream/master` resolved to `9ea8f75f35ffb4964ce172c6ca26c9829cd1053e`.
@@ -235,11 +249,13 @@ The bounded evaluator correction now compares unmatched Any obligations by expre
 
 ## Historical roadmap before the rejected Explore wave
 
-The table records the plan before the Explore evaluation. The paused handoff above supersedes it. The owner's acceptance policy remains in force. The 2026-10-22 rebase and branch-wide comparison are settled. Core adoption passed; migration and precision completion remain open.
+## Historical plan at Explore evaluation
+
+The table records a plan before the Explore evaluation and no longer directs active work. The current checkpoint at the top of this document controls scheduling. The owner's acceptance policy remains in force. The 2026-10-22 rebase and branch-wide comparison are settled. Core adoption passed; migration and precision completion remain open.
 
 | Step | Scope | Required result |
 | --- | --- | --- |
-| Keep the base fixed | `upstream/master` at `c8c25290cb180470cccb5c91795a6fbc623b6a2d` | No routine rebase or dependency refresh. |
+| Keep the base fixed | historical `upstream/master` at `c8c25290cb180470cccb5c91795a6fbc623b6a2d` | No routine rebase or dependency refresh. |
 | Accept the consolidated source wave | Current `HEAD`, branch-wide report above | Accepted for core adoption: equal 8,371-path coverage, 83 source paths changed, no core additions or source removals. Keep precision incomplete. |
 | Account for metadata cleanup | `3a49110e7c6` | Report two weaklist removals separately. Current effective policy omits both exact entries; the strict report has no diagnostics in either module, and sibling policy entries are unchanged. Do not count these as newly typed source contracts. |
 | Prepare the next source wave | Explore saved-query API: `exploresavedquery.py`, endpoint serializers, list, detail, and starred routes | Type the 18 existing all-strong diagnostics across these five related files. Ground serializer and endpoint contracts in existing models, response shapes, and callers; keep behavior unchanged. Focused coverage is in `test_explore_saved_queries.py`, `test_explore_saved_query_detail.py`, and `test_explore_saved_query_starred.py`. Keep proposals provisional until focused checks, diff review, and one exact combined-tree comparison pass. |
@@ -282,11 +298,11 @@ Use ordinary incremental full-scope mypy for routine checking. Separate caches b
 
 Reuse accepted-parent measurements only when tree, toolchain, effective policy, plugins, stubs, dependencies, environment, inventory, and scope match. Reject partial or incompatible measurements. Snapshot imports must never fall back to the live checkout. Do not enable incremental caching inside the AST-retaining adapter without proving its retained graph and AST completeness. Pay for the audit once per wave rather than creating another reuse platform.
 
-Reconcile the application diff against the pinned upstream base under fixed trusted policy. Review evaluator-policy changes separately. Explain baseline configured errors and distinguish ordinary CLI results from supplemental owned-source audits. A policy-difference rejection does not establish application regression or its absence.
+Measure current-master commit `503ad2e4e2a208a87d768a3e91bcfb55a778e7ba` with full source coverage and fixed trusted policy. Do not compare its totals directly to `7f66cfe6c40`, whose inventory differs. A branch-to-master reconciliation requires resolving the source additions/removals and overlapping `pyproject.toml`/Proguard changes under fixed policy. Review evaluator-policy changes separately. Explain baseline configured errors and distinguish ordinary CLI results from supplemental owned-source audits. Keep `7f66cfe6c40` as the exact wave parent; do not rebase merely to refresh measurement.
 
 ## Prepare application work and shared services
 
-Use a small number of disjoint preparation lanes and one integration coordinator. Use GPT-6-Luna at high reasoning for campaign work, including cleanup. Add lanes only when integration is waiting for proposals. Serialize expensive checks, shared configuration writes, and conflicting service-backed tests.
+Use up to the current resource-gated maximum of 14 disjoint preparation lanes and one integration coordinator, as requested by the owner. Recheck `perf-gate-ready -s` before increasing width beyond this cap; reduce width if focused checking or integration contention slows delivery. Use GPT-6-Luna at high reasoning for campaign work, including cleanup. Serialize exact global acceptance, shared configuration writes, and conflicting service-backed tests.
 
 Revisit UserSubscriptions, the Broadcast validator, Geo and base conversion, and pipeline return typing. Classify each reproduced blocker as genuine incompatibility, newly exposed existing dynamic debt, evaluator rejection, or environment failure. Prefer shared contracts that unblock consumers and completion of related modules over isolated parameter edits.
 
