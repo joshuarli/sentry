@@ -1,6 +1,6 @@
 # Sentry typing hillclimb
 
-**Status: active 2026-10-22.** One coordinator is resuming the campaign; no child lane is active. Keep at most two disjoint preparation lanes and open none while the Explore repair is under review. The prior closeout marker was not active.
+**Status: active 2026-10-22.** One coordinator is preparing the template-tag wave; no child lane is active. Keep one provisional wave waiting for serial exact acceptance. Use at most two disjoint preparation lanes only when integration is waiting for proposals. The prior closeout marker was not active.
 
 ## Resume
 
@@ -11,6 +11,7 @@ Use GPT-6-Luna at high reasoning for any campaign lane. Do not use Getsentry, in
 - The accepted Explore source and this handoff are on the local integration branch; neither has been pushed. `upstream/master` is pinned at `9ea8f75f35ffb4964ce172c6ca26c9829cd1053e`; do not rebase during this wave.
 - The last exact accepted source tree before the latest-master rebase is `0c24333aee2e651c020ef13a23cefb45f7598a65`, reported in `.work/tmp/typing-campaign-branchwide-reconcile-20261022/report.json`. It covered 8,371 paths and 83 changed source paths. Configured, unsuppressed, and all-strong diagnostics fell by 44, 44, and 186; signature omissions fell by 336. Precision fell by 1,146 net, with 20 application and 29 test precision additions and 135 test-only Any obligations. Core adoption passed; precision completion did not. These figures are historical relative to the prior base.
 - The rebased source base is commit `c6d0de91ba8e49dfe5246154d54f6350cd6db610`, tree `5015d4c6637be9831e8a4d5aa67f0dfcb2620654`; `bb8847707e2` changes only the campaign document after it. It is based on `upstream/master` `9ea8f75f35ffb4964ce172c6ca26c9829cd1053e`. The current source proposal is now accepted for core adoption by the exact comparison below.
+- The template API, feature, asset, and organization response wave was evaluated as exact tree `478d9cdf4f6727766ac8d8be46ca0d527d13276a` against `cd7759a4b8e3`, whose application source matches accepted `c77dd9db062`. The result is complete with adoption credit and no reasons. Configured/unsuppressed/all-strong errors remain 114/177/11,614 with no additions; all-strong falls by 15. Signature omissions fall by 40. Precision diagnostics fall 549,232→549,064 (169 removed, one added); Any obligations fall 1,649,189→1,648,933, with no new application obligations or newly exposed dynamic Any. The precision comparison passed; the campaign's final precision-completion milestone remains open. Report: `.work/tmp/typing-campaign-templatetags-20261022-run6/report.json`.
 - The earlier current-master report `.work/tmp/typing-campaign-current-master-20261022/report.json.gz` was rejected for its incomplete `.github/` source inventory. The later exact comparison at `35404d9` supersedes it for the accepted source snapshot.
 - Keep `.work/wt/typing-current-master-baseline-20261022` at `013bd5d8586d52d05a12aff11551d14054242a00` for reproducing the recorded exact comparison. Use the accepted tree as the next wave's comparison parent; do not reconstruct an upstream synthetic baseline or routinely rebase.
 - The earlier Explore attempt `8d7ac23a2ec99f4c1757c5a23f342ef1f41859b9` measured tree `f91e7117f6c50256947b20625af5928f94d3d079` against pre-rebase parent `671b8191b9c48fc3b954c2046189ae8f2fc15e70`. That exact candidate was rejected with 18 new Any obligations and 26 precision additions. A later typed commit `6071b6f0c6699c4f194ee48e3a2ec26a87cd66bc` (tree `e90025aa1b01440185ec6521d147f1ba70c73175`) adjusted to the current `statsPeriod` contract but was reverted before the current source snapshot; it has no exact acceptance report. The invalid report at `.work/tmp/typing-campaign-explore-wave-20261022/report.json` is not evidence.
@@ -24,14 +25,35 @@ Explore core adoption is accepted for tree `35404d9`; retain that result and its
 
 The exact source snapshot at `35404d993f883cbaf886f5e3d8fcc041af1a8320` is accepted for core adoption against parent `013bd5d8586d52d05a12aff11551d14054242a00`. Keep the pinned baseline and report. Snuba remains unavailable, so detail and starred runtime suites are runtime-blocked. Precision completion and its 135 test Any findings remain open; do not treat core acceptance as precision completion.
 
-The limiting stage is now proposal correctness and boundary review, followed by serial exact acceptance—not proposal supply. Keep evaluator, cache, and reporting changes frozen for the next two accepted source waves. After Explore, use existing diagnostic evidence to choose one executable group of roughly 3–5 related modules; do not launch broad scouts. Review one bounded portion of test precision debt alongside that source wave. Keep test Any and precision counts visible; parked work is not complete.
+The limiting stage is proposal correctness and boundary review, followed by serial exact acceptance. Proposal supply is not the bottleneck. Keep evaluator, cache, and reporting changes frozen apart from the bounded `no-any-return` correction described below. Do not launch broad scouts.
+
+The provisional application wave covers `sentry_api`, `sentry_features`, `sentry_assets`, and the organization serializer response contract. The accepted diagnostic report records 35, 4, 3, and 8 all-strong diagnostics in the four template-tag modules. The wave adds the `OriginSerializerData` `TypedDict` in `tests/sentry/api/serializers/rest_framework/test_origin.py`. The `sentry_helpers` annotations and `small_count` tests remain provisional in the worktree, but are excluded from this exact candidate because the parent has an unanchored Any residual in that changed source file.
+
+The first exact candidate, `905958b5ffa20364dfa257c400ed0a0d8812ff6e`, was rejected after about 37 minutes. Core debt was removed, but the report identified a residual in `small_count`, an `Any` in the organization response shape, and `no-any-return` diagnostics where truthful `object` returns expose existing dynamic APIs. The candidate was not accepted.
+
+The next exact candidate types `small_count` as `SupportsInt | SupportsIndex | str | bytes | bytearray | None` with `int | str` output. Its repository template callers pass weekly-report count totals. The implementation converts inputs with `int()`, so the contract also covers strings and numeric objects supported by that conversion. It computes integer quotient and remainder directly. Tests cover integer, string, `Decimal`, and byte inputs. The `percent` tag accepts integer issue counts and floating duration values. `security_contact` returns `object` because the options store does not validate values returned by `get()`. Keep `loader` and `format_duration_ms` untyped: Django's `Context.flatten()` stub conflicts with `render_to_string`, and the duration filter deliberately handles arbitrary values that `float()` may reject.
+
+Evaluator commit `cd7759a4b8e3` permits a precision `no-any-return` only when its declared return includes `object`, the candidate and parent have the same Any expression, and the function body is unchanged. Negative cases keep narrower returns and changed expressions blocking. This is the only evaluator change; keep the rest frozen.
+
+Exact tree `54a42bf23f363768bb8865ecb687a47394f9ed3b` was rejected against `cd7759a4b8e3` after 38 minutes. Core adoption passed, but precision did not. The report identified one unanchored `divmod` Any in `small_count`, nested response Any in `OrganizationSummarySerializerResponse`, and new Any obligations around the dynamic request and CSP nonce in `ScriptNode.render`. The compressed report is `.work/tmp/typing-campaign-templatetags-20261022-run4/report.json.gz`.
+
+Exact tree `3ae184a84a107c8e0c9007c0953f5c4170273df3` was rejected against `cd7759a4b8e3` after about 36 minutes. Core adoption passed, but the candidate changed `sentry_helpers.py` while the parent retained one unanchored `small_count` Any residual; the evaluator correctly leaves precision incomplete for that changed-file residual. The attempted workaround of untyping the context helpers caused new `no-untyped-def`, `no-untyped-call`, and unannotated Any findings. The same run found a dynamic `Context.get()` Any in `ScriptNode.render`.
+
+The accepted candidate leaves `sentry_helpers.py` unchanged until its inherited precision residual can be addressed in a separate reviewed wave. Its provisional work restores truthful `Context` signatures for the organization helper, `loading_message`, `AbsoluteUriNode.render`, `serialize`, and `get_sentry_version`. In `sentry_assets.py`, a narrow `ContextLookup` protocol returns `object`; a `TypeGuard` checks the existing `hasattr(request, "csp_nonce")` condition and exposes only an `object` nonce. Script attributes accept `object` values, matching their runtime stringification. This preserves the runtime guard without treating `Context.get()` as an unchecked typed value.
+
+`OnboardingTasksSerializerResponse.data` remains `object`, matching the arbitrary JSON stored by `LegacyTextJSONField`. `OrganizationSummarySerializerResponse.extraOptions` remains `object` for unvalidated option values. For the accepted candidate, the API, asset, feature, origin, and startup-import selection passed 16 tests. Targeted mypy, Ruff, and `git diff --check` passed. The organization serializer suite was attempted earlier; 16 tests failed during setup because Snuba is unavailable. The test-precision repair and the remaining 135 test Any obligations stay separate from application acceptance.
+
+The template-tag, asset, and origin suites pass (70 tests). Targeted mypy, Ruff, and `git diff --check` pass. The organization serializer suite was attempted; 16 tests fail during setup because Snuba is unavailable. The test-precision repair and the remaining 135 test Any obligations stay separate from application acceptance.
+
+Target selection uses the exact accepted report, not old scout notes. The earlier native utility scout is stale: only the parked `native_images_from_data` diagnostic remains in `sentry.lang.native.utils`. A grouping strategy alias proposal was reverted after focused mypy found 44 new errors where consumers relied on narrower component types. Do not retry that alias change without a plan that preserves each strategy's result type.
 
 Skip Getsentry because its checkout is unavailable. Do not change CI, dependencies, owner data, or unrelated cleanup. Preserve the pinned base, source coverage, last accepted checkpoint, and all useful work. Local integration commits may be made only for reviewed accepted changes; do not push.
 
 ## Open lanes
 
 - **Explore saved queries, core accepted at tree `35404d993f883cbaf886f5e3d8fcc041af1a8320`.** The exact report records no core additions and no new application Any obligations. The list suite passes; detail and starred runtime suites remain blocked by Snuba. `get_attrs` is parked at the opaque ORM and user-service boundary, and precision completion remains false.
-- **Test precision, parked.** Review a bounded subset of the 135 Any obligations and 29 precision additions without blocking the Explore source repair. Do not add permissive mocks or suppressions.
+- **Test precision, in progress.** The current candidate types the test serializer output in `test_origin.py` and covers `small_count`. Keep the other recorded test Any obligations and precision additions visible. Do not add permissive mocks or suppressions.
+- **Template-tag source wave, accepted for this four-module group.** The accepted source excludes `sentry_helpers.py` and its test changes due the inherited unanchored Any residual. Its annotated candidate remains provisional for a separate review; do not count it as delivered.
 - **P5 typing guard, parked** on `p5-typing-guard` at `8ec4365af05`; its workflow change needs a separate owner assignment. Keep the local guard manual.
 - **P6 transfer, parked** on `typing-p6-transfer-draft` at `0bbef064d57`; validate `unsign()` output before retrying the cast.
 - **P4 internal beacon, rejected** on `p4-internal-beacon-e69e` at `478ce1c4b07`; it added six Any obligations.
@@ -45,9 +67,9 @@ Winddown removed the superseded candidate checkout and earlier lane checkouts. T
 
 ## Next checkpoint
 
-1. Select one executable application wave of roughly 3–5 related modules from existing diagnostics, using tree `35404d993f883cbaf886f5e3d8fcc041af1a8320` as its parent.
-2. Review and repair one bounded portion of the 135 test Any findings and 29 test precision additions alongside that wave.
-3. Run focused checks, then exact acceptance at the wave boundary. Keep precision completion separate from core adoption and report Snuba-blocked Explore suites accurately.
+1. Commit the accepted four-module source wave and this checkpoint locally. Leave the separate `sentry_helpers.py` proposal and its tests uncommitted.
+2. Review the helper candidate's inherited unanchored `small_count` residual before choosing its next comparison scope. Do not untype the corrected context helpers to avoid the residual.
+3. Keep precision completion separate from core adoption. Continue to report the Snuba-blocked Explore suites accurately.
 
 No owner decision is currently needed. No subagent is running, so there is no active lane to notify.
 
