@@ -3310,6 +3310,209 @@ def test_precision_diagnostic_on_decorator_maps_to_function_scope(tmp_path: Path
     ]
 
 
+@pytest.mark.parametrize(
+    ("return_type", "body_return", "candidate_anchor", "accepted"),
+    (
+        (
+            "object",
+            "context.get('key')",
+            "precision:ast:context-get#0:any-leaf:0",
+            True,
+        ),
+        (
+            "str | None",
+            "context.get('key')",
+            "precision:ast:context-get#0:any-leaf:0",
+            False,
+        ),
+        (
+            "object",
+            "context.fetch('key')",
+            "precision:ast:context-fetch#0:any-leaf:0",
+            False,
+        ),
+    ),
+)
+def test_no_any_return_exposure_requires_unchanged_dynamic_expression(
+    tmp_path: Path,
+    return_type: str,
+    body_return: str,
+    candidate_anchor: str,
+    accepted: bool,
+) -> None:
+    source_path = "src/sentry/example.py"
+    symbol = "sentry.example.consume#1"
+    parent_root = tmp_path / "parent"
+    candidate_root = tmp_path / "candidate"
+    parent_source = "def consume(context):\n    return context.get('key')\n"
+    candidate_source = (
+        f"def consume(context: Context) -> {return_type}:\n    return {body_return}\n"
+    )
+    (parent_root / source_path).parent.mkdir(parents=True)
+    (candidate_root / source_path).parent.mkdir(parents=True)
+    (parent_root / source_path).write_text(parent_source)
+    (candidate_root / source_path).write_text(candidate_source)
+    inventory = (SourceFile(source_path, "sentry.example", SourceKind.OWNED_IMPLEMENTATION),)
+    signature = (source_path, symbol, "parameter:context")
+    parent_return = (source_path, symbol, "return")
+    parent_any = AnyObligation(
+        source_path,
+        "precision:ast:context-get#0:any-leaf:0",
+        "expression:0",
+        "from_unannotated",
+        scope=symbol,
+        line=2,
+    )
+    candidate_any = AnyObligation(
+        source_path,
+        candidate_anchor,
+        "expression:0",
+        "explicit",
+        scope=symbol,
+        line=2,
+    )
+    diagnostic = DiagnosticRecord(
+        source_path,
+        "no-any-return",
+        f'Returning Any from function declared to return "{return_type}"',
+        2,
+    )
+    parent = replace(
+        _tree(
+            any_obligations=frozenset({parent_any}),
+            precision_any_obligations=(parent_any,),
+            source_digests={source_path: "parent"},
+            signatures={parent_return: "<missing>"},
+            inventory=inventory,
+            profiles=tuple(Profile),
+        ),
+        root=parent_root,
+    )
+    candidate = replace(
+        _tree(
+            precision_diagnostics=(diagnostic,),
+            any_obligations=frozenset({candidate_any}),
+            precision_any_obligations=(candidate_any,),
+            source_digests={source_path: "candidate"},
+            signatures={signature: "Context", parent_return: return_type},
+            inventory=inventory,
+            profiles=tuple(Profile),
+        ),
+        root=candidate_root,
+    )
+
+    decision = decide_candidate(
+        parent,
+        candidate,
+        require_adoption_credit=False,
+        precision_calibrated=True,
+    )
+
+    if accepted:
+        assert decision.outcome == Outcome.COMPLETE, decision.reasons
+        exposed = cast(
+            dict[str, list[dict[str, object]]], decision.details["exposed_dynamic_diagnostics"]
+        )
+        assert exposed[Profile.PRECISION.value] == [
+            {
+                "path": source_path,
+                "code": "no-any-return",
+                "message": diagnostic.message,
+                "line": 2,
+            }
+        ]
+    else:
+        assert decision.outcome == Outcome.REJECTED
+        assert any("no-any-return" in reason for reason in decision.reasons)
+
+
+@pytest.mark.parametrize(
+    ("body_return", "candidate_anchor", "accepted"),
+    (
+        ("context.get('key')", "precision:ast:context-get#0:any-leaf:0", True),
+        ("context.fetch('key')", "precision:ast:context-fetch#0:any-leaf:0", False),
+    ),
+)
+def test_precision_any_exposure_tracks_the_expression_after_a_neighbor_edit(
+    tmp_path: Path, body_return: str, candidate_anchor: str, accepted: bool
+) -> None:
+    source_path = "src/sentry/example.py"
+    symbol = "sentry.example.consume#1"
+    parent_root = tmp_path / "parent"
+    candidate_root = tmp_path / "candidate"
+    parent_source = "def consume(context):\n    return context.get('key')\n"
+    candidate_source = (
+        "def consume(context: Context) -> object:\n"
+        "    marker = 1\n"
+        f"    return {body_return}\n"
+    )
+    (parent_root / source_path).parent.mkdir(parents=True)
+    (candidate_root / source_path).parent.mkdir(parents=True)
+    (parent_root / source_path).write_text(parent_source)
+    (candidate_root / source_path).write_text(candidate_source)
+    inventory = (SourceFile(source_path, "sentry.example", SourceKind.OWNED_IMPLEMENTATION),)
+    parent_return = (source_path, symbol, "return")
+    parent_any = AnyObligation(
+        source_path,
+        "precision:ast:context-get#0:any-leaf:0",
+        "expression:0",
+        "from_unannotated",
+        scope=symbol,
+        line=2,
+    )
+    candidate_any = AnyObligation(
+        source_path,
+        candidate_anchor,
+        "expression:0",
+        "explicit",
+        scope=symbol,
+        line=3,
+    )
+    diagnostic = DiagnosticRecord(
+        source_path,
+        "misc",
+        'Expression type contains "Any" (has type "Any | None")',
+        3,
+    )
+    parent = replace(
+        _tree(
+            any_obligations=frozenset({parent_any}),
+            precision_any_obligations=(parent_any,),
+            source_digests={source_path: "parent"},
+            signatures={parent_return: "<missing>"},
+            inventory=inventory,
+            profiles=tuple(Profile),
+        ),
+        root=parent_root,
+    )
+    candidate = replace(
+        _tree(
+            precision_diagnostics=(diagnostic,),
+            any_obligations=frozenset({candidate_any}),
+            precision_any_obligations=(candidate_any,),
+            source_digests={source_path: "candidate"},
+            signatures={parent_return: "object"},
+            inventory=inventory,
+            profiles=tuple(Profile),
+        ),
+        root=candidate_root,
+    )
+
+    decision = decide_candidate(
+        parent,
+        candidate,
+        require_adoption_credit=False,
+        precision_calibrated=True,
+    )
+
+    if accepted:
+        assert decision.outcome == Outcome.COMPLETE, decision.reasons
+    else:
+        assert decision.outcome == Outcome.REJECTED
+        assert any("new Any obligation" in reason for reason in decision.reasons)
+        assert any("new precision error" in reason for reason in decision.reasons)
+
+
 def test_function_scope_does_not_normalize_shadowed_cast(tmp_path: Path) -> None:
     parent = ast.parse("def endpoint(value):\n    return value\n")
     candidate = ast.parse(
