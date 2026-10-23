@@ -14,8 +14,9 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 class StarSegmentSerializerTypesTest(APITestCase):
     def test_validated_data_types(self) -> None:
+        data: dict[str, str | int] = {"service_span": "my_service_span", "project_id": 1}
         serializer = StarSegmentSerializer(
-            data={"service_span": "my_service_span", "project_id": 1}
+            data=data
         )
         assert serializer.is_valid()
         assert_type(serializer.validated_data["service_span"], str)
