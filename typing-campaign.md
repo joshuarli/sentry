@@ -1,6 +1,6 @@
 # Sentry typing hillclimb
 
-**Status: active 2026-10-23.** The last accepted source commit is `7f66cfe6c40d329e29476ec1870806d258376cc1`; current `HEAD` is `ea758731dc6`, which only updates this handoff. The owner requested maximum safe preparation parallelism; the latest `perf-gate-ready -s` allows 14 lanes. Keep exact combined-tree acceptance serial and maintain one integration coordinator. Preparation lanes must own disjoint files in separate worktrees. The prior closeout marker was not active.
+**Status: active 2026-10-23.** The last accepted source commit is `7f66cfe6c40d329e29476ec1870806d258376cc1`; this handoff records the state after that accepted wave. The owner requested maximum safe preparation parallelism; the latest `perf-gate-ready -s` allows 14 lanes. Keep exact combined-tree acceptance serial and maintain one integration coordinator. Preparation lanes must own disjoint files in separate worktrees. The prior closeout marker was not active.
 
 ## Resume
 
@@ -80,7 +80,7 @@ Winddown removed the superseded candidate checkout and earlier lane checkouts. T
 ## Next checkpoint
 
 1. Prepare one coherent Bitfield package wave from the reviewed `types.py` proposal plus `models.py`, `query.py`, and `compat.py` lanes. Preserve the actual integer-coercion, comparison, descriptor, metaclass, query, and serialization behavior; keep dynamic boundaries untyped where a truthful type is unavailable.
-2. Run focused direct mypy and executable Bitfield behavior tests for the exact candidate, recording PostgreSQL-dependent coverage as blocked if the service remains unavailable. Then run one serial exact-tree acceptance against `ea758731dc6`; do not run global evaluators concurrently.
+2. Run focused direct mypy and executable Bitfield behavior tests for the exact candidate, recording PostgreSQL-dependent coverage as blocked if the service remains unavailable. Then run one serial exact-tree acceptance against the current branch tip after this handoff checkpoint; record that exact parent in the result and do not run global evaluators concurrently.
 3. Keep the rejected datastructures proposal, `sentry_helpers.py`, the inaccurate Bitfield signatures rejected by peer review, and unresolved test-precision cases parked and excluded. Preserve the independently reviewed Jira, uptime, dashboard, receiver, ReleaseFile, and social-auth proposals for later selection; do not combine unrelated groups merely to fill a wave.
 4. After this source wave, establish the full-tree current-master baseline at `503ad2e4e2a` under fixed policy. Do not compare its totals directly with `b70183a4c20` because source inventories differ. Reconcile the 16 additions, 9 removals, `pyproject.toml`, and Proguard overlap without a routine rebase.
 5. Keep test-only precision findings visible and report service-blocked runtime checks separately from static acceptance. Global precision completion remains open.
