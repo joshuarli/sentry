@@ -3212,30 +3212,42 @@ def decide_candidate(
     newly_typed_scopes, unchanged_scopes, candidate_line_scopes = _newly_typed_unchanged_scopes(
         parent, candidate, candidate_any_positions, scope_paths
     )
-    parent_any_expressions = {
+    parent_any_expression_counts = Counter(
         (item.path, _any_expression_anchor(item.anchor), item.scope)
         for item in parent.any_obligations
         if item.scope is not None and ":any-leaf:" in item.anchor
-    }
+    )
+    candidate_any_expression_counts = Counter(
+        (item.path, _any_expression_anchor(item.anchor), item.scope)
+        for item in candidate.any_obligations
+        if item.scope is not None and ":any-leaf:" in item.anchor
+    )
+
+    def has_preexisting_any_expression(item: AnyObligation) -> bool:
+        if item.scope is None:
+            return False
+        expression = (item.path, _any_expression_anchor(item.anchor), item.scope)
+        return (
+            candidate_any_expression_counts[expression]
+            <= parent_any_expression_counts[expression]
+        )
+
     preexisting_candidate_any_lines = {
         (item.path, item.line, item.scope)
         for item in candidate.any_obligations
         if item.line is not None
         and item.scope is not None
-        and (item.path, item.scope) in unchanged_scopes
-        and (item.path, _any_expression_anchor(item.anchor), item.scope)
-        in parent_any_expressions
+        and has_preexisting_any_expression(item)
     }
     exposed_dynamic_any = tuple(
         item
         for item in any_additions
         if item.scope is not None
-        and (item.path, item.scope) in unchanged_scopes
         and (
-            (item.path, _any_expression_anchor(item.anchor), item.scope)
-            in parent_any_expressions
+            has_preexisting_any_expression(item)
             or (
-                item.type_position.startswith("expression:")
+                (item.path, item.scope) in unchanged_scopes
+                and item.type_position.startswith("expression:")
                 and (item.path, item.scope) in changed_signature_scopes
             )
         )
@@ -3309,12 +3321,27 @@ def decide_candidate(
                     )
                 )
                 and scope is not None
-                and (item.path, scope) in unchanged_scopes
                 and (
                     (item.path, item.line, scope) in preexisting_candidate_any_lines
-                    or (item.path, scope) in newly_typed_scopes
-                    or (item.path, scope) in changed_signature_scopes
+                    or (
+                        (item.path, scope) in unchanged_scopes
+                        and (
+                            (item.path, scope) in newly_typed_scopes
+                            or (item.path, scope) in changed_signature_scopes
+                        )
+                    )
                 )
+            ):
+                exposed_dynamic_diagnostics[profile_name].append(asdict(item))
+            elif (
+                profile_name == Profile.PRECISION.value
+                and item.code == "no-any-return"
+                and item.message.startswith(
+                    'Returning Any from function declared to return "object'
+                )
+                and scope is not None
+                and (item.path, scope) in unchanged_scopes
+                and (item.path, item.line, scope) in preexisting_candidate_any_lines
             ):
                 exposed_dynamic_diagnostics[profile_name].append(asdict(item))
             else:
