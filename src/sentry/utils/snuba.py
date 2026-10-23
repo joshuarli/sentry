@@ -2149,7 +2149,9 @@ def naiveify_datetime(dt: datetime) -> datetime:
     return dt if not dt.tzinfo else dt.astimezone(timezone.utc).replace(tzinfo=None)
 
 
-def quantize_time(time, key_hash, duration=300, rounding=ROUND_DOWN):
+def quantize_time(
+    time: datetime, key_hash: int, duration: int = 300, rounding: object = ROUND_DOWN
+) -> datetime:
     """Adds jitter based on the key_hash around start/end times for caching snuba queries
 
     Given a time and a key_hash this should result in a timestamp that remains the same for a duration
@@ -2190,7 +2192,7 @@ def is_measurement(key):
     return isinstance(key, str) and MEASUREMENTS_KEY_RE.match(key)
 
 
-def is_duration_measurement(key):
+def is_duration_measurement(key: object) -> bool:
     return key in [
         "measurements.fp",
         "measurements.fcp",
@@ -2209,7 +2211,7 @@ def is_duration_measurement(key):
     ]
 
 
-def is_percentage_measurement(key):
+def is_percentage_measurement(key: object) -> bool:
     return key in [
         "measurements.frames_slow_rate",
         "measurements.frames_frozen_rate",
@@ -2217,7 +2219,7 @@ def is_percentage_measurement(key):
     ]
 
 
-def is_numeric_measurement(key):
+def is_numeric_measurement(key: object) -> bool:
     return key in [
         "measurements.cls",
         "measurements.frames_frozen",
@@ -2227,7 +2229,7 @@ def is_numeric_measurement(key):
     ]
 
 
-def is_span_op_breakdown(key):
+def is_span_op_breakdown(key: object) -> bool:
     return isinstance(key, str) and get_span_op_breakdown_name(key) is not None
 
 
