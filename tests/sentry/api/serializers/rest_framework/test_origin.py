@@ -1,14 +1,20 @@
+from typing import TypedDict
+
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import OriginField
 from sentry.testutils.cases import TestCase
 
 
-class DummySerializer(serializers.Serializer):
+class OriginSerializerData(TypedDict):
+    origin_field: str
+
+
+class DummySerializer(serializers.Serializer[object, OriginSerializerData]):
     origin_field = OriginField()
 
 
-class BlankOriginSerializer(serializers.Serializer):
+class BlankOriginSerializer(serializers.Serializer[object, OriginSerializerData]):
     origin_field = OriginField(allow_blank=True)
 
 
