@@ -119,13 +119,13 @@ class ReleaseFile(Model):
         return super().update(*args, **kwargs)
 
     @classmethod
-    def get_ident(cls, name, dist=None):
+    def get_ident(cls, name: str, dist: str | None = None) -> str:
         if dist is not None:
             return sha1_text(name + "\x00\x00" + dist).hexdigest()
         return sha1_text(name).hexdigest()
 
     @classmethod
-    def normalize(cls, url):
+    def normalize(cls, url: str) -> list[str]:
         """Transforms a full absolute url into 2 or 4 generalized options
 
         * the original url as input
@@ -241,7 +241,9 @@ class _ArtifactIndexGuard:
     def __init__(self, release: Release, dist: Distribution | None, **filter_args):
         self._release = release
         self._dist = dist
-        self._ident = ReleaseFile.get_ident(ARTIFACT_INDEX_FILENAME, dist and dist.name)
+        self._ident = ReleaseFile.get_ident(
+            ARTIFACT_INDEX_FILENAME, dist.name if dist is not None else None
+        )
         self._filter_args = filter_args  # Extra constraints on artifact index release file
 
     def readable_data(self) -> dict | None:
