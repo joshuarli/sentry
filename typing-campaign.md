@@ -1,71 +1,67 @@
 # Sentry typing hillclimb
 
-**Status: paused 2026-10-22.** No campaign lane is active. Do not dispatch new work until the owner resumes the campaign.
+**Status: active 2026-10-22.** One coordinator is resuming the campaign; no child lane is active. Keep at most two disjoint preparation lanes and open none while the Explore repair is under review. The prior closeout marker was not active.
 
 ## Resume
 
-Resume prompt: `Resume the paused typing hillclimb campaign on joshuarli/sentry:typing-hillclimb. Use GPT-6-Luna at high reasoning. Skip Getsentry checks because its checkout is unavailable. Do not invoke devenv; if setup is needed, follow devenv/sync.py directly. Do not run formatters or push. Re-read the current owner instructions, this handoff, and the orchestrate parent steering checkpoint before selecting work.`
-
-First command: `git status --short --branch && git log -1 --oneline && git remote -v`
+Use GPT-6-Luna at high reasoning for any campaign lane. Do not use Getsentry, invoke `devenv`, run formatters, or push. If setup is needed, follow the Python setup steps in `devenv/sync.py`. First command: `git status --short --branch && git log -1 --oneline && git remote -v`.
 
 ## State
 
-- The freeze checkpoint is `b99c2b71d340683d8bf389497accb7c73c1f291e`. The local handoff commit follows it and changes only this document. The measured application and policy tree is `2bcd23b5b452c01c2774598055fd588f56f493cc`.
-- `upstream/master` is pinned at `9ea8f75f35f`. The rebase from `c25d6b051f763b34d255b81c52e8058f1b320dd3` replayed 240 campaign commits without conflicts. The candidate `.github/` tree matches upstream. `origin/typing-hillclimb` points at the freeze checkpoint, and its reflog records a push at 15:49. This agent did not issue that push. The handoff commit is one local commit ahead of origin.
-- The current-master parent is `013bd5d8586d52d05a12aff11551d14054242a00`. The exact comparison completed with `outcome=complete`, core adoption credit, and `precision_complete=false`. It compared 8,395 inventoried paths with coverage across all 8,395. Each profile measured 8,362 graph targets.
-- Configured errors fell from 158 to 114. Unsuppressed errors fell from 221 to 177. All-strong errors fell from 11,829 to 11,643. The comparison found no additions in these three profiles. Signature omissions fell from 24,840 to 24,504. Any obligations fell from 1,660,846 to 1,659,395. The report classified 45 Any obligations as existing dynamic behavior and found no unmatched application Any obligations.
-- Precision errors fell from 550,533 to 549,390. The candidate removed 1,192 and added 49 precision diagnostics, including 20 in application files and 29 in tests. It also surfaced 135 test-only Any obligations. The final precision inventory still has 66 unanchored expressions and 12 Any obligations in seven unchanged source files. Core adoption passed; precision completion did not.
-- The comparison covered 83 changed source paths and took about 40 minutes end to end. Its raw report and snapshots were removed after recording these results. The existing `.venv` uses Python 3.13.15.
-- No accepted patch is missing from `origin/typing-hillclimb`. The stale `typing-hillclimb-resume-20261022` ref has no unique commits and omits current-master updates. Do not merge it.
-- Historical `.work/tmp` paths in the log describe past runs. Their results are summarized in this document. Those files are not needed to resume.
+- The accepted Explore source and this handoff are on the local integration branch; neither has been pushed. `upstream/master` is pinned at `9ea8f75f35ffb4964ce172c6ca26c9829cd1053e`; do not rebase during this wave.
+- The last exact accepted source tree before the latest-master rebase is `0c24333aee2e651c020ef13a23cefb45f7598a65`, reported in `.work/tmp/typing-campaign-branchwide-reconcile-20261022/report.json`. It covered 8,371 paths and 83 changed source paths. Configured, unsuppressed, and all-strong diagnostics fell by 44, 44, and 186; signature omissions fell by 336. Precision fell by 1,146 net, with 20 application and 29 test precision additions and 135 test-only Any obligations. Core adoption passed; precision completion did not. These figures are historical relative to the prior base.
+- The rebased source base is commit `c6d0de91ba8e49dfe5246154d54f6350cd6db610`, tree `5015d4c6637be9831e8a4d5aa67f0dfcb2620654`; `bb8847707e2` changes only the campaign document after it. It is based on `upstream/master` `9ea8f75f35ffb4964ce172c6ca26c9829cd1053e`. The current source proposal is now accepted for core adoption by the exact comparison below.
+- The earlier current-master report `.work/tmp/typing-campaign-current-master-20261022/report.json.gz` was rejected for its incomplete `.github/` source inventory. The later exact comparison at `35404d9` supersedes it for the accepted source snapshot.
+- Keep `.work/wt/typing-current-master-baseline-20261022` at `013bd5d8586d52d05a12aff11551d14054242a00` for reproducing the recorded exact comparison. Use the accepted tree as the next wave's comparison parent; do not reconstruct an upstream synthetic baseline or routinely rebase.
+- The earlier Explore attempt `8d7ac23a2ec99f4c1757c5a23f342ef1f41859b9` measured tree `f91e7117f6c50256947b20625af5928f94d3d079` against pre-rebase parent `671b8191b9c48fc3b954c2046189ae8f2fc15e70`. That exact candidate was rejected with 18 new Any obligations and 26 precision additions. A later typed commit `6071b6f0c6699c4f194ee48e3a2ec26a87cd66bc` (tree `e90025aa1b01440185ec6521d147f1ba70c73175`) adjusted to the current `statsPeriod` contract but was reverted before the current source snapshot; it has no exact acceptance report. The invalid report at `.work/tmp/typing-campaign-explore-wave-20261022/report.json` is not evidence.
+- The first exact current-master attempt used tree `59d8fbc7f644a9cfb258ce4efb4ae638fac7e74f` and was rejected for 56 new Any obligations and seven precision diagnostics in Explore. The repaired candidate used exact tree `35404d993f883cbaf886f5e3d8fcc041af1a8320`; report: `.work/tmp/typing-campaign-explore-acceptance-20261022-run2/report.json`. The evaluator returned `outcome=complete`, core adoption credit, and no reasons. It covered 8,395 inventoried paths and 8,362 graph targets. Configured errors fell 158→114 (-44), unsuppressed errors 221→177 (-44), all-strong errors 11,829→11,629 (-200), signature omissions by 372, and precision errors 550,533→549,231 (-1,302). Precision removed 1,355 diagnostics and added 53 (24 application, 29 test). Any obligations fell 1,650,785→1,649,068 (-1,717); there were zero new application Any obligations, 50 classified existing dynamic exposures, and 135 test-only Any findings. Precision completion remains false. After the run, only this handoff document changed; the evaluated source and policy inputs are unchanged.
+- The accepted five-file Explore source proposal keeps the pinned parent function bodies unchanged after casts are normalized; the only body difference is the existing list endpoint's newly annotated nested `data_fn`. `get_attrs` remains parked because its bulk ORM results and opaque user-service response lack a sound typed interface in this wave. `createdBy` retains its existing `UserSerializerResponse` contract. Strong mypy, read-only Ruff, `git diff --check`, and the list endpoint suite (66 passed) succeed. Fresh-process collection imported the list, detail, and starred modules and collected 95 tests. Detail and starred runtime tests remain blocked by missing Snuba.
+- `.venv` is present; `devservices` is unavailable on PATH. The baseline worktree `.work/wt/typing-current-master-baseline-20261022` is clean at `013bd5d8586d52d05a12aff11551d14054242a00` and remains only for the recorded baseline consumer.
 
 ## Direction
 
-Keep core typing completion separate from precision completion. The latest-master comparison accepts the current core candidate. It does not complete the precision audit or the migration. The next limiting work is to classify the 20 application precision additions and 29 test additions, then repair truthful contracts without hiding existing dynamic behavior.
+Explore core adoption is accepted for tree `35404d9`; retain that result and its remaining labels. `get_attrs` is still an honest parked method, and detail/starred runtime suites remain blocked by Snuba. Continue to one executable application wave from existing diagnostics; do not reopen Explore without new evidence.
 
-Do not expand evaluator infrastructure. Use the current exact comparison as the accepted checkpoint. Preserve runtime behavior, public APIs, source coverage, locked dependencies, and focused runtime checks. The local `typing_campaign guard` is manual. The P5 CI proposal remains parked because it changes `.github/workflows/backend.yml` and the current repository instructions require explicit authorization for workflow work.
+The exact source snapshot at `35404d993f883cbaf886f5e3d8fcc041af1a8320` is accepted for core adoption against parent `013bd5d8586d52d05a12aff11551d14054242a00`. Keep the pinned baseline and report. Snuba remains unavailable, so detail and starred runtime suites are runtime-blocked. Precision completion and its 135 test Any findings remain open; do not treat core acceptance as precision completion.
 
-Use GPT-6-Luna at high reasoning for campaign work. Do not run formatters or Getsentry checks. Do not invoke `devenv`. If the existing environment fails, inspect `devenv/sync.py` and run its setup directly.
+The limiting stage is now proposal correctness and boundary review, followed by serial exact acceptance—not proposal supply. Keep evaluator, cache, and reporting changes frozen for the next two accepted source waves. After Explore, use existing diagnostic evidence to choose one executable group of roughly 3–5 related modules; do not launch broad scouts. Review one bounded portion of test precision debt alongside that source wave. Keep test Any and precision counts visible; parked work is not complete.
+
+Skip Getsentry because its checkout is unavailable. Do not change CI, dependencies, owner data, or unrelated cleanup. Preserve the pinned base, source coverage, last accepted checkpoint, and all useful work. Local integration commits may be made only for reviewed accepted changes; do not push.
 
 ## Open lanes
 
-- **Precision follow-up, parked.** The exact report adds precision diagnostics in `src/sentry/api/bases/avatar.py`, `src/sentry/api/endpoints/broadcast_details.py`, `src/sentry/api/endpoints/organization_recent_searches.py`, `src/sentry/api/endpoints/project_member_index.py`, `src/sentry/api/serializers/models/apiapplication.py`, `src/sentry/api/serializers/models/projectownership.py`, `src/sentry/backup/dependencies.py`, `src/sentry/core/endpoints/organization_member_details.py`, `src/sentry/integrations/gitlab/client.py`, and `src/sentry/notifications/notifications/organization_request/abstract_invite_request.py`. Review these findings and the 29 test findings before the next precision claim.
-- **P5 typing guard, parked** on `p5-typing-guard` at `8ec4365af05`. Its CI workflow change is stale and it does not wire the local hook. Retry only after the owner authorizes workflow changes and the current parent is fixed. The existing local guard remains available for manual wave checks.
-- **P6 transfer, parked** on `typing-p6-transfer-draft` at `0bbef064d57`. Its `unsign()` result is cast to `ProjectTransferPayload` without validating the runtime shape. Retry after validating that payload and adding focused coverage.
-- **P10 Explore saved queries, rejected** on `typing-hillclimb-p10-explore-saved-queries` at `799aa3798ac`. The exact evaluation found new serializer precision errors, Any obligations, and a broad `dict[str, Any]` bypass. Do not merge this candidate.
-- **P4 internal beacon, rejected** on `p4-internal-beacon-e69e` at `478ce1c4b07`. Its `MetricsSerializer` change added six Any obligations. Do not merge this candidate.
-- **P8 GitLab client, superseded** on `typing-p8-gitlab-client` at `d6333741cfb`. Its accepted source changes are present in the integration branch. Do not cherry-pick it again.
-- **`EmptyListField`, blocked** by the child-dependent DRF contract. Preserve empty-string passthrough and arbitrary child output. Do not claim `list[str]` or add string-only validation to make that annotation fit.
-- **Dashboard and query tests, parked** until Snuba and objectstore are available. Getsentry is absent and must not be used for verification.
-- The remaining no-merged refs are parked, accepted, superseded, or historical. Every branch name appears under [Retained lane refs](#retained-lane-refs) or in the historical lane lists below. No active lane worktree remains.
+- **Explore saved queries, core accepted at tree `35404d993f883cbaf886f5e3d8fcc041af1a8320`.** The exact report records no core additions and no new application Any obligations. The list suite passes; detail and starred runtime suites remain blocked by Snuba. `get_attrs` is parked at the opaque ORM and user-service boundary, and precision completion remains false.
+- **Test precision, parked.** Review a bounded subset of the 135 Any obligations and 29 precision additions without blocking the Explore source repair. Do not add permissive mocks or suppressions.
+- **P5 typing guard, parked** on `p5-typing-guard` at `8ec4365af05`; its workflow change needs a separate owner assignment. Keep the local guard manual.
+- **P6 transfer, parked** on `typing-p6-transfer-draft` at `0bbef064d57`; validate `unsign()` output before retrying the cast.
+- **P4 internal beacon, rejected** on `p4-internal-beacon-e69e` at `478ce1c4b07`; it added six Any obligations.
+- **P8 GitLab client, superseded** on `typing-p8-gitlab-client` at `d6333741cfb`; accepted source is already integrated.
+- **`EmptyListField`, blocked** by its child-dependent DRF result; preserve passthrough and arbitrary child behavior.
+- No active child lane exists. The retained comparison baseline is the only non-integration worktree.
 
 ## Cleanup
 
-- Winddown cleanup removed one superseded P10 checkout. Earlier cleanup had already removed the other lane checkouts; its count and disk use were not recorded. This pass removed 26 generated `.pyc` files from the retained baseline checkout and 4.5 GiB of current-master comparison output after recording the summary.
-- Keep `.work/wt/typing-current-master-baseline-20261022` on branch `typing-current-master-baseline-20261022` at `013bd5d8586d52d05a12aff11551d14054242a00`. The checkout is clean. It is the exact parent for reproducing the current-master comparison. Its on-disk size is about 276 MiB.
-- `.work/` is ignored through `.git/info/exclude` and resides on APFS. The final disk check showed about 134 GiB available. The baseline is the only retained non-integration worktree.
+Winddown removed the superseded candidate checkout and earlier lane checkouts. The requested review found 466 GiB in `.work/tmp` and 275 MiB in `.work/wt`; both retained worktrees are required. Removed generated `trees` and `snapshots` directories from 99 completed report folders and `unchanged-source-any` caches from 10, preserving all 110 reports and both worktrees. `.work/tmp` is now 129 GiB. Available disk space rose from 96 GiB to 435 GiB, recovering 339 GiB. `.work/` is ignored through `.git/info/exclude` and resides on APFS. No Getsentry checkout or devservices command is available.
 
-## Not started
+## Next checkpoint
 
-1. Classify the 20 application and 29 test precision additions from the current comparison.
-2. Review the 135 test-only Any obligations and repair `EmptyListField` only after confirming the child-dependent runtime contract.
-3. Re-read the current all-strong inventory, perform a parent steering checkpoint, then choose one grouped source wave. Do not restart the rejected P10 wave.
-4. Revisit automated guard enforcement only if the owner authorizes workflow changes. Keep Snuba and objectstore work parked until both required services are available.
+1. Select one executable application wave of roughly 3–5 related modules from existing diagnostics, using tree `35404d993f883cbaf886f5e3d8fcc041af1a8320` as its parent.
+2. Review and repair one bounded portion of the 135 test Any findings and 29 test precision additions alongside that wave.
+3. Run focused checks, then exact acceptance at the wave boundary. Keep precision completion separate from core adoption and report Snuba-blocked Explore suites accurately.
 
-No owner decision is needed to keep the campaign paused. Automatic CI enforcement needs explicit workflow authorization before P5 can resume.
+No owner decision is currently needed. No subagent is running, so there is no active lane to notify.
 
-## Verified
+## Verified at resume
 
-- Rebase replayed 240 commits without conflicts. The `.github/` tree matches `upstream/master` at `9ea8f75f35f`.
-- The exact current-master evaluator completed with core adoption accepted, full source coverage, and precision completion still pending. No Sentry runtime tests were run for this documentation-only closeout.
-- All campaign subagents have completed. The only live checkout besides the integration branch is the clean comparison baseline named above. The closeout guard allows that path for its current comparison use.
-- `.work/` is ignored and on APFS. Campaign temporary paths in this document are under `.work/tmp`. No campaign process or scheduled wakeup remains.
-- The `/hooks` UI is unavailable in this API session, so the Stop hook could not be reviewed. The manual `typing_campaign guard` was not run during winddown. No formatter or Getsentry check ran.
-- The first command under Resume was rehearsed from a clean shell. This agent made no push. The handoff commit remains one commit ahead of origin.
+- `git status --short --branch` was clean at resume; `HEAD` and `origin/typing-hillclimb` both resolved to `bb8847707e2deba23fdd25d32314beb863c95fa3`.
+- `upstream/master` resolved to `9ea8f75f35ffb4964ce172c6ca26c9829cd1053e`.
+- The closeout resume command reported `Campaign closeout is not active`.
+- The prior P10 handoff reported 66 passing list tests; detail/starred suites were not run because Snuba setup was unavailable. No exact acceptance evidence covers the current `statsPeriod` Explore candidate or current rebased source tree.
+- No formatter, Getsentry check, CI change, or push was made.
 
 ## Winddown record (2026-10-22)
 
-This section preserves the earlier winddown history. The paused handoff above is authoritative.
+This section preserves the earlier winddown history. The active handoff above is authoritative.
 
 ### Handoff at winddown
 

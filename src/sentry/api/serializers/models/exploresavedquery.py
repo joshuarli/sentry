@@ -1,6 +1,9 @@
 from collections import defaultdict
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Literal, TypedDict
+from typing import Literal, TypedDict, cast
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -11,6 +14,8 @@ from sentry.explore.models import (
     ExploreSavedQueryStarred,
 )
 from sentry.users.api.serializers.user import UserSerializerResponse
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
@@ -102,6 +107,16 @@ class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
     changedReason: ExploreSavedQueryChangedReasonType | None
 
 
+class ExploreSavedQueryAttrsOptional(TypedDict, total=False):
+    user_last_visited: datetime
+
+
+class ExploreSavedQueryAttrs(ExploreSavedQueryAttrsOptional):
+    created_by: UserSerializerResponse | None
+    starred: bool
+    position: int | None
+
+
 @register(ExploreSavedQuery)
 class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
     def get_attrs(self, item_list, user, **kwargs):
@@ -152,7 +167,13 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
 
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs) -> ExploreSavedQueryResponse:
+    def serialize(
+        self,
+        obj: ExploreSavedQuery,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> ExploreSavedQueryResponse:
         query_keys = [
             "environment",
             "query",
@@ -172,10 +193,10 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
             "expired": False,
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
-            "lastVisited": attrs.get("user_last_visited"),
-            "createdBy": attrs.get("created_by"),
-            "starred": attrs.get("starred"),
-            "position": attrs.get("position"),
+            "lastVisited": cast(ExploreSavedQueryAttrs, attrs).get("user_last_visited"),
+            "createdBy": cast(ExploreSavedQueryAttrs, attrs).get("created_by"),
+            "starred": cast(ExploreSavedQueryAttrs, attrs).get("starred"),
+            "position": cast(ExploreSavedQueryAttrs, attrs).get("position"),
             "isPrebuilt": obj.prebuilt_id is not None,
             "changedReason": obj.changed_reason,
         }
@@ -184,11 +205,9 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
             if obj.query.get(key) is not None:
                 data[key] = obj.query[key]  # type: ignore[literal-required]
 
-        # Older rows stored the relative period as `range`.
         if data.get("statsPeriod") is None and obj.query.get("range") is not None:
             data["statsPeriod"] = obj.query["range"]
 
-        # expire queries that are beyond the retention period
         if "start" in obj.query:
             start, end = parse_timestamp(obj.query["start"]), parse_timestamp(obj.query["end"])
             if start and end:
