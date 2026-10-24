@@ -6,10 +6,12 @@ from contextlib import contextmanager
 from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
+from types import TracebackType
 from typing import IO, ClassVar, Self
 from urllib.parse import urlunsplit
 
 from django.db import models, router
+from django.db.models import QuerySet
 from django.db.models.functions import Now
 from django.utils import timezone
 from sentry_sdk import traces
@@ -52,7 +54,7 @@ class PublicReleaseFileManager(models.Manager["ReleaseFile"]):
 
     """
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[ReleaseFile]:
         return super().get_queryset().select_related("file").filter(file__type="release.file")
 
 
@@ -153,7 +155,7 @@ class ReleaseFile(Model):
 class ReleaseArchive:
     """Read-only view of uploaded ZIP-archive of release files"""
 
-    def __init__(self, fileobj: IO):
+    def __init__(self, fileobj: IO[bytes]) -> None:
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
@@ -161,13 +163,18 @@ class ReleaseArchive:
         files = self.manifest.get("files", {})
         self._entries_by_url = {entry["url"]: (path, entry) for path, entry in files.items()}
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, exc, value, tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
-    def close(self):
+    def close(self) -> None:
         self._zip_file.close()
         self._fileobj.close()
 
@@ -191,7 +198,7 @@ class ReleaseArchive:
         filename, entry = self._entries_by_url[url]
         return self._zip_file.open(filename), entry.get("headers", {})
 
-    def extract(self) -> TemporaryDirectory:
+    def extract(self) -> TemporaryDirectory[str]:
         """Extract contents to a temporary directory.
 
         The caller is responsible for cleanup of the temporary files.
@@ -280,20 +287,21 @@ class _ArtifactIndexGuard:
                     releasefile = None
 
             if releasefile is None:
-                index_data = None
+                yield None
+                return
+
+            if created:
+                index_data = _ArtifactIndexData({}, fresh=True)
             else:
-                if created:
-                    index_data = _ArtifactIndexData({}, fresh=True)
-                else:
-                    source_file = releasefile.file
-                    if source_file.type != ARTIFACT_INDEX_TYPE:
-                        raise RuntimeError("Unexpected file type for artifact index")
-                    raw_data = json.load(source_file.getfile())
-                    index_data = _ArtifactIndexData(raw_data)
+                source_file = releasefile.file
+                if source_file.type != ARTIFACT_INDEX_TYPE:
+                    raise RuntimeError("Unexpected file type for artifact index")
+                raw_data = json.load(source_file.getfile())
+                index_data = _ArtifactIndexData(raw_data)
 
-            yield index_data  # editable reference to index
+            yield index_data
 
-            if index_data is not None and index_data.changed:
+            if index_data.changed:
                 if created:
                     target_file = releasefile.file
                 else:
@@ -310,7 +318,9 @@ class _ArtifactIndexGuard:
                     releasefile.update(file=target_file, artifact_count=artifact_count)
                     old_file.delete()
 
-    def _get_or_create_releasefile(self, initial_artifact_count):
+    def _get_or_create_releasefile(
+        self, initial_artifact_count: int | None
+    ) -> tuple[ReleaseFile, bool]:
         """Make sure that the release file exists"""
         return ReleaseFile.objects.select_for_update().get_or_create(
             **self._key_fields(),
@@ -323,11 +333,11 @@ class _ArtifactIndexGuard:
             },
         )
 
-    def _releasefile_qs(self):
+    def _releasefile_qs(self) -> QuerySet[ReleaseFile]:
         """QuerySet for selecting artifact index"""
         return ReleaseFile.objects.filter(**self._key_fields(), **self._filter_args)
 
-    def _key_fields(self):
+    def _key_fields(self) -> dict[str, int | str | None]:
         """Columns needed to identify the artifact index in the db"""
         return dict(
             organization_id=self._release.organization_id,
@@ -355,8 +365,8 @@ def update_artifact_index(
     release: Release,
     dist: Distribution | None,
     archive_file: File,
-    temp_file: IO | None = None,
-):
+    temp_file: IO[bytes] | None = None,
+) -> ReleaseFile | None:
     """Add information from release archive to artifact index
 
     :returns: The created ReleaseFile instance
@@ -376,7 +386,7 @@ def update_artifact_index(
 
         files = manifest.get("files", {})
         if not files:
-            return
+            return None
 
         for filename, info in files.items():
             info = info.copy()
