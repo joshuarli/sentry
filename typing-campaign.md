@@ -14,7 +14,7 @@ Then reread current repository instructions and perform the parent steering chec
 
 ### State
 
-The integration branch is `typing-hillclimb` at `c9e0655dd4e3820964fd072b2b4d21248cd126e8`. This is a campaign-document-only commit after the accepted source checkpoint `b628cbcf763bf36a8b1798dfb4ae9eab33a05c80` (tree `b6ff996179e34f36b2e69b8cc4d722eb4d06db5d`). The pinned upstream comparison base remains `503ad2e4e2a208a87d768a3e91bcfb55a778e7ba`. The branch is 23 commits ahead of `origin/typing-hillclimb`; nothing was pushed.
+The integration branch is `typing-hillclimb`. Its accepted source tip is `b628cbcf763bf36a8b1798dfb4ae9eab33a05c80` (tree `b6ff996179e34f36b2e69b8cc4d722eb4d06db5d`); later winddown commits on this branch only update this campaign document. The pinned upstream comparison base remains `503ad2e4e2a208a87d768a3e91bcfb55a778e7ba`. The branch is 24 commits ahead of `origin/typing-hillclimb`; nothing was pushed.
 
 The latest candidate was commit `a8125f3e92f87d4a0156dc9761e1b1849ff97ca2` (tree `f7680fe9eb55dedfff2ef8ec3fabf2d97b8c8eb2`), on branch `typing-wave-20261024-query-construction`, against accepted parent `b628cbcf763bf36a8b1798dfb4ae9eab33a05c80`. Exact evaluation rejected it. The candidate changes `mep_to_eap.py` and `metrics/query_builder.py`; it is preserved as an unaccepted branch.
 
@@ -190,7 +190,7 @@ The exact rejected candidate is `typing-wave-20261024-query-construction`. Its k
 
 ### Cleanup
 
-The closeout removed 101 campaign worktrees using Git's normal worktree removal and left only the integration checkout. Branch refs remain available for recreation. The rejected candidate report, inventory, and canary output were preserved as a compressed local artifact; the handoff above contains the facts required to resume.
+The closeout removed 101 campaign worktrees using Git's normal worktree removal and left only the integration checkout. Branch refs remain available for recreation. The rejected candidate report was losslessly compressed locally, with its inventory and canary output retained alongside it; the handoff above contains the facts required to resume.
 
 Disk availability rose from 68 GiB to 178 GiB, recovering 110 GiB. The earlier requested ~300 GB target was not met. The large completed-evaluation trees and snapshots under `.work/tmp` remain because automatic review previously rejected their bulk removal; that deletion was not retried. The latest raw report was compressed losslessly. `.work/` is ignored by `.git/info/exclude` and resides on APFS.
 
@@ -214,7 +214,7 @@ No next source wave is selected. On resume, the coordinator should perform the p
 - All lane worktrees were clean before normal removal. Unique uncommitted proposals were committed to their lane branches; the only preserved unaccepted candidate, `a8125f3e92f87d4a0156dc9761e1b1849ff97ca2`, has its own branch.
 - The root virtualenv has executable Python and pytest. No formatter was run.
 - The root checkout is intentionally not clean because of the seven owner-owned changes above; the closeout did not alter them.
-- The Stop hook configuration was inspected manually. `/hooks` was not exposed in this API session. `codex-campaign-closeout.py begin` reports closeout active; the root checkout is a baseline worktree and the guard did not require an allowance.
+- The Stop hook configuration was inspected manually. `/hooks` was not exposed in this API session. `codex-campaign-closeout.py begin` reports closeout active; the root checkout is a baseline worktree and the guard did not require an allowance. Directly invoking its `hook` command returned a block because this API call did not include the Stop-event JSON; no synthetic event was supplied.
 - Process checks found no campaign pytest, mypy, or evaluator process; no lane agents remain active. The user crontab and LaunchAgents contain no typing-campaign wakeup.
 - The document path audit found only `.work/tmp`, which is under the ignored repo-local `.work/` directory. The branch list in this handoff matches `git branch --no-merged typing-hillclimb`.
 - Resume rehearsal passed in a clean environment: the first command, integration branch, accepted source commit, rejected-candidate branch, and this handoff all resolved.
