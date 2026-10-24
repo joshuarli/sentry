@@ -232,6 +232,13 @@ class _AnyCollector(TypeQuery):
     def visit_any(self, typ):
         return [(typ, ())]
 
+    def visit_type_var(self, typ):
+        types = [typ.upper_bound]
+        if typ.has_default():
+            types.append(typ.default)
+        types.extend(typ.values)
+        return self.query_types(types)
+
 
 def _expressions(root) -> list[Expression]:
     ignored_attributes = {

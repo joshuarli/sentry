@@ -76,7 +76,11 @@ def translate_dashboard_widget_queries(
     )
 
     dropped_cols = dropped_fields["selected_columns"]
-    dropped_equations = [dropped["equation"] for dropped in dropped_fields["equations"]]
+    dropped_equation_rows = dropped_fields["equations"]
+    translated_equations = eap_query_parts["equations"]
+    assert dropped_equation_rows is not None
+    assert translated_equations is not None
+    dropped_equations = [dropped["equation"] for dropped in dropped_equation_rows]
 
     new_conditions = eap_query_parts["query"] or ""
     new_orderby = eap_query_parts["orderby"][0] if eap_query_parts["orderby"] else ""
@@ -106,8 +110,8 @@ def translate_dashboard_widget_queries(
 
         if is_equation_field:
             if old_index < original_fields_length:
-                new_fields.append(eap_query_parts["equations"][equation_index])
-            new_aggregates.append(eap_query_parts["equations"][equation_index])
+                new_fields.append(translated_equations[equation_index])
+            new_aggregates.append(translated_equations[equation_index])
             equation_index += 1
 
         elif is_function_field:

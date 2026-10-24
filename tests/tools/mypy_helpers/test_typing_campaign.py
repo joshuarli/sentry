@@ -1828,10 +1828,23 @@ def test_precision_adapter_exports_stable_any_obligations(tmp_path: Path) -> Non
     (package / "__init__.py").write_text("")
     example_path = package / "example.py"
     example_path.write_text(
+        "from collections.abc import Mapping, Sequence\n"
         "from typing import Any, TypeAlias\n\n"
         "Alias: TypeAlias = dict[str, Any]\n\n"
         "type PEP695Alias = list[Any]\n\n"
-        "def identity(value: Any) -> Any:\n    return value\n"
+        "def identity(value: Any) -> Any:\n    return value\n\n"
+        "def resolve(\n"
+        "    scope_map: Mapping[str, Sequence[str]], method: str | None\n"
+        ") -> Sequence[str] | None:\n"
+        "    if method is None:\n"
+        "        return None\n"
+        "    return scope_map.get(method)\n\n"
+        "def resolve_dynamic(\n"
+        "    scope_map: Mapping[str, Sequence[Any]], method: str | None\n"
+        ") -> Sequence[Any] | None:\n"
+        "    if method is None:\n"
+        "        return None\n"
+        "    return scope_map.get(method)\n"
     )
     (root / "pyproject.toml").write_text(
         "[tool.mypy]\n"
@@ -1879,8 +1892,18 @@ def test_precision_adapter_exports_stable_any_obligations(tmp_path: Path) -> Non
     assert any(item.origin == "explicit" for item in measurement.any_obligations)
     assert all(not item.anchor.startswith("unanchored:") for item in measurement.any_obligations)
     example_module = ast.parse(example_path.read_text())
-    alias_node = example_module.body[1]
-    pep695_alias_node = example_module.body[2]
+    alias_node = next(
+        node
+        for node in example_module.body
+        if isinstance(node, ast.AnnAssign)
+        and isinstance(node.target, ast.Name)
+        and node.target.id == "Alias"
+    )
+    pep695_alias_node = next(
+        node
+        for node in example_module.body
+        if isinstance(node, ast.TypeAlias) and node.name.id == "PEP695Alias"
+    )
     assert isinstance(alias_node, ast.AnnAssign)
     assert isinstance(pep695_alias_node, ast.TypeAlias)
     assert alias_node.value is not None
@@ -1903,6 +1926,19 @@ def test_precision_adapter_exports_stable_any_obligations(tmp_path: Path) -> Non
         item.path == "src/sentry/example.py" and item.anchor.startswith(pep695_rhs_anchor)
         for item in measurement.any_obligations
     )
+    precise_function_any = [
+        item
+        for item in measurement.any_obligations
+        if item.path == "src/sentry/example.py" and item.scope == "sentry.example.resolve#1"
+    ]
+    dynamic_function_any = [
+        item
+        for item in measurement.any_obligations
+        if item.path == "src/sentry/example.py"
+        and item.scope == "sentry.example.resolve_dynamic#1"
+    ]
+    assert not any(item.origin == "from_omitted_generics" for item in precise_function_any)
+    assert any(item.origin == "explicit" for item in dynamic_function_any)
     assert any(item.path == "src/sentry/example.py" for item in measurement.diagnostics)
     state = next(state for state in measurement.graph if state.module == "sentry.example")
     assert state.checked
