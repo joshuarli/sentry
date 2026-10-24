@@ -64,10 +64,16 @@ class BitFieldCreator:
     def __init__(self, field: "BitField") -> None:
         self.field = field
 
-    def __set__(self, obj: Model, value: object) -> None:
+    def __set__(
+        self,
+        obj: Model,
+        value: SupportsInt | SupportsIndex | str | bytes | bytearray | float | Bit | BitHandler | None,
+    ) -> None:
         obj.__dict__[self.field.name] = self.field.to_python(value)
 
-    def __get__(self, obj, type=None):
+    def __get__(
+        self, obj: Model | None, type: type[Model] | None = None
+    ) -> BitFieldFlags | BitHandler:
         if obj is None:
             return BitFieldFlags(self.field.flags)
         retval = obj.__dict__[self.field.name]
@@ -80,12 +86,20 @@ class BitFieldCreator:
 class BitField(BigIntegerField):
     flags: list[str]
     labels: list[str]
+    _arg_flags: Sequence[str | tuple[str, str] | list[str]]
 
     def contribute_to_class(self, cls: type[Model], name: str, private_only: bool = False) -> None:
         super().contribute_to_class(cls, name, private_only=private_only)
         setattr(cls, self.name, BitFieldCreator(self))
 
-    def __init__(self, flags, default=None, *args, **kwargs):
+    def __init__(
+        self,
+        flags: Sequence[str | tuple[str, str] | list[str]]
+        | dict[object, str | tuple[str, str] | list[str]],
+        default: object = None,
+        *args,
+        **kwargs,
+    ) -> None:
         if isinstance(flags, dict):
             # Get only integer keys in correct range
             valid_keys = (
@@ -94,31 +108,36 @@ class BitField(BigIntegerField):
             if not valid_keys:
                 raise ValueError("Wrong keys or empty dictionary")
             # Fill list with values from dict or with empty values
-            flags = [flags.get(i, "") for i in range(max(valid_keys) + 1)]
+            normalized_flags: list[str | tuple[str, str] | list[str]] = [
+                flags.get(i, "") for i in range(max(valid_keys) + 1)
+            ]
+            self._arg_flags = normalized_flags
+        else:
+            self._arg_flags = flags
+            normalized_flags = list(flags)
 
-        if len(flags) > MAX_FLAG_COUNT:
+        if len(normalized_flags) > MAX_FLAG_COUNT:
             raise ValueError("Too many flags")
 
-        self._arg_flags = flags
-        flags = list(flags)
-
-        labels = []
-        for num, flag in enumerate(flags):
+        flag_names: list[str] = []
+        labels: list[str] = []
+        for flag in normalized_flags:
             if isinstance(flag, (tuple, list)):
-                flags[num] = flag[0]
+                flag_names.append(flag[0])
                 labels.append(flag[1])
             else:
+                flag_names.append(flag)
                 labels.append(flag)
 
         if isinstance(default, (list, tuple, set, frozenset)):
             new_value = 0
             for flag in default:
-                new_value |= Bit(flags.index(flag))
+                new_value |= Bit(flag_names.index(flag))
             default = new_value
 
         kwargs["default"] = default
         BigIntegerField.__init__(self, *args, **kwargs)
-        self.flags = flags
+        self.flags = flag_names
         self.labels = labels
 
     def pre_save(self, instance: Model, add: bool) -> object:
@@ -135,7 +154,10 @@ class BitField(BigIntegerField):
             value = value.mask
         return int(value)
 
-    def to_python(self, value):
+    def to_python(
+        self,
+        value: SupportsInt | SupportsIndex | str | bytes | bytearray | float | Bit | BitHandler | None,
+    ) -> BitHandler:
         if isinstance(value, Bit):
             value = value.mask
         if not isinstance(value, BitHandler):
@@ -154,7 +176,7 @@ class BitField(BigIntegerField):
             value._keys = self.flags
         return value
 
-    def deconstruct(self):
+    def deconstruct(self) -> tuple[str, str, Sequence[object], dict[str, object]]:
         name, path, args, kwargs = super().deconstruct()
         args = [self._arg_flags, *args]
         return name, path, args, kwargs
