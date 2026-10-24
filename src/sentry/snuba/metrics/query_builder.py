@@ -794,6 +794,16 @@ class SnubaQueryBuilder:
     @overload
     @staticmethod
     def generate_snql_for_action_by_fields(
+        metric_action_by_field: MetricGroupByField,
+        use_case_id: UseCaseID,
+        org_id: int,
+        projects: Sequence[Project],
+        is_column: bool = False,
+    ) -> Column | AliasedExpression | Function: ...
+
+    @overload
+    @staticmethod
+    def generate_snql_for_action_by_fields(
         metric_action_by_field: MetricOrderByField,
         use_case_id: UseCaseID,
         org_id: int,
@@ -969,7 +979,7 @@ class SnubaQueryBuilder:
 
         return where
 
-    def _build_groupby(self) -> list[Column] | None:
+    def _build_groupby(self) -> list[Column | AliasedExpression | Function] | None:
         if self._metrics_query.groupby is None:
             return None
 
