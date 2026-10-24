@@ -767,7 +767,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         self.access = access
         super().__init__(**kwargs)
 
-    def get_deploys_by_project(self, item_list) -> dict[int, dict[str, _DeployDict]]:
+    def get_deploys_by_project(
+        self, item_list: Sequence[Project]
+    ) -> dict[int, dict[str, _DeployDict]]:
         cursor = connection.cursor()
         cursor.execute(
             """
@@ -977,10 +979,10 @@ class Plugin(TypedDict):
     canDisable: bool
     isTestable: bool
     hasConfiguration: bool
-    metadata: dict
+    metadata: dict[str, object]
     contexts: list[str]
     status: str
-    assets: list
+    assets: list[object]
     doc: str
     firstPartyAlternative: Any
     deprecationDate: Any
@@ -1321,7 +1323,13 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
 
 
 class SharedProjectSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self,
+        obj: Project,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser | None,
+        **kwargs: object,
+    ) -> dict[str, object]:
         return {
             "slug": obj.slug,
             "name": obj.name,
