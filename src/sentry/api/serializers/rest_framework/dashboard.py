@@ -95,14 +95,14 @@ def get_next_query_order(widget_id):
     return max_order + 1 if max_order else 1
 
 
-def validate_id(self, value):
+def validate_id(self: CamelSnakeSerializer[Dashboard], value: str) -> int:
     try:
         return int(value)
     except ValueError:
         raise serializers.ValidationError("Invalid ID format. Must be a numeric string")
 
 
-def is_table_display_type(display_type):
+def is_table_display_type(display_type: object) -> bool:
     return display_type == DashboardWidgetDisplayTypes.get_type_name(
         DashboardWidgetDisplayTypes.TABLE
     )
