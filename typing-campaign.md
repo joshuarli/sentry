@@ -1,22 +1,22 @@
 # Sentry typing hillclimb
 
-## Status: winding down — 2026-10-24
+## Status: paused — 2026-10-24
 
 ### Resume
 
-Resume the existing `typing-hillclimb` campaign from the last accepted source checkpoint `b628cbcf763bf36a8b1798dfb4ae9eab33a05c80`. First run:
+On the owner's next request, resume the existing typing migration from accepted source checkpoint `b628cbcf763bf36a8b1798dfb4ae9eab33a05c80`. First run:
 
 ```sh
 git status --short --branch
 ```
 
-Then reread current repository instructions and perform the parent steering checkpoint before selecting work from the parked branches. Do not treat branch preservation commits as accepted source work, or retry the rejected query-construction candidate without addressing its measured blockers.
+Reread repository instructions and perform the parent steering checkpoint. Preserve the owner's source changes in the integration checkout. Fetch current GitHub master and rebase the typing source in a separate clean worktree, then establish the fixed policy baseline before selecting a parked proposal. The last fetched `upstream/master` was `86b1728a40fc57fd64ca6fb5e7c892b17c061b8c`; the campaign source has not been rebased onto it.
 
 Use only GPT-6-Luna High for campaign agents and remove Claude-specific guidance. If environment setup is needed, follow `devenv/sync.py` directly without invoking the `devenv` tool. Getsentry is unavailable on this machine; when its checkout is absent, skip Getsentry-specific verification. Do not run formatters, change CI, or push.
 
 ### State
 
-The integration branch is `typing-hillclimb`. Its accepted source tip is `b628cbcf763bf36a8b1798dfb4ae9eab33a05c80` (tree `b6ff996179e34f36b2e69b8cc4d722eb4d06db5d`); later winddown commits on this branch only update this campaign document. The pinned upstream comparison base remains `503ad2e4e2a208a87d768a3e91bcfb55a778e7ba`. The branch has local commits ahead of `origin/typing-hillclimb`; nothing was pushed.
+The integration branch is `typing-hillclimb`. Its accepted source tip is `b628cbcf763bf36a8b1798dfb4ae9eab33a05c80` (tree `b6ff996179e34f36b2e69b8cc4d722eb4d06db5d`). Commits after that source tip only update this campaign document. The prior fixed policy comparison used base `503ad2e4e2a208a87d768a3e91bcfb55a778e7ba`. Current fetched `upstream/master` is `86b1728a40fc57fd64ca6fb5e7c892b17c061b8c`; no source rebase or new baseline was done before this winddown. The local branch is ahead of `origin/typing-hillclimb`; nothing was pushed.
 
 The latest candidate was commit `a8125f3e92f87d4a0156dc9761e1b1849ff97ca2` (tree `f7680fe9eb55dedfff2ef8ec3fabf2d97b8c8eb2`), on branch `typing-wave-20261024-query-construction`, against accepted parent `b628cbcf763bf36a8b1798dfb4ae9eab33a05c80`. Exact evaluation rejected it. The candidate changes `mep_to_eap.py` and `metrics/query_builder.py`; it is preserved as an unaccepted branch.
 
@@ -31,21 +31,21 @@ The latest candidate was commit `a8125f3e92f87d4a0156dc9761e1b1849ff97ca2` (tree
 
 The evaluator recorded `core_complete=true` and adoption credit, but rejected the candidate: four new configured/unsuppressed errors follow the optional `list[...] | None` MEP result contract and its stale test expectation; the metrics query change adds precision errors and Any obligations at the SNQL expression boundary. Focused tests passed 116 with 6 skipped. The scoped all-strong comparison found the same 25 existing metrics-builder diagnostics on parent and candidate after line relocation; MEP had none. Read-only Ruff and `git diff --check` passed. Independent source review found no concrete runtime behavior issue. This does not establish exact acceptance or campaign-wide precision completion.
 
-The last accepted source promotion remains `b628cbcf763`. No new source work was merged during winddown. Campaign status, exact results, and the remaining decision are recorded here; the optional raw evaluator report is not required to resume.
+The last accepted source promotion remains `b628cbcf763`. No new source work was merged during this winddown. Seven owner-owned source and test files remain modified in the integration checkout. Keep them intact when resuming. The optional raw evaluator report is not required to resume.
 
 ### Direction
 
-The migration has delivered seven accepted source promotions since the earlier checkpoint, including concrete contracts in serializers, integrations, query helpers, and adapters. Core typing completion and precision completion remain separate objectives.
+The migration has delivered seven accepted source promotions since the earlier checkpoint, including concrete contracts in serializers, integrations, query helpers, and adapters. Core typing completion and precision completion remain separate objectives. The latest source candidate was rejected, and the owner has requested a clean stop.
 
-The limiting stage remains exact global acceptance and proposal correctness, not proposal supply. The latest candidate reduces aggregate debt but is rejected for local regressions. Preserve the corrected evaluator; do not reopen evaluator, cache, or reporting work without a demonstrated unsafe acceptance or invalid measurement. On resume, inspect candidate branches against the accepted source tree and select one coherent, testable source wave. Keep intermediate changes provisional until exact combined-tree acceptance.
+The limiting stage remains exact global acceptance and proposal correctness. The latest candidate reduced aggregate debt but introduced four configured and unsuppressed errors and additional precision debt. Preserve the corrected evaluator. On resume, inspect the candidate branches against the rebased accepted source and select one testable source wave. Keep intermediate changes provisional until exact combined tree acceptance.
 
-Use one coordinator and at most two preparation lanes. Preserve the pinned comparison base and locked dependencies. If required services remain unavailable, record the blocker once and continue with independent, testable work.
+The campaign is frozen. No lanes are running, and no new work may start until the owner resumes it. On resume, use one coordinator and at most two preparation lanes. Keep locked dependencies. If required services remain unavailable, record the blocker once and continue with independent, testable work.
 
 ### Open lanes
 
-There are no active lanes and no remaining campaign worktrees. The unique dirty proposals found during winddown were committed to their existing lane branches or new `typing-winddown-*` branches so the checkouts could be removed. These are preservation commits, not source acceptance. Local edits identical to the accepted source tree were discarded from their worktrees. All branches listed below are parked; inspect their commit and diff before selecting any for a retry. Recreate a checkout at `.work/wt/<lane>` from its branch when needed. Retry only after reviewing current callers and tests, then run focused checks and exact wave acceptance.
+No campaign lane is running and no campaign worktree remains. Every lane agent reported completion. Completed candidate reports are preserved on the branches listed below; none has current wave acceptance. Unique dirty proposals found during the previous winddown were committed to their existing lane branches or new `typing-winddown-*` branches. Those commits preserve work but do not establish source acceptance. Local edits identical to the accepted source were discarded from their worktrees.
 
-The exact rejected candidate is `typing-wave-20261024-query-construction`. Its known blockers are recorded above. Other historical branches were not individually re-evaluated during winddown; do not infer acceptance from their branch names or earlier lane notes.
+Every unmerged campaign branch is listed below. The list exactly matches `git branch --no-merged typing-hillclimb`: 143 branches. Their branch names identify the work items. No current exact wave acceptance covers these proposals. They remain parked until the owner resumes the campaign and the coordinator selects a proposal after reviewing its diff, callers, and tests against the rebased accepted source. Recreate only the selected checkout under `.work/wt/<lane>`. The query construction branch has the specific rejection recorded above. Address its four downstream errors and metrics boundary precision debt before retry.
 
 #### Parked branches
 - `p3-apidocs-constants`
@@ -194,9 +194,9 @@ The exact rejected candidate is `typing-wave-20261024-query-construction`. Its k
 
 ### Cleanup
 
-The closeout removed 101 campaign worktrees using Git's normal worktree removal and left only the integration checkout. Branch refs remain available for recreation. The rejected candidate report was losslessly compressed locally, with its inventory and canary output retained alongside it; the handoff above contains the facts required to resume.
+The previous cleanup removed 101 campaign worktrees using Git's normal worktree removal. This winddown ran `git worktree prune`; only the integration checkout remains, so this pass removed no additional worktrees. No branch refs were deleted. The rejected candidate report is losslessly compressed with its inventory and canary output in `.work/tmp/typing-campaign-winddown`. That 73 MiB bundle is optional and is not needed to resume.
 
-Disk availability rose from 68 GiB to 178 GiB, recovering 110 GiB. The earlier requested ~300 GB target was not met. The large completed-evaluation trees and snapshots under `.work/tmp` remain because automatic review previously rejected their bulk removal; that deletion was not retried. The latest raw report was compressed losslessly. `.work/` is ignored by `.git/info/exclude` and resides on APFS.
+The previous cleanup raised available disk space from 68 GiB to 178 GiB, recovering 110 GiB. The requested ~300 GB recovery target was not met. Available space remains 178 GiB. No non-root worktree remains eligible for cleanup. The `.work/` directory is ignored through `.git/info/exclude` and resides on APFS.
 
 The only retained worktree is the root integration checkout. It has seven owner-owned changes that were not modified or staged:
 
@@ -210,19 +210,20 @@ The only retained worktree is the root integration checkout. It has seven owner-
 
 ### Not started
 
-No next source wave is selected. On resume, the coordinator should perform the parent steering checkpoint, compare parked proposals to the accepted source, and select one testable group. No owner decision is pending during this pause.
+No next source wave is selected. On resume, fetch current master, rebase the source in a clean worktree, establish its fixed policy baseline, perform the parent steering checkpoint, then select one testable parked proposal.
 
 ### Verified
 
-- `git worktree prune` completed; the worktree list contains only the root integration checkout.
-- All lane worktrees were clean before normal removal. Unique uncommitted proposals were committed to their lane branches; the only preserved unaccepted candidate, `a8125f3e92f87d4a0156dc9761e1b1849ff97ca2`, has its own branch.
+- `git worktree prune` completed; the worktree list contains only the root integration checkout. No additional cleanup candidate existed.
+- The 143 unmerged branch refs exactly match the parked branch list. Branches were preserved; none was deleted.
+- All lane agents reported completion. Process, user crontab, and LaunchAgents checks found no campaign job or wakeup.
+- `codex-campaign-closeout.py begin` succeeded. The configured Stop hook points to `codex-campaign-closeout.py hook` and has a trusted configuration hash. The `/hooks` UI command is not exposed in this API session, so it could not be run here. A direct hook invocation needs Stop-event JSON and was not fabricated.
 - The root virtualenv has executable Python and pytest. No formatter was run.
-- The root checkout is intentionally not clean because of the seven owner-owned changes above; the closeout did not alter them.
-- The Stop hook configuration was inspected manually. `/hooks` was not exposed in this API session. `codex-campaign-closeout.py begin` reports closeout active; the root checkout is a baseline worktree and the guard did not require an allowance. Directly invoking its `hook` command returned a block because this API call did not include the Stop-event JSON; no synthetic event was supplied.
-- Process checks found no campaign pytest, mypy, or evaluator process; no lane agents remain active. The user crontab and LaunchAgents contain no typing-campaign wakeup.
-- The document path audit found only `.work/tmp`, which is under the ignored repo-local `.work/` directory. The branch list in this handoff matches `git branch --no-merged typing-hillclimb`.
-- Resume rehearsal passed in a clean environment: the first command, integration branch, accepted source commit, rejected-candidate branch, and this handoff all resolved.
+- The root checkout remains dirty only in the seven owner-owned files listed above. The campaign did not modify or stage them.
+- `.work/` is ignored through `.git/info/exclude`; `df -h .work` confirmed it resides on APFS.
+- Current fetched master is `86b1728a40fc57fd64ca6fb5e7c892b17c061b8c`; the source branch remains unrebased.
+- Resume rehearsal passed in a clean environment. The first command, accepted source commit, current master commit, rejected candidate branch, and handoff document all resolved.
 
 ### Campaign log
 
-2026-10-24 — Paused after exact rejection of the query-construction candidate; preserved unique proposals on branches, removed 101 worktrees, and reclaimed 110 GiB.
+2026-10-24 — Froze the campaign after the query-construction rejection, confirmed all 143 unmerged branches are recorded as parked, and verified that no additional worktrees or running lanes remain. Preserved seven owner-owned changes and recorded the current-master rebase as the next resume step.
