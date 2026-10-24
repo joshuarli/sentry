@@ -58,7 +58,7 @@ class SafeConnectionMixin:
         return self._dns_host.rstrip(".")
 
     @host.setter
-    def host(self, value) -> None:
+    def host(self, value: str) -> None:
         """
         Setter for the `host` property.
         We assume that only urllib3 uses the _dns_host attribute; httplib itself
@@ -169,7 +169,7 @@ class BlacklistAdapter(HTTPAdapter):
 
     def init_poolmanager(
         self, connections: int, maxsize: int, block: bool = DEFAULT_POOLBLOCK, **pool_kwargs: Any
-    ):
+    ) -> None:
         self._pool_connections = connections
         self._pool_maxsize = maxsize
         self._pool_block = block
@@ -240,7 +240,7 @@ class UnixHTTPConnection(HTTPConnection):
         self.socket_path = host
         super().__init__(host="localhost", **kwargs)
 
-    def _new_conn(self):
+    def _new_conn(self) -> socket.socket:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 
         # If provided, set socket level options before connecting.
