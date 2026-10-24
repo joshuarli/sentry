@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from abc import ABC
+from collections.abc import Mapping
 from typing import TypedDict
 from urllib.parse import urlencode
 
@@ -48,13 +49,15 @@ class MsTeamsClientABC(ApiClient, ABC):
         resp = self.post(self.CONVERSATION_URL, data=data)
         return resp.get("id")
 
-    def send_message(self, conversation_id: str, data):
+    def send_message(self, conversation_id: str, data: Mapping[str, object]):
         return self.post(self.ACTIVITY_URL % conversation_id, data=data)
 
-    def update_message(self, conversation_id: str, activity_id: str, data):
+    def update_message(
+        self, conversation_id: str, activity_id: str, data: Mapping[str, object]
+    ):
         return self.put(self.MESSAGE_URL % (conversation_id, activity_id), data=data)
 
-    def send_card(self, conversation_id: str, card):
+    def send_card(self, conversation_id: str, card: Mapping[str, object]):
         payload = {
             "type": "message",
             "attachments": [
@@ -63,7 +66,9 @@ class MsTeamsClientABC(ApiClient, ABC):
         }
         return self.send_message(conversation_id, payload)
 
-    def update_card(self, conversation_id: str, activity_id: str, card):
+    def update_card(
+        self, conversation_id: str, activity_id: str, card: Mapping[str, object]
+    ):
         payload = {
             "type": "message",
             "attachments": [

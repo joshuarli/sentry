@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 from urllib.parse import parse_qsl, urlparse
 
@@ -78,7 +79,7 @@ class JiraServerClient(ApiClient):
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         return self.authorize_request(prepared_request=prepared_request)
 
-    def authorize_request(self, prepared_request: PreparedRequest):
+    def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         """Jira Server authorizes with RSA-signed OAuth1 scheme"""
         if not self.identity:
             return prepared_request
@@ -138,7 +139,7 @@ class JiraServerClient(ApiClient):
         # Get a list of fields for the issue type and project
         return self.get_cached(self.ISSUE_FIELDS_URL % (project_id, issue_type_id))
 
-    def get_project_key_for_id(self, project_id) -> str:
+    def get_project_key_for_id(self, project_id: str) -> str:
         if not project_id:
             return ""
         projects = self.get_projects_list()
@@ -240,13 +241,15 @@ class JiraServerSetupClient(ApiClient):
     LEGACY_WEBHOOK_URL = "/rest/webhooks/1.0/webhook"
 
     @control_silo_function
-    def __init__(self, base_url, consumer_key, private_key, verify_ssl=True):
+    def __init__(
+        self, base_url: str, consumer_key: str, private_key: str, verify_ssl: bool = True
+    ):
         self.base_url = base_url
         self.consumer_key = consumer_key
         self.private_key = private_key
         self.verify_ssl = verify_ssl
 
-    def get_request_token(self):
+    def get_request_token(self) -> dict[str, str]:
         """
         Step 1 of the oauth flow.
         Get a request token that we can have the user verify.
@@ -255,14 +258,16 @@ class JiraServerSetupClient(ApiClient):
         resp = self.post(url, allow_text=True)
         return dict(parse_qsl(resp.text))
 
-    def get_authorize_url(self, request_token):
+    def get_authorize_url(self, request_token: Mapping[str, str]) -> str:
         """
         Step 2 of the oauth flow.
         Get a URL that the user can verify our request token at.
         """
         return self.authorize_url.format(self.base_url, request_token["oauth_token"])
 
-    def get_access_token(self, request_token, verifier):
+    def get_access_token(
+        self, request_token: Mapping[str, str], verifier: str | None
+    ) -> dict[str, str]:
         """
         Step 3 of the oauth flow.
         Use the verifier and request token from step 1 to get an access token.
