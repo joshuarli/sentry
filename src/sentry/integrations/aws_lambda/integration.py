@@ -327,6 +327,7 @@ class InstrumentationApiStep:
         account_number = pipeline.fetch_state("account_number")
         region = pipeline.fetch_state("region")
         project_id = pipeline.fetch_state("project_id")
+        assert isinstance(project_id, int)
         aws_external_id = pipeline.fetch_state("aws_external_id")
 
         enabled_functions = validated_data["enabled_functions"]
@@ -363,7 +364,7 @@ class InstrumentationApiStep:
                     success_count += 1
                 else:
                     err_message: str | _StrPromise = str(e)
-                    is_custom_err, err_message = get_sentry_err_message(err_message)
+                    is_custom_err, err_message = get_sentry_err_message(str(err_message))
                     if not is_custom_err:
                         capture_exception(e)
                         err_message = _("Unknown Error")
