@@ -145,7 +145,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         build: str,
         project_ids: Sequence[int] | None = None,
         negated: bool = False,
-    ) -> models.QuerySet:
+    ) -> ReleaseQuerySet:
         return self.get_queryset().filter_by_semver_build(
             organization_id,
             operator,
@@ -159,7 +159,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         organization_id: int,
         semver_filter: SemverFilter,
         project_ids: Sequence[int] | None = None,
-    ) -> models.QuerySet:
+    ) -> ReleaseQuerySet:
         return self.get_queryset().filter_by_semver(organization_id, semver_filter, project_ids)
 
     def filter_by_stage(
@@ -395,7 +395,7 @@ class Release(Model):
         )
 
     @property
-    def is_semver_release(self):
+    def is_semver_release(self) -> bool:
         return self.package is not None
 
     def get_previous_release(self, project: Project) -> ReleaseProject | None:
@@ -941,7 +941,9 @@ def get_artifact_counts(release_ids: list[int]) -> Mapping[int, int]:
     return dict(qs)
 
 
-def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
+def follows_semver_versioning_scheme(
+    org_id: int, project_id: int, release_version: str | None = None
+) -> bool:
     """
     Checks if we should follow semantic versioning scheme for ordering based on
     1. Latest ten releases of the project_id passed in all follow semver
