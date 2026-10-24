@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 import sentry_sdk
 from django.db.models.signals import post_save
 
@@ -36,7 +38,7 @@ from sentry.models.group import Group
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.services.eventstore.models import GroupEvent
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.signals import (
     advanced_search,
     advanced_search_feature_gated,
@@ -117,13 +119,13 @@ DEFAULT_TAGS = frozenset(
 
 # First Event
 @first_event_received.connect(weak=False)
-def record_first_event(project, **kwargs):
+def record_first_event(project: Project, **kwargs: object) -> None:
     FeatureAdoption.objects.record(
         organization_id=project.organization_id, feature_slug="first_event", complete=True
     )
 
 
-def record_event_processed(project, event, **kwargs):
+def record_event_processed(project: Project, event: Event, **kwargs: object) -> None:
     return record_generic_event_processed(
         project,
         platform=event.group.platform if event.group else event.platform,
@@ -137,16 +139,16 @@ def record_event_processed(project, event, **kwargs):
 
 
 def record_generic_event_processed(
-    project,
-    platform=None,
-    release=None,
-    environment=None,
-    user_keys=None,
-    tag_keys=None,
-    has_sourcemap=False,
-    has_breadcrumbs=False,
-    **kwargs,
-):
+    project: Project,
+    platform: str | None = None,
+    release: str | None = None,
+    environment: str | None = None,
+    user_keys: Iterable[str] | None = None,
+    tag_keys: Iterable[str] | None = None,
+    has_sourcemap: bool = False,
+    has_breadcrumbs: object = False,
+    **kwargs: object,
+) -> None:
     feature_slugs = []
 
     # Platform
@@ -207,7 +209,7 @@ def record_project_created(project, **kwargs):
 
 
 @member_joined.connect(weak=False)
-def record_member_joined(organization_id: int, user_id: int, **kwargs):
+def record_member_joined(organization_id: int, user_id: int, **kwargs: object) -> None:
     FeatureAdoption.objects.record(
         organization_id=organization_id, feature_slug="invite_team", complete=True
     )
@@ -722,8 +724,11 @@ def record_team_created(
 
 @integration_added.connect(weak=False)
 def record_integration_added(
-    integration_id: int, organization_id: int, user_id: int | None, **kwargs
-):
+    integration_id: int,
+    organization_id: int,
+    user_id: int | None,
+    **kwargs: object,
+) -> None:
     organization = Organization.objects.get(id=organization_id)
     integration = integration_service.get_integration(integration_id=integration_id)
     assert integration, f"integration_added called for missing integration: {integration_id}"
