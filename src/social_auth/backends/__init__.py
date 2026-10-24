@@ -339,13 +339,13 @@ class BaseAuth:
         return extra_arguments
 
     @property
-    def uses_redirect(self):
+    def uses_redirect(self) -> bool:
         """Return True if this provider uses redirect url method,
         otherwise return false."""
         return True
 
     @classmethod
-    def enabled(cls):
+    def enabled(cls) -> bool:
         """Return backend enabled status, all enabled by default"""
         return True
 
@@ -395,7 +395,7 @@ class OAuthAuth(BaseAuth):
         return (setting(cls.SETTINGS_KEY_NAME), setting(cls.SETTINGS_SECRET_NAME))
 
     @classmethod
-    def enabled(cls):
+    def enabled(cls) -> bool:
         """Return backend enabled status by checking basic settings"""
         return bool(setting(cls.SETTINGS_KEY_NAME) and setting(cls.SETTINGS_SECRET_NAME))
 
@@ -406,7 +406,7 @@ class OAuthAuth(BaseAuth):
             scope = scope + setting(self.SCOPE_VAR_NAME, [])
         return scope
 
-    def get_scope_argument(self):
+    def get_scope_argument(self) -> dict[str, str]:
         param = {}
         scope = self.get_scope()
         if scope:
