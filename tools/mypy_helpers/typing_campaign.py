@@ -232,6 +232,9 @@ class _AnyCollector(TypeQuery):
     def visit_any(self, typ):
         return [(typ, ())]
 
+    def visit_tuple_type(self, typ):
+        return self.query_types(typ.items)
+
 
 def _expressions(root) -> list[Expression]:
     ignored_attributes = {
