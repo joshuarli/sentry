@@ -16,7 +16,7 @@ from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.models.repository import Repository
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
-from sentry.utils.patch_set import patch_to_file_changes
+from sentry.utils.patch_set import FileChange, patch_to_file_changes
 
 BITBUCKET_KEY = f"{urlparse(absolute_uri()).hostname}.bitbucket"
 
@@ -171,7 +171,7 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
     def delete_hook(self, repo, hook_id):
         return self.delete(path=BitbucketAPIPath.repository_hook.format(repo=repo, uid=hook_id))
 
-    def get_commit_filechanges(self, repo, sha):
+    def get_commit_filechanges(self, repo: str, sha: str) -> list[FileChange]:
         resp = self.get(
             BitbucketAPIPath.repository_diff.format(repo=repo, spec=sha), allow_text=True
         )
