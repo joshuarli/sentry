@@ -843,7 +843,7 @@ class JiraIntegration(IssueSyncIntegration):
                 output.extend(["", "{code}", body, "{code}"])
         return "\n".join(output)
 
-    def get_client(self):
+    def get_client(self) -> JiraCloudClient:
         logging_context = {"org_id": self.organization_id}
 
         if self.organization_id is not None:
