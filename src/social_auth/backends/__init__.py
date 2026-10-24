@@ -25,6 +25,7 @@ from django.contrib.auth import authenticate, load_backend
 from django.utils.crypto import constant_time_compare, get_random_string
 from requests_oauthlib import OAuth1
 
+from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.auth import record_suspended_user_rejection
@@ -185,7 +186,7 @@ class SocialAuthBackend:
         else:
             return {}
 
-    def get_user(self, user_id):
+    def get_user(self, user_id: int) -> RpcUser | None:
         """
         Return user with given ID from the User model used by this backend.
         This is called by django.contrib.auth.middleware.
