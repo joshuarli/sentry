@@ -1,6 +1,6 @@
 # Sentry typing hillclimb
 
-## Status: paused — 2026-10-24
+## Status: winding down — 2026-10-24
 
 ### Resume
 
