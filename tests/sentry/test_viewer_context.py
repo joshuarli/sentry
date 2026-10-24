@@ -3,6 +3,8 @@ from __future__ import annotations
 import contextvars
 import dataclasses
 import threading
+from collections.abc import Generator
+from typing import Protocol, cast
 from unittest import mock
 
 import pytest
@@ -18,8 +20,13 @@ from sentry.viewer_context import (
 )
 
 
+class _ViewerContextMissingLogRecord(Protocol):
+    method: str
+    point: str
+
+
 class TestActorType:
-    def test_values_are_strings(self):
+    def test_values_are_strings(self) -> None:
         assert ActorType.USER == "user"
         assert ActorType.SYSTEM == "system"
         assert ActorType.INTEGRATION == "integration"
@@ -36,11 +43,11 @@ class TestViewerContext:
             "invalid",
         ],
     )
-    def test_invalid_superuser_claim(self, superuser):
+    def test_invalid_superuser_claim(self, superuser: object) -> None:
         with pytest.raises(ValueError):
             ViewerContext.deserialize({"superuser": superuser})
 
-    def test_superuser_access_roundtrip_and_org_change(self):
+    def test_superuser_access_roundtrip_and_org_change(self) -> None:
         ctx = ViewerContext(
             user_id=42,
             organization_id=10,
@@ -56,19 +63,19 @@ class TestViewerContext:
             assert changed is not None
             assert changed.superuser is None
 
-    def test_defaults(self):
+    def test_defaults(self) -> None:
         ctx = ViewerContext()
         assert ctx.organization_id is None
         assert ctx.user_id is None
         assert ctx.actor_type is ActorType.UNKNOWN
         assert ctx.token is None
 
-    def test_frozen(self):
+    def test_frozen(self) -> None:
         ctx = ViewerContext(user_id=1)
         with pytest.raises(dataclasses.FrozenInstanceError):
             ctx.user_id = 2  # type: ignore[misc]
 
-    def test_construction(self):
+    def test_construction(self) -> None:
         ctx = ViewerContext(
             organization_id=10,
             user_id=42,
@@ -80,10 +87,10 @@ class TestViewerContext:
 
 
 class TestViewerContextScope:
-    def test_get_returns_none_outside_scope(self):
+    def test_get_returns_none_outside_scope(self) -> None:
         assert get_viewer_context() is None
 
-    def test_scope_sets_and_resets(self):
+    def test_scope_sets_and_resets(self) -> None:
         ctx = ViewerContext(user_id=1)
         assert get_viewer_context() is None
 
@@ -92,7 +99,7 @@ class TestViewerContextScope:
 
         assert get_viewer_context() is None
 
-    def test_nested_scopes(self):
+    def test_nested_scopes(self) -> None:
         outer = ViewerContext(user_id=1)
         inner = ViewerContext(user_id=2)
 
@@ -106,7 +113,7 @@ class TestViewerContextScope:
 
         assert get_viewer_context() is None
 
-    def test_cleanup_on_exception(self):
+    def test_cleanup_on_exception(self) -> None:
         ctx = ViewerContext(user_id=1)
 
         with pytest.raises(RuntimeError):
@@ -116,14 +123,14 @@ class TestViewerContextScope:
 
         assert get_viewer_context() is None
 
-    def test_copy_context_propagates_to_thread(self):
+    def test_copy_context_propagates_to_thread(self) -> None:
         ctx = ViewerContext(user_id=1, organization_id=10)
         result: list[ViewerContext | None] = [None]
 
         with viewer_context_scope(ctx):
             copied = contextvars.copy_context()
 
-            def _worker():
+            def _worker() -> None:
                 result[0] = copied.run(get_viewer_context)
 
             t = threading.Thread(target=_worker)
@@ -132,7 +139,7 @@ class TestViewerContextScope:
 
         assert result[0] is ctx
 
-    def test_context_propagating_thread_pool_executor(self):
+    def test_context_propagating_thread_pool_executor(self) -> None:
         from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
         ctx = ViewerContext(user_id=7, organization_id=99, actor_type=ActorType.INTEGRATION)
@@ -143,7 +150,7 @@ class TestViewerContextScope:
 
         assert result is ctx
 
-    def test_context_propagating_executor_does_not_leak_across_submissions(self):
+    def test_context_propagating_executor_does_not_leak_across_submissions(self) -> None:
         from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
         ctx = ViewerContext(user_id=1)
@@ -159,7 +166,7 @@ class TestViewerContextScope:
         assert inside is ctx
         assert outside is None
 
-    def test_set_organization_updates_current_context(self):
+    def test_set_organization_updates_current_context(self) -> None:
         ctx = ViewerContext(user_id=1, actor_type=ActorType.USER)
 
         with viewer_context_scope(ctx):
@@ -173,7 +180,7 @@ class TestViewerContextScope:
 
         assert get_viewer_context() is None
 
-    def test_set_organization_is_noop_without_context(self):
+    def test_set_organization_is_noop_without_context(self) -> None:
         set_viewer_context_organization(42)
 
         assert get_viewer_context() is None
@@ -181,20 +188,20 @@ class TestViewerContextScope:
 
 class TestObserve:
     @pytest.fixture(autouse=True)
-    def patch_metrics(self):
+    def patch_metrics(self) -> Generator[mock.MagicMock, None, None]:
         with (
             mock.patch("sentry.viewer_context.random", return_value=0.0),
             mock.patch("sentry.viewer_context.sentry_sdk.metrics.count") as m,
         ):
             yield m
 
-    def _tags(self, m):
+    def _tags(self, m: mock.MagicMock) -> dict[str, str | float]:
         assert m.call_count == 1
         args, kwargs = m.call_args
         assert args == ("viewer_context.observation", 1)
         return kwargs["attributes"]
 
-    def test_no_context_tags_actor_none(self, patch_metrics):
+    def test_no_context_tags_actor_none(self, patch_metrics: mock.MagicMock) -> None:
         observe_viewer_context_propagation("seer_rpc_out")
         tags = self._tags(patch_metrics)
         assert tags == {
@@ -206,7 +213,9 @@ class TestObserve:
             "sentry.client_sample_rate": 0.001,
         }
 
-    def test_with_context_tags_actor_and_presence_flags(self, patch_metrics):
+    def test_with_context_tags_actor_and_presence_flags(
+        self, patch_metrics: mock.MagicMock
+    ) -> None:
         ctx = ViewerContext(user_id=42, organization_id=7, actor_type=ActorType.USER)
         with viewer_context_scope(ctx):
             observe_viewer_context_propagation("seer_rpc_out")
@@ -215,7 +224,9 @@ class TestObserve:
         assert tags["has_user_id"] == "true"
         assert tags["has_org_id"] == "true"
 
-    def test_partial_context_tags_individual_flags(self, patch_metrics):
+    def test_partial_context_tags_individual_flags(
+        self, patch_metrics: mock.MagicMock
+    ) -> None:
         # User without org (e.g. cross-org admin lookup before org is resolved)
         ctx = ViewerContext(user_id=42, actor_type=ActorType.USER)
         with viewer_context_scope(ctx):
@@ -224,7 +235,7 @@ class TestObserve:
         assert tags["has_user_id"] == "true"
         assert tags["has_org_id"] == "false"
 
-    def test_explicit_ctx_overrides_contextvar(self, patch_metrics):
+    def test_explicit_ctx_overrides_contextvar(self, patch_metrics: mock.MagicMock) -> None:
         # Caller passes a resolved value that's distinct from the contextvar
         with viewer_context_scope(ViewerContext(actor_type=ActorType.SYSTEM)):
             observe_viewer_context_propagation(
@@ -233,34 +244,44 @@ class TestObserve:
         tags = self._tags(patch_metrics)
         assert tags["actor_type"] == "integration"
 
-    def test_explicit_ctx_none_treated_as_missing(self, patch_metrics):
+    def test_explicit_ctx_none_treated_as_missing(
+        self, patch_metrics: mock.MagicMock
+    ) -> None:
         # Distinguishes "ctx wasn't passed" (sentinel) from "ctx is explicitly None"
         with viewer_context_scope(ViewerContext(actor_type=ActorType.USER)):
             observe_viewer_context_propagation("seer_rpc_out", ctx=None)
         tags = self._tags(patch_metrics)
         assert tags["actor_type"] == "none"
 
-    def test_expected_false_does_not_log_when_missing(self, patch_metrics, caplog):
+    def test_expected_false_does_not_log_when_missing(
+        self, patch_metrics: mock.MagicMock, caplog: pytest.LogCaptureFixture
+    ) -> None:
         observe_viewer_context_propagation("optional_point", expected=False)
         tags = self._tags(patch_metrics)
         assert tags["expected"] == "false"
         # No warning log for expected=False misses
         assert all(r.levelname != "WARNING" for r in caplog.records)
 
-    def test_expected_true_logs_when_missing(self, patch_metrics, caplog):
+    def test_expected_true_logs_when_missing(
+        self, patch_metrics: mock.MagicMock, caplog: pytest.LogCaptureFixture
+    ) -> None:
         import logging
 
         with caplog.at_level(logging.WARNING, logger="sentry.viewer_context"):
             observe_viewer_context_propagation("rpc_inbound")
         assert any(r.message == "viewer_context.missing" for r in caplog.records)
 
-    def test_expected_true_does_not_log_when_present(self, patch_metrics, caplog):
+    def test_expected_true_does_not_log_when_present(
+        self, patch_metrics: mock.MagicMock, caplog: pytest.LogCaptureFixture
+    ) -> None:
         ctx = ViewerContext(user_id=1, actor_type=ActorType.USER)
         with viewer_context_scope(ctx):
             observe_viewer_context_propagation("rpc_inbound")
         assert all(r.message != "viewer_context.missing" for r in caplog.records)
 
-    def test_extra_attributes_merged_into_metric_tags(self, patch_metrics):
+    def test_extra_attributes_merged_into_metric_tags(
+        self, patch_metrics: mock.MagicMock
+    ) -> None:
         observe_viewer_context_propagation(
             "seer_rpc_in", extra_attributes={"method": "get_organization_slug"}
         )
@@ -268,7 +289,9 @@ class TestObserve:
         assert tags["point"] == "seer_rpc_in"
         assert tags["method"] == "get_organization_slug"
 
-    def test_extra_attributes_cannot_override_fixed_tags(self, patch_metrics):
+    def test_extra_attributes_cannot_override_fixed_tags(
+        self, patch_metrics: mock.MagicMock
+    ) -> None:
         # Fixed tags must take precedence so callers can't accidentally swap
         # `point` or `actor_type` and corrupt the metric's cardinality story.
         ctx = ViewerContext(user_id=1, actor_type=ActorType.USER)
@@ -281,7 +304,9 @@ class TestObserve:
         assert tags["point"] == "seer_rpc_in"
         assert tags["method"] == "real_method"
 
-    def test_extra_attributes_propagate_to_missing_log(self, patch_metrics, caplog):
+    def test_extra_attributes_propagate_to_missing_log(
+        self, patch_metrics: mock.MagicMock, caplog: pytest.LogCaptureFixture
+    ) -> None:
         import logging
 
         with caplog.at_level(logging.WARNING, logger="sentry.viewer_context"):
@@ -290,5 +315,6 @@ class TestObserve:
             )
         missing_records = [r for r in caplog.records if r.message == "viewer_context.missing"]
         assert len(missing_records) == 1
-        assert missing_records[0].method == "ghost_method"
-        assert missing_records[0].point == "seer_rpc_in"
+        record = cast(_ViewerContextMissingLogRecord, missing_records[0])
+        assert record.method == "ghost_method"
+        assert record.point == "seer_rpc_in"
