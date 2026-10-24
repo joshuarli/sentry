@@ -4,6 +4,7 @@ import logging
 from datetime import datetime, timezone
 
 import sentry_sdk
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import F
 
 from sentry import analytics
@@ -66,6 +67,8 @@ from sentry.signals import (
     project_transferred,
     transaction_processed,
 )
+from sentry.services.eventstore.models import Event
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.javascript import has_sourcemap
@@ -83,7 +86,9 @@ START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
 START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ = datetime(2023, 11, 16, tzinfo=timezone.utc)
 
 
-def get_owner_id(project: Project, user: RpcUser | None = None) -> int | None:
+def get_owner_id(
+    project: Project, user: RpcUser | User | AnonymousUser | None = None
+) -> int | None:
     if user and user.is_authenticated:
         return user.id
 
@@ -92,16 +97,23 @@ def get_owner_id(project: Project, user: RpcUser | None = None) -> int | None:
 
 
 @project_created.connect(weak=False, dispatch_uid="record_new_project")
-def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
+def record_new_project(
+    project: Project,
+    user: RpcUser | User | AnonymousUser | None = None,
+    user_id: int | None = None,
+    origin: str | None = None,
+    **kwargs: object,
+) -> None:
     scope = sentry_sdk.get_current_scope()
     scope.set_extra("project_id", project.id)
     scope.set_attribute("project_id", project.id)
     scope.set_extra("source", "record_new_project")
     scope.set_attribute("source", "record_new_project")
 
+    default_user_id: int | None
     if user_id is not None:
         default_user_id = user_id
-    elif user.is_authenticated:
+    elif user is not None and user.is_authenticated:
         user_id = default_user_id = user.id
     else:
         user_id = default_user_id = get_owner_id(project, user)
@@ -116,6 +128,8 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
             )
             # XXX(dcramer): we cannot setup onboarding tasks without a user
             return
+
+    default_user_id = user_id
 
     try:
         analytics.record(
@@ -156,7 +170,7 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
 
 
 @first_event_received.connect(weak=False, dispatch_uid="onboarding.record_first_event")
-def record_first_event(project, event, **kwargs):
+def record_first_event(project: Project, event: Event, **kwargs: object) -> None:
     if (owner_id := get_owner_id(project)) is None:
         logger.warning(
             "Cannot record first event for organization (%s) due to missing owners",
@@ -200,7 +214,7 @@ def record_first_event(project, event, **kwargs):
 
 
 @first_transaction_received.connect(weak=False, dispatch_uid="onboarding.record_first_transaction")
-def record_first_transaction(project, event, **kwargs):
+def record_first_transaction(project: Project, event: Event, **kwargs: object) -> None:
     complete_onboarding_task(
         organization=project.organization,
         task=OnboardingTask.FIRST_TRANSACTION,
@@ -387,11 +401,13 @@ def record_member_invited(member, user, **kwargs):
     )
 
 
-def _record_release_received(project, event, **kwargs):
+def _record_release_received(project: Project, event: Event, **kwargs: object) -> None:
     return record_release_received(project, event.data.get("release"), **kwargs)
 
 
-def record_release_received(project, release, **kwargs):
+def record_release_received(
+    project: Project, release: str | None, **kwargs: object
+) -> None:
     if not release:
         return
 
