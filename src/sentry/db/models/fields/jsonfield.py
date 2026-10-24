@@ -28,7 +28,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -38,6 +38,17 @@ from django.utils.translation import gettext_lazy as _
 
 from sentry.db.models.utils import Creator
 from sentry.utils import json
+
+if TYPE_CHECKING:
+    ExactLookup: TypeAlias = Exact[object]
+    InLookup: TypeAlias = In[object]
+    IExactLookup: TypeAlias = IExact[object]
+    LookupBase: TypeAlias = Lookup[object]
+else:
+    ExactLookup = Exact
+    InLookup = In
+    IExactLookup = IExact
+    LookupBase = Lookup
 
 
 class JSONField(models.TextField[object, object]):
@@ -102,7 +113,7 @@ class JSONField(models.TextField[object, object]):
     def db_type(self, connection: BaseDatabaseWrapper) -> str:
         return "text"
 
-    def to_python(self, value: object) -> object:
+    def to_python(self, value):
         if isinstance(value, str) or self.no_creator_hook:
             if value == "":
                 if self.null:
@@ -133,22 +144,22 @@ class JSONField(models.TextField[object, object]):
         return self.value_from_object(obj)
 
 
-class NoPrepareMixin(Lookup[object]):
+class NoPrepareMixin(LookupBase):
     def get_prep_lookup(self) -> object:
         return self.rhs
 
 
-class JSONFieldExactLookup(NoPrepareMixin, Exact[object]):
+class JSONFieldExactLookup(NoPrepareMixin, ExactLookup):
     def get_prep_lookup(self) -> object:
         return self.lhs.output_field.to_python(self.lhs.output_field.get_prep_value(self.rhs))
 
 
-class JSONFieldIExactLookup(NoPrepareMixin, IExact[object]):
+class JSONFieldIExactLookup(NoPrepareMixin, IExactLookup):
     def get_prep_lookup(self) -> object:
         return self.lhs.output_field.to_python(self.lhs.output_field.get_prep_value(self.rhs))
 
 
-class JSONFieldInLookup(NoPrepareMixin, In[object]):
+class JSONFieldInLookup(NoPrepareMixin, InLookup):
     def get_prep_lookup(self) -> list[object]:
         return [
             self.lhs.output_field.to_python(self.lhs.output_field.get_prep_value(v))
@@ -156,7 +167,7 @@ class JSONFieldInLookup(NoPrepareMixin, In[object]):
         ]
 
 
-class ContainsLookupMixin(Lookup[object]):
+class ContainsLookupMixin(LookupBase):
     def get_prep_lookup(self) -> object:
         if isinstance(self.rhs, (list, tuple)):
             raise TypeError(
