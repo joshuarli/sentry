@@ -1,10 +1,12 @@
 import datetime
+from decimal import Decimal
+from typing import SupportsIndex, SupportsInt
 
 import pytest
 from django.template import engines
 
 from sentry.models.organization import Organization
-from sentry.templatetags.sentry_helpers import format_duration_ms
+from sentry.templatetags.sentry_helpers import format_duration_ms, small_count
 from sentry.testutils.helpers.features import Feature
 
 
@@ -209,3 +211,25 @@ def test_sanitize_periods_breaks_url_scheme() -> None:
 )
 def test_format_duration_ms(value: object, expected: str) -> None:
     assert format_duration_ms(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    (
+        (None, 0),
+        (0, 0),
+        (500, 500),
+        (1000, "1k"),
+        (1500, "1.5k"),
+        (-1500, "-0.0b"),
+        ("1500", "1.5k"),
+        (Decimal("1500"), "1.5k"),
+        (b"1500", "1.5k"),
+        (bytearray(b"1500"), "1.5k"),
+        (1000000, "1m"),
+    ),
+)
+def test_small_count(
+    value: SupportsInt | SupportsIndex | str | bytes | bytearray | None, expected: int | str
+) -> None:
+    assert small_count(value) == expected
