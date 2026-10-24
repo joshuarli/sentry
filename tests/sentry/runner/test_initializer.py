@@ -3,6 +3,7 @@ import types
 from unittest.mock import patch
 
 import pytest
+from _pytest._py.path import LocalPath
 from django.core.cache import caches
 from django.test import override_settings
 
@@ -23,7 +24,7 @@ from sentry.utils.warnings import DeprecatedSettingWarning
 
 
 @pytest.fixture
-def settings():
+def settings() -> types.SimpleNamespace:
     return types.SimpleNamespace(
         TIME_ZONE="UTC",
         ALLOWED_HOSTS=[],
@@ -40,7 +41,7 @@ def settings():
 
 
 @pytest.fixture
-def config_yml(tmpdir):
+def config_yml(tmpdir) -> LocalPath:
     return tmpdir.join("config.yml")
 
 
