@@ -82,7 +82,7 @@ features = FeatureSet(
         namespace="sim:1",
     ),
     Encoder({Frame: get_frame_attributes}),
-    BidirectionalMapping(
+    BidirectionalMapping[str, str](
         {
             "exception:message:character-shingles": "a",
             "exception:stacktrace:application-chunks": "b",

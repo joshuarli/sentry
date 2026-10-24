@@ -52,7 +52,7 @@ SNUBA_KEYWORD_COLUMN_MAP = {
 # The order of these keys are significant to also indicate priority
 # when used in hashing and determining uniqueness. If you change the order
 # you will break stuff.
-KEYWORD_MAP = BidirectionalMapping(
+KEYWORD_MAP: BidirectionalMapping[str, str] = BidirectionalMapping(
     {
         "user_ident": "id",
         "username": "username",
