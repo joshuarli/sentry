@@ -484,7 +484,7 @@ def format_column_arguments(column_args, arguments) -> None:
             column_args[i] = arguments[column_args[i].arg]
 
 
-def _lookback(columns, j, string):
+def _lookback(columns: str, j: int, string: str) -> bool:
     """For parse_arguments, check that the current character is preceeded by string"""
     if j < len(string):
         return False
@@ -675,7 +675,9 @@ def parse_combinator(function: str) -> tuple[str, str | None]:
     return function, None
 
 
-def parse_function(field, match=None, err_msg=None):
+def parse_function(
+    field: str, match: Match[str] | None = None, err_msg: str | None = None
+) -> tuple[str, list[str], str | None]:
     if not match:
         match = is_function(field)
 
@@ -716,7 +718,9 @@ def get_function_alias(field: str) -> str:
     return get_function_alias_with_columns(function, columns)
 
 
-def get_function_alias_with_columns(function_name, columns, prefix=None) -> str:
+def get_function_alias_with_columns(
+    function_name: str, columns: Sequence[str], prefix: str | None = None
+) -> str:
     columns = re.sub(
         r"[^\w]",
         "_",
