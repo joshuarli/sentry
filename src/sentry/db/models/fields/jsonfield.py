@@ -40,7 +40,7 @@ from sentry.db.models.utils import Creator
 from sentry.utils import json
 
 
-class JSONField(models.TextField):
+class JSONField(models.TextField[object, object]):
     """
     A field that will ensure the data entered into it is valid JSON.
 
@@ -78,7 +78,7 @@ class JSONField(models.TextField):
         if not self.no_creator_hook:
             setattr(cls, name, Creator(self))
 
-    def validate(self, value, model_instance):
+    def validate(self, value: object, model_instance: models.Model | None) -> None:
         if not self.null and value is None:
             raise ValidationError(self.error_messages["null"])
         try:
@@ -86,7 +86,7 @@ class JSONField(models.TextField):
         except Exception:
             raise ValidationError(self.error_messages["invalid"] % value)
 
-    def get_default(self):
+    def get_default(self) -> object:
         if self.has_default():
             default = self.default
             if callable(default):
@@ -99,10 +99,10 @@ class JSONField(models.TextField):
     def get_internal_type(self) -> str:
         return "TextField"
 
-    def db_type(self, connection) -> str:
+    def db_type(self, connection: BaseDatabaseWrapper) -> str:
         return "text"
 
-    def to_python(self, value):
+    def to_python(self, value: object) -> object:
         if isinstance(value, str) or self.no_creator_hook:
             if value == "":
                 if self.null:
@@ -117,10 +117,12 @@ class JSONField(models.TextField):
         # TODO: Look for date/time/datetime objects within the structure?
         return value
 
-    def get_db_prep_value(self, value, connection=None, prepared=None):
+    def get_db_prep_value(
+        self, value: object, connection: BaseDatabaseWrapper | None = None, prepared: bool | None = None
+    ) -> str | None:
         return self.get_prep_value(value)
 
-    def get_prep_value(self, value):
+    def get_prep_value(self, value: object) -> str | None:
         if value is None:
             if not self.null and self.blank:
                 return ""
@@ -131,31 +133,31 @@ class JSONField(models.TextField):
         return self.value_from_object(obj)
 
 
-class NoPrepareMixin(Lookup):
-    def get_prep_lookup(self):
+class NoPrepareMixin(Lookup[object]):
+    def get_prep_lookup(self) -> object:
         return self.rhs
 
 
-class JSONFieldExactLookup(NoPrepareMixin, Exact):
-    def get_prep_lookup(self):
+class JSONFieldExactLookup(NoPrepareMixin, Exact[object]):
+    def get_prep_lookup(self) -> object:
         return self.lhs.output_field.to_python(self.lhs.output_field.get_prep_value(self.rhs))
 
 
-class JSONFieldIExactLookup(NoPrepareMixin, IExact):
-    def get_prep_lookup(self):
+class JSONFieldIExactLookup(NoPrepareMixin, IExact[object]):
+    def get_prep_lookup(self) -> object:
         return self.lhs.output_field.to_python(self.lhs.output_field.get_prep_value(self.rhs))
 
 
-class JSONFieldInLookup(NoPrepareMixin, In):
-    def get_prep_lookup(self):
+class JSONFieldInLookup(NoPrepareMixin, In[object]):
+    def get_prep_lookup(self) -> list[object]:
         return [
             self.lhs.output_field.to_python(self.lhs.output_field.get_prep_value(v))
             for v in self.rhs
         ]
 
 
-class ContainsLookupMixin(Lookup):
-    def get_prep_lookup(self):
+class ContainsLookupMixin(Lookup[object]):
+    def get_prep_lookup(self) -> object:
         if isinstance(self.rhs, (list, tuple)):
             raise TypeError(
                 "Lookup type %r not supported with %s argument"
