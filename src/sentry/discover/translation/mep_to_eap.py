@@ -1,7 +1,8 @@
 import re
-from typing import TypedDict
+from collections.abc import Sequence
+from typing import TypeAlias, TypedDict, overload
 
-from parsimonious import NodeVisitor
+from parsimonious.nodes import Node, NodeVisitor
 
 from sentry.api.event_search import event_search_grammar
 from sentry.discover import arithmetic
@@ -22,10 +23,23 @@ class QueryParts(TypedDict):
     orderby: list[str] | None
 
 
+class DroppedEquation(TypedDict):
+    equation: str
+    reason: list[str]
+
+
+class DroppedOrderby(TypedDict):
+    orderby: str
+    reason: str | list[str]
+
+
 class DroppedFields(TypedDict):
     selected_columns: list[str]
-    equations: list[dict[str, list[str]]]
-    orderby: list[dict[str, str | list[str]]]
+    equations: list[DroppedEquation] | None
+    orderby: list[DroppedOrderby] | None
+
+
+TranslationResult: TypeAlias = str | list["TranslationResult"]
 
 
 COLUMNS_TO_DROP = (
@@ -41,7 +55,7 @@ COLUMNS_TO_DROP = (
 FIELDS_TO_DROP = ("total.count",)
 
 
-def _flatten(seq, flattened_list):
+def _flatten(seq: Sequence[TranslationResult] | str, flattened_list: list[str]) -> None:
     for item in seq:
         if isinstance(item, list):
             _flatten(item, flattened_list)
@@ -49,7 +63,7 @@ def _flatten(seq, flattened_list):
             flattened_list.append(item)
 
 
-def format_percentile_term(term):
+def format_percentile_term(term: str) -> str:
     function, args, alias = fields.parse_function(term)
 
     percentile_replacement_function = {
@@ -82,7 +96,7 @@ def format_percentile_term(term):
     return f"{new_function}({translated_column})"
 
 
-def drop_unsupported_columns(columns):
+def drop_unsupported_columns(columns: Sequence[str]) -> tuple[Sequence[str], list[str]]:
     final_columns = []
     dropped_columns = []
     for column in columns:
@@ -114,13 +128,13 @@ def apply_is_segment_condition(query: str) -> str:
     return "is_transaction:1"
 
 
-def add_equation_prefix_if_needed(term, need_equation):
+def add_equation_prefix_if_needed(term: str, need_equation: bool) -> str:
     if need_equation and term.startswith(("apdex(", "user_misery(", "count_if(")):
         return f"equation|{term}"
     return term
 
 
-def column_switcheroo(term):
+def column_switcheroo(term: str) -> tuple[str, bool]:
     """Swaps out the entire column name."""
     parsed_mri = parse_mri(term)
     if parsed_mri:
@@ -156,7 +170,7 @@ def column_switcheroo(term):
     return swapped_term, swapped_term != term
 
 
-def function_switcheroo(term):
+def function_switcheroo(term: str) -> tuple[str, bool]:
     """Swaps out the entire function, including args."""
     swapped_term = term
     if term == "count()":
@@ -179,7 +193,7 @@ def function_switcheroo(term):
     return swapped_term, swapped_term != term
 
 
-def search_term_switcheroo(term):
+def search_term_switcheroo(term: str) -> tuple[str, bool]:
     """Swaps out a single search term, both key and value."""
     swapped_term = term
     if term == "event.type:transaction":
@@ -188,21 +202,27 @@ def search_term_switcheroo(term):
     return swapped_term, swapped_term != term
 
 
-class TranslationVisitor(NodeVisitor):
-    def __init__(self):
+class TranslationVisitor(NodeVisitor[TranslationResult]):
+    def __init__(self) -> None:
         super().__init__()
 
-    def visit_raw_aggregate_param(self, node, children):
+    def visit_raw_aggregate_param(
+        self, node: Node, children: Sequence[TranslationResult]
+    ) -> TranslationResult:
         return column_switcheroo(node.text)[0]
 
-    def visit_aggregate_key(self, node, children):
+    def visit_aggregate_key(
+        self, node: Node, children: Sequence[TranslationResult]
+    ) -> TranslationResult:
         term, did_update = function_switcheroo(node.text)
         if did_update:
             return term
 
-        return children or node.text
+        return list(children) if children else node.text
 
-    def visit_numeric_filter(self, node, children):
+    def visit_numeric_filter(
+        self, node: Node, children: Sequence[TranslationResult]
+    ) -> TranslationResult:
         term, did_update = search_term_switcheroo(node.text)
         if did_update:
             return term
@@ -216,12 +236,16 @@ class TranslationVisitor(NodeVisitor):
                 not flattened_parsed_key_str.startswith("tags[")
                 and flattened_parsed_key_str not in SPAN_ATTRIBUTE_DEFINITIONS
             ):
-                new_parsed_key = [f"tags[{flattened_parsed_key_str},number]"]
-                children[1] = new_parsed_key
+                new_parsed_key: list[TranslationResult] = [
+                    f"tags[{flattened_parsed_key_str},number]"
+                ]
+                return [*children[:1], new_parsed_key, *children[2:]]
 
-        return children or node.text
+        return list(children) if children else node.text
 
-    def visit_boolean_filter(self, node, children):
+    def visit_boolean_filter(
+        self, node: Node, children: Sequence[TranslationResult]
+    ) -> TranslationResult:
         term, did_update = search_term_switcheroo(node.text)
         if did_update:
             return term
@@ -240,10 +264,12 @@ class TranslationVisitor(NodeVisitor):
             and flattened_parsed_key_str not in SPAN_ATTRIBUTE_DEFINITIONS
         ):
             if flattened_parsed_val_str in ["0", "1"]:
-                new_parsed_key = [f"tags[{flattened_parsed_key_str},number]"]
-                children[1] = new_parsed_key
+                new_parsed_key: list[TranslationResult] = [
+                    f"tags[{flattened_parsed_key_str},number]"
+                ]
+                children = [*children[:1], new_parsed_key, *children[2:]]
 
-                return children or node.text
+                return list(children) if children else node.text
 
             flattened_parsed_val_num = None
             if negation == "":
@@ -253,46 +279,56 @@ class TranslationVisitor(NodeVisitor):
                     flattened_parsed_val_num = "0"
                 return f"(tags[{flattened_parsed_key_str},number]:{flattened_parsed_val_num if flattened_parsed_val_num is not None else flattened_parsed_val_str} OR {flattened_parsed_key_str}:{flattened_parsed_val_str})"
 
-        return children or node.text
+        return list(children) if children else node.text
 
-    def visit_text_filter(self, node, children):
+    def visit_text_filter(
+        self, node: Node, children: Sequence[TranslationResult]
+    ) -> TranslationResult:
         term, did_update = search_term_switcheroo(node.text)
         if did_update:
             return term
 
-        return children or node.text
+        return list(children) if children else node.text
 
-    def visit_key(self, node, children):
+    def visit_key(self, node: Node, children: Sequence[TranslationResult]) -> TranslationResult:
         return column_switcheroo(node.text)[0]
 
-    def visit_value(self, node, children):
+    def visit_value(self, node: Node, children: Sequence[TranslationResult]) -> TranslationResult:
         return column_switcheroo(node.text)[0]
 
-    def generic_visit(self, node, children):
-        return children or node.text
+    def generic_visit(
+        self, node: Node, children: Sequence[TranslationResult]
+    ) -> TranslationResult:
+        return list(children) if children else node.text
 
 
-class ArithmeticTranslationVisitor(NodeVisitor):
-    def __init__(self):
-        self.dropped_fields = []
+class ArithmeticTranslationVisitor(NodeVisitor[TranslationResult]):
+    def __init__(self) -> None:
+        self.dropped_fields: list[str] = []
         super().__init__()
 
-    def visit_field_value(self, node, children):
+    def visit_field_value(
+        self, node: Node, children: Sequence[TranslationResult]
+    ) -> TranslationResult:
         if node.text in COLUMNS_TO_DROP:
             self.dropped_fields.append(node.text)
             return node.text
         return column_switcheroo(node.text)[0]
 
-    def visit_function_value(self, node, children):
+    def visit_function_value(
+        self, node: Node, children: Sequence[TranslationResult]
+    ) -> TranslationResult:
         new_functions, dropped_functions = translate_columns([node.text])
         self.dropped_fields.extend(dropped_functions)
         return new_functions[0]
 
-    def generic_visit(self, node, children):
-        return children or node.text
+    def generic_visit(
+        self, node: Node, children: Sequence[TranslationResult]
+    ) -> TranslationResult:
+        return list(children) if children else node.text
 
 
-def translate_query(query: str):
+def translate_query(query: str) -> str:
     flattened_query: list[str] = []
 
     tree = event_search_grammar.parse(query)
@@ -302,7 +338,9 @@ def translate_query(query: str):
     return apply_is_segment_condition("".join(flattened_query))
 
 
-def translate_columns(columns, need_equation=False):
+def translate_columns(
+    columns: Sequence[str], need_equation: bool = False
+) -> tuple[list[str], list[str]]:
     """
     @param columns: list of columns to translate
     @param need_equation: whether to translate some of the functions to equation notation (usually if
@@ -340,7 +378,19 @@ def translate_columns(columns, need_equation=False):
     return translated_columns, dropped_columns
 
 
-def translate_equations(equations):
+@overload
+def translate_equations(equations: None) -> tuple[None, None]: ...
+
+
+@overload
+def translate_equations(
+    equations: Sequence[str],
+) -> tuple[list[str], list[DroppedEquation]]: ...
+
+
+def translate_equations(
+    equations: Sequence[str] | None,
+) -> tuple[list[str] | None, list[DroppedEquation] | None]:
     """
     This is used to translate arithmetic equations to EAP compatible equations.
     It ideally takes in equations with equation notation and returns the EAP equation with equation notation.
@@ -351,7 +401,7 @@ def translate_equations(equations):
         return None, None
 
     translated_equations = []
-    dropped_equations = []
+    dropped_equations: list[DroppedEquation] = []
 
     for equation in equations:
         flattened_equation: list[str] = []
@@ -387,7 +437,12 @@ def translate_equations(equations):
     return translated_equations, dropped_equations
 
 
-def translate_orderbys(orderbys, equations, dropped_equations, new_equations):
+def translate_orderbys(
+    orderbys: Sequence[str] | None,
+    equations: Sequence[str],
+    dropped_equations: Sequence[str],
+    new_equations: Sequence[str],
+) -> tuple[list[str] | None, list[DroppedOrderby] | None]:
     """
     This is used to translate orderbys to EAP compatible orderbys.
     It ideally takes in orderbys with equation notation, function notation or fields and returns the EAP orderby with the same notation.
@@ -397,7 +452,7 @@ def translate_orderbys(orderbys, equations, dropped_equations, new_equations):
         return None, None
 
     translated_orderbys = []
-    dropped_orderbys = []
+    dropped_orderbys: list[DroppedOrderby] = []
 
     for orderby in orderbys:
         is_negated = False
@@ -407,8 +462,8 @@ def translate_orderbys(orderbys, equations, dropped_equations, new_equations):
         else:
             orderby_without_neg = orderby
 
-        dropped_orderby_reason = None
-        decoded_orderby = None
+        dropped_orderby_reason: str | list[str] | None = None
+        decoded_orderby: str | None = None
         # if orderby is a predefined equation (these are usually in the format equation[index])
         if re.match(INDEXED_EQUATIONS_PATTERN, orderby_without_neg):
             equation_index = int(orderby_without_neg.split("[")[1].split("]")[0])
@@ -475,7 +530,7 @@ def translate_orderbys(orderbys, equations, dropped_equations, new_equations):
     return translated_orderbys, dropped_orderbys
 
 
-def translate_mep_to_eap(query_parts: QueryParts):
+def translate_mep_to_eap(query_parts: QueryParts) -> tuple[QueryParts, DroppedFields]:
     """
     This is a utility used to translate transactions/metrics/mep
     queries to eap queries. It takes in event query syntax (EQS)
@@ -496,7 +551,10 @@ def translate_mep_to_eap(query_parts: QueryParts):
         else []
     )
     new_orderbys, dropped_orderbys = translate_orderbys(
-        query_parts["orderby"], equations, dropped_equations_without_reasons, new_equations
+        query_parts["orderby"],
+        equations,
+        dropped_equations_without_reasons,
+        new_equations if new_equations is not None else [],
     )
 
     eap_query = QueryParts(
