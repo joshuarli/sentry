@@ -14,7 +14,7 @@ Then reread current repository instructions and perform the parent steering chec
 
 ### State
 
-The integration branch is `typing-hillclimb`. Its accepted source tip is `b628cbcf763bf36a8b1798dfb4ae9eab33a05c80` (tree `b6ff996179e34f36b2e69b8cc4d722eb4d06db5d`); later winddown commits on this branch only update this campaign document. The pinned upstream comparison base remains `503ad2e4e2a208a87d768a3e91bcfb55a778e7ba`. The branch is 24 commits ahead of `origin/typing-hillclimb`; nothing was pushed.
+The integration branch is `typing-hillclimb`. Its accepted source tip is `b628cbcf763bf36a8b1798dfb4ae9eab33a05c80` (tree `b6ff996179e34f36b2e69b8cc4d722eb4d06db5d`); later winddown commits on this branch only update this campaign document. The pinned upstream comparison base remains `503ad2e4e2a208a87d768a3e91bcfb55a778e7ba`. The branch has local commits ahead of `origin/typing-hillclimb`; nothing was pushed.
 
 The latest candidate was commit `a8125f3e92f87d4a0156dc9761e1b1849ff97ca2` (tree `f7680fe9eb55dedfff2ef8ec3fabf2d97b8c8eb2`), on branch `typing-wave-20261024-query-construction`, against accepted parent `b628cbcf763bf36a8b1798dfb4ae9eab33a05c80`. Exact evaluation rejected it. The candidate changes `mep_to_eap.py` and `metrics/query_builder.py`; it is preserved as an unaccepted branch.
 
