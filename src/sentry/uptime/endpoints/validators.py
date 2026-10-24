@@ -7,6 +7,7 @@ from django.db import router
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.fields import URLField
+from rest_framework.request import Request
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_SUCCESS,
@@ -89,8 +90,8 @@ HEADERS_LIST_SCHEMA = {
 
 
 def compute_http_request_size(
-    method: str, url: str, headers: Sequence[tuple[str, str]], body: str | None
-):
+    method: str, url: str, headers: Sequence[Sequence[str]], body: str | None
+) -> int:
     request_line_size = len(f"{method} {url} HTTP/1.1\r\n")
     headers_size = sum(
         len(key) + len(value.encode("utf-8")) + len("\r\n") for key, value in headers
@@ -101,7 +102,7 @@ def compute_http_request_size(
     return request_line_size + headers_size + body_size
 
 
-def _validate_url(url):
+def _validate_url(url: str) -> str:
     try:
         check_url_limits(url)
     except MaxUrlsForDomainReachedException as e:
@@ -112,7 +113,7 @@ def _validate_url(url):
     return url
 
 
-def _validate_headers(headers):
+def _validate_headers(headers: object) -> object:
     try:
         jsonschema.validate(headers, HEADERS_LIST_SCHEMA)
         return headers
@@ -120,11 +121,11 @@ def _validate_headers(headers):
         raise serializers.ValidationError("Expected array of header tuples.")
 
 
-def _validate_monitor_status(value):
+def _validate_monitor_status(value: str) -> int:
     return MONITOR_STATUSES.get(value, ObjectStatus.ACTIVE)
 
 
-def _validate_mode(mode, request_context):
+def _validate_mode(mode: int, request_context: Request) -> UptimeMonitorMode:
     if not is_active_superuser(request_context):
         raise serializers.ValidationError("Only superusers can modify `mode`")
     try:
@@ -224,10 +225,10 @@ class UptimeCheckPreviewValidator(UptimeValidatorBase):
         _validate_check_config(attrs, None, self.context["organization"], user)
         return attrs
 
-    def validate_url(self, url):
+    def validate_url(self, url: str) -> str:
         return _validate_url(url)
 
-    def validate_headers(self, headers):
+    def validate_headers(self, headers: object) -> object:
         return _validate_headers(headers)
 
     def create(self, validated_data):
@@ -326,16 +327,16 @@ class UptimeMonitorValidator(UptimeValidatorBase):
 
         return attrs
 
-    def validate_url(self, url):
+    def validate_url(self, url: str) -> str:
         return _validate_url(url)
 
-    def validate_headers(self, headers):
+    def validate_headers(self, headers: object) -> object:
         return _validate_headers(headers)
 
-    def validate_status(self, value):
+    def validate_status(self, value: str) -> int:
         return _validate_monitor_status(value)
 
-    def validate_mode(self, mode):
+    def validate_mode(self, mode: int) -> UptimeMonitorMode:
         return _validate_mode(mode, self.context["request"])
 
     def create(self, validated_data):
@@ -529,13 +530,13 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
             "assertion",
         ]
 
-    def validate_url(self, url):
+    def validate_url(self, url: str) -> str:
         return _validate_url(url)
 
-    def validate_headers(self, headers):
+    def validate_headers(self, headers: object) -> object:
         return _validate_headers(headers)
 
-    def validate_mode(self, mode):
+    def validate_mode(self, mode: int) -> UptimeMonitorMode:
         return _validate_mode(mode, self.context["request"])
 
     def validate(self, attrs: dict[str, Any]):
