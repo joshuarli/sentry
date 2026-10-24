@@ -12,6 +12,8 @@ git status --short --branch
 
 Then reread current repository instructions and perform the parent steering checkpoint before selecting work from the parked branches. Do not treat branch preservation commits as accepted source work, or retry the rejected query-construction candidate without addressing its measured blockers.
 
+Use only GPT-6-Luna High for campaign agents and remove Claude-specific guidance. If environment setup is needed, follow `devenv/sync.py` directly without invoking the `devenv` tool. Getsentry is unavailable on this machine; when its checkout is absent, skip Getsentry-specific verification. Do not run formatters, change CI, or push.
+
 ### State
 
 The integration branch is `typing-hillclimb`. Its accepted source tip is `b628cbcf763bf36a8b1798dfb4ae9eab33a05c80` (tree `b6ff996179e34f36b2e69b8cc4d722eb4d06db5d`); later winddown commits on this branch only update this campaign document. The pinned upstream comparison base remains `503ad2e4e2a208a87d768a3e91bcfb55a778e7ba`. The branch has local commits ahead of `origin/typing-hillclimb`; nothing was pushed.
@@ -36,6 +38,8 @@ The last accepted source promotion remains `b628cbcf763`. No new source work was
 The migration has delivered seven accepted source promotions since the earlier checkpoint, including concrete contracts in serializers, integrations, query helpers, and adapters. Core typing completion and precision completion remain separate objectives.
 
 The limiting stage remains exact global acceptance and proposal correctness, not proposal supply. The latest candidate reduces aggregate debt but is rejected for local regressions. Preserve the corrected evaluator; do not reopen evaluator, cache, or reporting work without a demonstrated unsafe acceptance or invalid measurement. On resume, inspect candidate branches against the accepted source tree and select one coherent, testable source wave. Keep intermediate changes provisional until exact combined-tree acceptance.
+
+Use one coordinator and at most two preparation lanes. Preserve the pinned comparison base and locked dependencies. If required services remain unavailable, record the blocker once and continue with independent, testable work.
 
 ### Open lanes
 
