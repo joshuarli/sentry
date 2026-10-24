@@ -280,7 +280,7 @@ class OAuthApiStep:
         )
 
     def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> OAuthStepData:
-        request_token = pipeline.fetch_state("request_token")
+        request_token: dict[str, str] | None = pipeline.fetch_state("request_token")
         if request_token is None:
             raise AssertionError("pipeline called out of order")
         return {"oauthUrl": self._client(pipeline).get_authorize_url(request_token)}
@@ -294,7 +294,7 @@ class OAuthApiStep:
         pipeline: IntegrationPipeline,
         request: HttpRequest,
     ) -> PipelineStepResult:
-        request_token = pipeline.fetch_state("request_token")
+        request_token: dict[str, str] | None = pipeline.fetch_state("request_token")
         if request_token is None:
             raise AssertionError("pipeline called out of order")
 
