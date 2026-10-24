@@ -1,5 +1,7 @@
 import math
+from collections.abc import Iterator, Mapping, Sequence
 from enum import Enum
+from typing import Protocol, SupportsInt, TypedDict
 
 from django.utils.translation import gettext as _
 
@@ -18,7 +20,43 @@ class StacktraceOrder(str, Enum):
     MOST_RECENT_FIRST = "2"
 
 
-def max_addr(cur, addr):
+class _FrameMetadata(TypedDict, total=False):
+    filename: object
+    abs_path: object
+    module: object
+    package: object
+    platform: object
+    instruction_addr: object
+    symbol_addr: object
+    function: object
+    symbol: object
+    lineno: SupportsInt | None
+    context_line: object
+    pre_context: Sequence[object] | None
+    post_context: Sequence[object] | None
+    colno: object
+    parent_index: object
+    sample_count: object
+    in_app: object
+    trust: object
+    errors: object
+    lock: object
+    source_link: object
+
+
+class _StacktraceMetadata(TypedDict, total=False):
+    frames: Mapping[str, _FrameMetadata]
+    frames_omitted: object
+    registers: object
+
+
+class _StacktraceInput(TypedDict, total=False):
+    frames: Sequence[dict[str, object] | None] | None
+    registers: object
+    frames_omitted: object
+
+
+def max_addr(cur: int | None, addr: str | None) -> int | None:
     if addr is None:
         return cur
     length = len(addr) - 2
@@ -27,13 +65,13 @@ def max_addr(cur, addr):
     return cur
 
 
-def pad_hex_addr(addr, length):
+def pad_hex_addr(addr: str | None, length: int | None) -> str | None:
     if length is None or addr is None:
         return addr
     return "0x" + addr[2:].rjust(length, "0")
 
 
-def trim_package(pkg):
+def trim_package(pkg: str | None) -> str:
     if not pkg:
         return "?"
     pkg = pkg.split("/")[-1]
@@ -42,7 +80,7 @@ def trim_package(pkg):
     return pkg
 
 
-def to_hex_addr(addr):
+def to_hex_addr(addr: int | str | None) -> str | None:
     if addr is None:
         return None
     elif isinstance(addr, int):
@@ -58,7 +96,12 @@ def to_hex_addr(addr):
     return rv
 
 
-def get_context(lineno, context_line, pre_context=None, post_context=None):
+def get_context(
+    lineno: SupportsInt | None,
+    context_line: object,
+    pre_context: Sequence[object] | None = None,
+    post_context: Sequence[object] | None = None,
+) -> list[tuple[int, object]]:
     if lineno is None:
         return []
 
@@ -92,7 +135,11 @@ def get_context(lineno, context_line, pre_context=None, post_context=None):
     return context
 
 
-def is_newest_frame_first(event):
+class _StacktraceEvent(Protocol):
+    platform: str | None
+
+
+def is_newest_frame_first(event: _StacktraceEvent) -> bool:
     # TODO: Investigate if we should keep this special-casing for python, since we don't special
     # case it anywhere else we check stacktrace order. If we do remove it, we might consider
     # ditching this helper altogether, and just checking and using the option value directly in the
@@ -113,11 +160,11 @@ def is_newest_frame_first(event):
     return newest_first
 
 
-def is_url(filename):
+def is_url(filename: str) -> bool:
     return filename.startswith(("file:", "http:", "https:", "applewebdata:"))
 
 
-def validate_bool(value, required=True):
+def validate_bool(value: object, required: bool = True) -> object:
     if required:
         assert value in (True, False)
     else:
@@ -125,7 +172,7 @@ def validate_bool(value, required=True):
     return value
 
 
-def handle_nan(value):
+def handle_nan(value: object) -> object:
     "Remove nan values that can't be json encoded"
     if isinstance(value, float):
         if value == float("inf"):
@@ -141,7 +188,7 @@ class Frame(Interface):
     grouping_variants = ["system", "app"]
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data: dict[str, object]) -> "Frame | None":
         for key in (
             "abs_path",
             "colno",
@@ -174,7 +221,7 @@ class Frame(Interface):
 
         return super().to_python(data)
 
-    def to_json(self):
+    def to_json(self) -> dict[str, object]:
         return prune_empty_keys(
             {
                 "abs_path": self.abs_path or None,
@@ -206,7 +253,9 @@ class Frame(Interface):
             }
         )
 
-    def get_api_context(self, is_public=False, platform=None, pad_addr=None):
+    def get_api_context(
+        self, is_public: bool = False, platform: str | None = None, pad_addr: int | None = None
+    ) -> dict[str, object]:
         from sentry.stacktraces.functions import (
             get_function_name_for_frame,
             get_source_link_for_frame,
@@ -271,9 +320,11 @@ class Frame(Interface):
 
         return data
 
-    def get_meta_context(self, meta, is_public=False, platform=None):
+    def get_meta_context(
+        self, meta: _FrameMetadata, is_public: bool = False, platform: str | None = None
+    ) -> dict[str, object] | None:
         if not meta:
-            return
+            return None
 
         return {
             "filename": meta.get("filename"),
@@ -302,7 +353,7 @@ class Frame(Interface):
             "sourceLink": meta.get("source_link"),
         }
 
-    def is_url(self):
+    def is_url(self) -> bool:
         if not self.abs_path:
             return False
         # URLs can be generated such that they are:
@@ -312,13 +363,13 @@ class Frame(Interface):
             return True
         return is_url(self.abs_path)
 
-    def is_caused_by(self):
+    def is_caused_by(self) -> bool:
         # XXX(dcramer): don't compute hash using frames containing the 'Caused by'
         # text as it contains an exception value which may may contain dynamic
         # values (see raven-java#125)
         return self.filename.startswith("Caused by: ")
 
-    def is_unhashable_module(self, platform):
+    def is_unhashable_module(self, platform: str | None) -> bool:
         # Fix for the case where module is a partial copy of the URL
         # and should not be hashed
         if (
@@ -332,13 +383,13 @@ class Frame(Interface):
             return True
         return False
 
-    def is_unhashable_function(self):
+    def is_unhashable_function(self) -> bool:
         # TODO(dcramer): lambda$ is Java specific
         # TODO(dcramer): [Anonymous is PHP specific (used for things like SQL
         # queries and JSON data)
         return self.function.startswith(("lambda$", "[Anonymous"))
 
-    def to_string(self, event) -> str:
+    def to_string(self, event: _StacktraceEvent) -> str:
         if event.platform is not None:
             choices = [event.platform]
         else:
@@ -462,24 +513,25 @@ class Stacktrace(Interface):
     score = 1950
     grouping_variants = ["system", "app"]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Frame | None]:
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data):
-        data = dict(data)
-        frame_list = []
-        for i, f in enumerate(data.get("frames") or []):
+    def to_python(cls, data: _StacktraceInput) -> "Stacktrace | None":
+        frames = data.get("frames") or ()
+        frame_list: list[Frame | None] = []
+        for i, f in enumerate(frames):
             # XXX(dcramer): handle PHP sending an empty array for a frame
             frame_list.append(Frame.to_python(f or {}))
 
-        data["frames"] = frame_list
-        data.setdefault("registers", None)
-        data.setdefault("frames_omitted", None)
+        stacktrace_data = dict(data)
+        stacktrace_data["frames"] = frame_list
+        stacktrace_data.setdefault("registers", None)
+        stacktrace_data.setdefault("frames_omitted", None)
 
-        return super().to_python(data)
+        return super().to_python(stacktrace_data)
 
-    def get_has_system_frames(self):
+    def get_has_system_frames(self) -> bool:
         # This is a simplified logic from how the normalizer works.
         # Because this always works on normalized data we do not have to
         # consider the "all frames are in_app" case.  The normalizer lives
@@ -487,14 +539,16 @@ class Stacktrace(Interface):
         # care of that.
         return any(frame.in_app for frame in self.frames)
 
-    def get_longest_address(self):
+    def get_longest_address(self) -> int | None:
         rv = None
         for frame in self.frames:
             rv = max_addr(rv, frame.instruction_addr)
             rv = max_addr(rv, frame.symbol_addr)
         return rv
 
-    def get_api_context(self, is_public=False, platform=None):
+    def get_api_context(
+        self, is_public: bool = False, platform: str | None = None
+    ) -> dict[str, object]:
         longest_addr = self.get_longest_address()
 
         frame_list = [
@@ -509,7 +563,9 @@ class Stacktrace(Interface):
             "hasSystemFrames": self.get_has_system_frames(),
         }
 
-    def get_api_meta(self, meta, is_public=False, platform=None):
+    def get_api_meta(
+        self, meta: _StacktraceMetadata, is_public: bool = False, platform: str | None = None
+    ) -> object:
         if not meta:
             return meta
 
@@ -527,7 +583,7 @@ class Stacktrace(Interface):
             "registers": meta.get("registers"),
         }
 
-    def to_json(self):
+    def to_json(self) -> dict[str, object]:
         return prune_empty_keys(
             {
                 "frames": [f and f.to_json() for f in self.frames] or None,
@@ -536,12 +592,17 @@ class Stacktrace(Interface):
             }
         )
 
-    def to_string(self, event) -> str:
+    def to_string(self, event: _StacktraceEvent) -> str:
         return self.get_stacktrace(event, system_frames=False, max_frames=10)
 
     def get_stacktrace(
-        self, event, system_frames=True, newest_first=None, max_frames=None, header=True
-    ):
+        self,
+        event: _StacktraceEvent,
+        system_frames: bool = True,
+        newest_first: bool | None = None,
+        max_frames: int | None = None,
+        header: bool = True,
+    ) -> str:
         if newest_first is None:
             newest_first = is_newest_frame_first(event)
 
