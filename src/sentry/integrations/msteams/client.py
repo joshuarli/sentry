@@ -151,7 +151,7 @@ class OAuthMsTeamsClient(ApiClient):
 
     TOKEN_URL = "/oauth2/v2.0/token"
 
-    def __init__(self, client_id, client_secret):
+    def __init__(self, client_id: str, client_secret: str) -> None:
         super().__init__()
         self.client_id = client_id
         self.client_secret = client_secret
