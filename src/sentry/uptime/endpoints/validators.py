@@ -136,7 +136,9 @@ def _validate_mode(mode: int, request_context: Request) -> UptimeMonitorMode:
         )
 
 
-def _validate_request_size(method, url, headers, body):
+def _validate_request_size(
+    method: str, url: str, headers: Sequence[Sequence[str]], body: str | None
+) -> None:
     request_size = compute_http_request_size(
         method,
         url,
@@ -539,7 +541,7 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
     def validate_mode(self, mode: int) -> UptimeMonitorMode:
         return _validate_mode(mode, self.context["request"])
 
-    def validate(self, attrs: dict[str, Any]):
+    def validate(self, attrs):
         attrs = super().validate(attrs)
 
         headers = []
