@@ -9,6 +9,7 @@ from operator import attrgetter
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from sentry import features
+from sentry.eventstore.models import Event
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
@@ -69,15 +70,22 @@ class ResolveSyncAction(enum.Enum):
 
 
 class IssueBasicIntegration(IntegrationInstallation, ABC):
-    def should_sync(self, attribute, sync_source: AssignmentSource | None = None) -> bool:
+    def should_sync(self, attribute: str, sync_source: AssignmentSource | None = None) -> bool:
         return False
 
-    def get_group_title(self, group, event, **kwargs):
+    def get_group_title(
+        self,
+        group: Group,
+        event: Event | GroupEvent,
+        *,
+        max_length: int = 255,
+        **kwargs: str,
+    ) -> str:
         # Imported lazily to avoid a circular import: sentry.notifications.utils
         # imports sentry.utils.committers -> sentry.api.serializers -> this module.
         from sentry.notifications.utils import get_notification_group_title
 
-        return get_notification_group_title(group, event, **kwargs)
+        return get_notification_group_title(group, event, max_length, **kwargs)
 
     @abstractmethod
     def get_issue_url(self, key: str) -> str:
@@ -86,8 +94,10 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         """
         raise NotImplementedError
 
-    def get_group_body(self, group, event, **kwargs):
-        result = []
+    def get_group_body(
+        self, group: Group, event: Event | GroupEvent, **kwargs: str
+    ) -> str:
+        result: list[str] = []
         for interface in event.interfaces.values():
             output = safe_execute(interface.to_string, event)
             if output:
@@ -115,10 +125,12 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
 
         return body.rstrip("\n")  # remove the last new line
 
-    def get_group_link(self, group, **kwargs):
-        params = {}
+    def get_group_link(
+        self, group: Group, *, max_length: int = 255, **kwargs: str
+    ) -> list[str]:
+        params: dict[str, str] = {}
         if kwargs.get("link_referrer"):
-            params["referrer"] = kwargs.get("link_referrer")
+            params["referrer"] = kwargs["link_referrer"]
 
         if group.issue_category == GroupCategory.FEEDBACK:
             return [
@@ -129,8 +141,15 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
             f"Sentry Issue: [{group.qualified_short_id}]({absolute_uri(group.get_absolute_url(params=params))})"
         ]
 
-    def get_group_description(self, group, event, **kwargs):
-        output = self.get_group_link(group, **kwargs)
+    def get_group_description(
+        self,
+        group: Group,
+        event: Event | GroupEvent,
+        *,
+        max_length: int = 255,
+        **kwargs: str,
+    ) -> str:
+        output = self.get_group_link(group, max_length=max_length, **kwargs)
         if (
             event
             and isinstance(event, GroupEvent)
@@ -148,7 +167,12 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User | RpcUser, **kwargs
+        self,
+        group: Group | None,
+        user: User | RpcUser,
+        *,
+        max_length: int = 255,
+        **kwargs: str,
     ) -> list[IntegrationIssueConfigField]:
         """
         These fields are used to render a form for the user,
@@ -164,8 +188,10 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
 
         event = group.get_latest_event()
 
-        default_title = self.get_group_title(group, event, **kwargs)
-        default_description = self.get_group_description(group, event, **kwargs)
+        default_title = self.get_group_title(group, event, max_length=max_length, **kwargs)
+        default_description = self.get_group_description(
+            group, event, max_length=max_length, **kwargs
+        )
 
         llm_details = maybe_generate_external_issue_details(group=group, user=user, event=event)
         title = llm_details["title"] if llm_details["title"] else default_title
@@ -193,7 +219,9 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
             },
         ]
 
-    def get_link_issue_config(self, group, **kwargs):
+    def get_link_issue_config(
+        self, group: Group | None, **kwargs: object
+    ) -> list[IntegrationIssueConfigField]:
         """
         Used by the `GroupIntegrationDetailsEndpoint` to create an
         `ExternalIssue` using title/description obtained from calling
@@ -209,14 +237,16 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         """
         return []
 
-    def get_persisted_user_default_config_fields(self):
+    def get_persisted_user_default_config_fields(self) -> Sequence[str]:
         """
         Returns a list of field names that should have their last used values
         persisted on a per-project, per-user basis.
         """
         return []
 
-    def store_issue_last_defaults(self, project: Project, user: RpcUser | User, data):
+    def store_issue_last_defaults(
+        self, project: Project, user: RpcUser | User, data: Mapping[str, object]
+    ) -> None:
         """
         Stores the last used field defaults on a per-project basis. This
         accepts a dict of values that will be filtered to keys returned by
@@ -259,7 +289,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
                     user_id=user.id, value=new_user_defaults, **user_option_key
                 )
 
-    def get_defaults(self, project: Project, user: User | RpcUser):
+    def get_defaults(self, project: Project, user: User | RpcUser) -> dict[str, object]:
         project_defaults = (
             {}
             if not self.org_integration
@@ -281,7 +311,9 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         return {**project_defaults, **user_defaults}
 
     @abstractmethod
-    def create_issue(self, data, **kwargs):
+    def create_issue(
+        self, data: Mapping[str, object], **kwargs: object
+    ) -> Mapping[str, object]:
         """
         Create an issue via the provider's API and return the issue key,
         title and description.
@@ -306,7 +338,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         )
 
     @abstractmethod
-    def get_issue(self, issue_id, **kwargs):
+    def get_issue(self, issue_id: str | int, **kwargs: object) -> Mapping[str, object]:
         """
         Get an issue via the provider's API and return the issue key,
         title and description.
@@ -325,10 +357,14 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def search_issues(self, query: str | None, **kwargs) -> list[dict[str, Any]] | dict[str, Any]:
+    def search_issues(
+        self, query: str | None, **kwargs: object
+    ) -> list[dict[str, Any]] | dict[str, Any]:
         raise NotImplementedError
 
-    def after_link_issue(self, external_issue, **kwargs):
+    def after_link_issue(
+        self, external_issue: ExternalIssue, **kwargs: object
+    ) -> None:
         """
         Takes the external issue that has been linked via `get_issue`.
 
@@ -336,13 +372,13 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         a comment for a linked issue.
         """
 
-    def make_external_key(self, data):
+    def make_external_key(self, data: Mapping[str, object]) -> object:
         """
         Takes result of `get_issue` or `create_issue` and returns the formatted key
         """
         return data["key"]
 
-    def get_issue_display_name(self, external_issue):
+    def get_issue_display_name(self, external_issue: ExternalIssue) -> str:
         """
         Returns the display name of the issue.
 
@@ -351,8 +387,10 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         """
         return ""
 
-    def map_external_issues_to_annotations(self, external_issues):
-        annotations = []
+    def map_external_issues_to_annotations(
+        self, external_issues: Sequence[ExternalIssue]
+    ) -> list[dict[str, str]]:
+        annotations: list[dict[str, str]] = []
         for ei in external_issues:
             link = self.get_issue_url(ei.key)
             label = self.get_issue_display_name(ei) or ei.key
@@ -360,13 +398,13 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
 
         return annotations
 
-    def get_comment_id(self, comment):
+    def get_comment_id(self, comment: Mapping[str, object]) -> object:
         return comment["id"]
 
-    def create_comment(self, issue_id, user_id, group_note):
+    def create_comment(self, issue_id: str | int, user_id: int, group_note: object) -> None:
         pass
 
-    def update_comment(self, issue_id, user_id, group_note):
+    def update_comment(self, issue_id: str | int, user_id: int, group_note: object) -> None:
         pass
 
 
@@ -474,7 +512,7 @@ class IssueSyncIntegration(IssueBasicIntegration, ABC):
             }
         )
 
-    def migrate_issues(self):
+    def migrate_issues(self) -> None:
         """
         Migrate the corresponding plugin's issues to the integration and disable the plugins.
         """
