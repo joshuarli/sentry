@@ -1,18 +1,21 @@
 from __future__ import annotations
 
-from datetime import timedelta
-from typing import Any
+from collections.abc import Callable, Sequence
+from datetime import datetime, timedelta
 from unittest import mock
 
 import pytest
 from django.utils import timezone
 
+from sentry.api.event_search import SearchFilter
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.issue_search import convert_query_values, parse_search_query
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.search.snuba.executors import (
     DEFAULT_TRENDS_WEIGHTS,
@@ -26,6 +29,8 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
+from sentry.users.models.user import User
+from sentry.utils.cursors import Cursor, CursorResult
 
 
 def _patch_pg_strategies(strategies: dict[str, PostgresSortStrategy]):
@@ -36,13 +41,46 @@ def _patch_pg_strategies(strategies: dict[str, PostgresSortStrategy]):
     )
 
 
-def _ts_strategy(**overrides: Any) -> PostgresSortStrategy:
-    defaults: dict[str, Any] = dict(
-        postgres_fields={"ts": "seer_autofix_last_triggered"},
-        score_fn=lambda data: data["ts"].timestamp(),
+def _timestamp_score(data: dict[str, object]) -> float:
+    timestamp = data["ts"]
+    assert isinstance(timestamp, datetime)
+    return timestamp.timestamp()
+
+
+def _numeric_score(data: dict[str, object], key: str) -> float:
+    value = data.get(key, 0)
+    assert isinstance(value, int | float)
+    return float(value)
+
+
+def _zero_score(data: dict[str, object]) -> float:
+    return 0.0
+
+
+def _ts_strategy(
+    *,
+    postgres_fields: dict[str, str] | None = None,
+    snuba_aggregations: list[str] | None = None,
+    signal_resolvers: dict[
+        str, Callable[[object, Organization, Sequence[Project], list[int]], dict[int, object]]
+    ]
+    | None = None,
+    score_fn: Callable[[dict[str, object]], float] | None = None,
+    fallback_score_fn: Callable[[dict[str, object]], float] | None = None,
+    exclude_null_postgres: bool = True,
+) -> PostgresSortStrategy:
+    return PostgresSortStrategy(
+        postgres_fields=(
+            postgres_fields
+            if postgres_fields is not None
+            else {"ts": "seer_autofix_last_triggered"}
+        ),
+        snuba_aggregations=snuba_aggregations if snuba_aggregations is not None else [],
+        signal_resolvers=signal_resolvers if signal_resolvers is not None else {},
+        score_fn=score_fn if score_fn is not None else _timestamp_score,
+        fallback_score_fn=fallback_score_fn if fallback_score_fn is not None else _zero_score,
+        exclude_null_postgres=exclude_null_postgres,
     )
-    defaults.update(overrides)
-    return PostgresSortStrategy(**defaults)
 
 
 class TestPostgresSortStrategy(TestCase):
@@ -69,11 +107,11 @@ class TestHasSortStrategy(TestCase):
 class PostgresSortTestBase(TestCase, SnubaTestCase):
     """Shared setup: creates 3 groups with distinct seer_autofix_last_triggered values."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.backend = EventsDatasetSnubaSearchBackend()
         self.base_datetime = before_now(days=3).replace(microsecond=0)
-        self.groups = []
+        self.groups: list[Group] = []
         offsets = [timedelta(days=5), timedelta(days=2), timedelta(0)]
         for i, offset in enumerate(offsets):
             event = self.store_event(
@@ -98,27 +136,36 @@ class PostgresSortTestBase(TestCase, SnubaTestCase):
             self.groups.append(group)
 
     def make_query(
-        self, sort_by, query=None, limit=None, cursor=None, date_to=None, environments=None
-    ):
-        search_filters: list[Any] = []
+        self,
+        sort_by: str,
+        query: str | None = None,
+        limit: int | None = None,
+        cursor: Cursor | None = None,
+        date_to: datetime | None = None,
+        environments: Sequence[Environment] | None = None,
+    ) -> CursorResult[Group]:
+        search_filters: list[SearchFilter] = []
         if query:
-            search_filters = list(
-                convert_query_values(parse_search_query(query), [self.project], self.user, None)
+            converted_filters = convert_query_values(
+                parse_search_query(query), [self.project], self.user, None
             )
-        kwargs = {}
-        if limit is not None:
-            kwargs["limit"] = limit
+            assert all(isinstance(search_filter, SearchFilter) for search_filter in converted_filters)
+            search_filters = [
+                search_filter
+                for search_filter in converted_filters
+                if isinstance(search_filter, SearchFilter)
+            ]
         return self.backend.query(
             [self.project],
             search_filters=search_filters,
             environments=environments,
             count_hits=False,
             sort_by=sort_by,
+            limit=100 if limit is None else limit,
             date_from=None,
             date_to=date_to,
             cursor=cursor,
             referrer=Referrer.TESTING_TEST,
-            **kwargs,
         )
 
 
@@ -192,7 +239,7 @@ class TestPostgresSortWithoutSnuba(PostgresSortTestBase):
             group.save()
         strategy = PostgresSortStrategy(
             postgres_fields={"fix": "seer_fixability_score"},
-            score_fn=lambda data: data["fix"],
+            score_fn=lambda data: _numeric_score(data, "fix"),
         )
         with _patch_pg_strategies({"test_sort": strategy}):
             results = list(self.make_query("test_sort"))
@@ -207,10 +254,10 @@ class TestPostgresSortWithoutSnuba(PostgresSortTestBase):
             group.update(seer_fixability_score=float(group.id))
         bad_id = self.groups[0].id
 
-        def score_fn(data):
+        def score_fn(data: dict[str, object]) -> float:
             if data["fix"] == bad_id:
                 raise OverflowError("boom")
-            return data["fix"]
+            return _numeric_score(data, "fix")
 
         strategy = PostgresSortStrategy(
             postgres_fields={"fix": "seer_fixability_score"},
@@ -246,7 +293,7 @@ class TestExecutePostgresSort(PostgresSortTestBase):
     def test_hybrid_sort_with_snuba_aggregations(self):
         strategy = _ts_strategy(
             snuba_aggregations=["last_seen"],
-            score_fn=lambda data: data["ts"].timestamp() + data.get("last_seen", 0),
+            score_fn=lambda data: _timestamp_score(data) + _numeric_score(data, "last_seen"),
         )
         with _patch_pg_strategies({"test_sort": strategy}):
             results = list(self.make_query("test_sort", query="issue"))
@@ -291,7 +338,8 @@ class TestExecutePostgresSort(PostgresSortTestBase):
         boosted = self.groups[0].id
         strategy = _ts_strategy(
             signal_resolvers={"boost": lambda actor, org, projects, gids: {boosted: 1}},
-            score_fn=lambda data: data.get("boost", 0) * 10**15 + data["ts"].timestamp(),
+            score_fn=lambda data: _numeric_score(data, "boost") * 10**15
+            + _timestamp_score(data),
         )
         with _patch_pg_strategies({"test_sort": strategy}):
             results = list(self.make_query("test_sort"))
@@ -419,7 +467,7 @@ class TestRecommendedV2Sort(PostgresSortTestBase):
     is large enough to override that.
     """
 
-    def _query(self, actor=None):
+    def _query(self, actor: User | None = None) -> list[Group]:
         return list(
             self.backend.query(
                 [self.project],
@@ -507,7 +555,7 @@ class TestRecommendedV2Sort(PostgresSortTestBase):
 
         assert set(self._query(actor=self.user)) == set(self.groups)
 
-    def _add_suspect_commit(self, group, user):
+    def _add_suspect_commit(self, group: Group, user: User) -> None:
         GroupOwner.objects.create(
             group=group,
             project=self.project,
@@ -543,7 +591,7 @@ class TestProgressSort(PostgresSortTestBase):
     order [2, 1, 0] (newest first).
     """
 
-    def _query(self):
+    def _query(self) -> list[Group]:
         return list(
             self.backend.query(
                 [self.project],
@@ -625,7 +673,7 @@ class TestProgressSort(PostgresSortTestBase):
             self.create_group_derived_data(group=group, progress="diagnosed", last_progressed_at=ts)
 
         expected = sorted(self.groups, key=lambda g: g.id, reverse=True)
-        seen = []
+        seen: list[Group] = []
         cursor = None
         for _ in self.groups:
             page = self.make_query(sort_by="progress", limit=1, cursor=cursor)
@@ -725,7 +773,7 @@ class TestProgressSort(PostgresSortTestBase):
         tied = sorted([self.groups[0], self.groups[1]], key=lambda g: g.id, reverse=True)
         expected = tied + [self.groups[2]]
 
-        seen = []
+        seen: list[Group] = []
         cursor = None
         for _ in self.groups:
             page = self.make_query(sort_by="progress", query="issue", limit=1, cursor=cursor)
@@ -774,7 +822,7 @@ class TestProgressSort(PostgresSortTestBase):
         # measured against the true global ordering (not just self-consistency) -- i.e. prev
         # returns the page adjacent to the cursor, not a window pulled from the wrong end.
         ts = before_now(days=2).replace(microsecond=0)
-        extra = []
+        extra: list[Group] = []
         for i in range(3, 5):
             event = self.store_event(
                 data={
@@ -804,7 +852,7 @@ class TestProgressSort(PostgresSortTestBase):
         # Page fully forward one page (limit=2) at a time; the concatenation must be the exact
         # id-DESC order with no drops or duplicates.
         forward: list[Group] = []
-        pages: list[Any] = []
+        pages: list[CursorResult[Group]] = []
         cursor = None
         while True:
             page = self.make_query(sort_by="progress", query="issue", limit=2, cursor=cursor)
