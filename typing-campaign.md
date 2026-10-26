@@ -1,6 +1,6 @@
 # Sentry typing hillclimb
 
-## Status: paused — 2026-10-24
+## Status: active — 2026-10-26 (resumed; AFK unattended)
 
 ### Resume
 
@@ -10,13 +10,28 @@ On the owner's next request, resume the existing typing migration from accepted 
 git status --short --branch
 ```
 
-Reread repository instructions and perform the parent steering checkpoint. Preserve the owner's source changes in the integration checkout. Fetch current GitHub master and rebase the typing source in a separate clean worktree, then establish the fixed policy baseline before selecting a parked proposal. The last fetched `upstream/master` was `86b1728a40fc57fd64ca6fb5e7c892b17c061b8c`; the campaign source has not been rebased onto it.
+Reread repository instructions and perform the parent steering checkpoint. Preserve the owner's source changes in the integration checkout. Fetch current GitHub master and rebase the typing source in a separate clean worktree, then establish the fixed policy baseline before selecting a parked proposal. The last fetched `upstream/master` was `f1a48d9501d2dd7567a831bc0b1297fd3af81418`; the campaign source was merged onto it as `594e7d8527a` (2 conflicts resolved as union) on 2026-10-26.
 
 Use only GPT-6-Luna High for campaign agents and remove Claude-specific guidance. If environment setup is needed, follow `devenv/sync.py` directly without invoking the `devenv` tool. Getsentry is unavailable on this machine; when its checkout is absent, skip Getsentry-specific verification. Do not run formatters, change CI, or push.
 
 ### State
 
-The integration branch is `typing-hillclimb`. Its accepted source tip is `b628cbcf763bf36a8b1798dfb4ae9eab33a05c80` (tree `b6ff996179e34f36b2e69b8cc4d722eb4d06db5d`). Commits after that source tip only update this campaign document. The prior fixed policy comparison used base `503ad2e4e2a208a87d768a3e91bcfb55a778e7ba`. Current fetched `upstream/master` is `86b1728a40fc57fd64ca6fb5e7c892b17c061b8c`; no source rebase or new baseline was done before this winddown. The local branch is ahead of `origin/typing-hillclimb`; nothing was pushed.
+The integration branch is `typing-hillclimb`. Its accepted source tip is `fedf6d46155f16729ba9bf0fdfc2470ec405f30d` (exact acceptance 2026-10-26; prior tip `b628cbcf763bf36a8b1798dfb4ae9eab33a05c80`). The fixed policy baseline on `fedf6d4` is complete with no gaps: configured 115, unsuppressed 178, all-strong 11,231, missing signatures 23,724. Current fetched `upstream/master` is `f1a48d9501d2dd7567a831bc0b1297fd3af81418`; the source was merged onto it as `594e7d8527a` before promotion. The local branch is ahead of `origin/typing-hillclimb`; nothing was pushed.
+
+Two promotions since the merge passed exact evaluation (`evaluate --parent 594e7d8 --candidate-tree HEAD`, outcome `complete`, adoption credit, core + precision complete, zero additions):
+- `42ab342c55d` refactor(typing): type tagstore snuba filter helpers (`is_boolean_key`, `is_fuzzy_numeric_key`, `_translate_filter_keys`; 1 file, 3+/3-)
+- `fedf6d46155` refactor(typing): type social auth backend flags (`uses_redirect`, `enabled` x2; 1 file, 4+/4-)
+
+| Measure | Parent (`594e7d8`) | Candidate (`fedf6d4`) | Change |
+|---|---:|---:|---:|
+| Configured additions / removals | — | — | +0 / −0 |
+| Unsuppressed additions / removals | — | — | +0 / −0 |
+| Precision additions / removals | — | — | +0 / −26 |
+| New Any obligations | — | — | +0 |
+| New / removed signature omissions | — | — | +0 / −10 |
+| Signature regressions / improvements | — | — | +0 / +10 |
+
+Credited modules: `sentry.tagstore.snuba.backend`, `social_auth.backends`. Targeted mypy, Ruff, and `git diff --check` pass on all touched files; `py_compile` passes. Focused pytest and devservices remain blocked (see Verified).
 
 The latest candidate was commit `a8125f3e92f87d4a0156dc9761e1b1849ff97ca2` (tree `f7680fe9eb55dedfff2ef8ec3fabf2d97b8c8eb2`), on branch `typing-wave-20261024-query-construction`, against accepted parent `b628cbcf763bf36a8b1798dfb4ae9eab33a05c80`. Exact evaluation rejected it. The candidate changes `mep_to_eap.py` and `metrics/query_builder.py`; it is preserved as an unaccepted branch.
 
@@ -31,7 +46,7 @@ The latest candidate was commit `a8125f3e92f87d4a0156dc9761e1b1849ff97ca2` (tree
 
 The evaluator recorded `core_complete=true` and adoption credit, but rejected the candidate: four new configured/unsuppressed errors follow the optional `list[...] | None` MEP result contract and its stale test expectation; the metrics query change adds precision errors and Any obligations at the SNQL expression boundary. Focused tests passed 116 with 6 skipped. The scoped all-strong comparison found the same 25 existing metrics-builder diagnostics on parent and candidate after line relocation; MEP had none. Read-only Ruff and `git diff --check` passed. Independent source review found no concrete runtime behavior issue. This does not establish exact acceptance or campaign-wide precision completion.
 
-The last accepted source promotion remains `b628cbcf763`. No new source work was merged during this winddown. Seven owner-owned source and test files remain modified in the integration checkout. Keep them intact when resuming. The optional raw evaluator report is not required to resume.
+The prior accepted source promotion was `b628cbcf763`. Two new source promotions (`42ab342`, `fedf6d4`) were merged and exactly accepted on 2026-10-26 (see State). No other new source work was merged. The seven owner-owned source and test files from `6f359a3` remain intact through the upstream merge (verified: `6f359a3..HEAD` diff empty for those paths). The optional raw evaluator report is not required to resume.
 
 ### Direction
 
@@ -214,16 +229,13 @@ No next source wave is selected. On resume, fetch current master, rebase the sou
 
 ### Verified
 
-- `git worktree prune` completed; the worktree list contains only the root integration checkout. No additional cleanup candidate existed.
-- The 143 unmerged branch refs exactly match the parked branch list. Branches were preserved; none was deleted.
-- All lane agents reported completion. Process, user crontab, and LaunchAgents checks found no campaign job or wakeup.
-- `codex-campaign-closeout.py begin` succeeded. The configured Stop hook points to `codex-campaign-closeout.py hook` and has a trusted configuration hash. The `/hooks` UI command is not exposed in this API session, so it could not be run here. A direct hook invocation needs Stop-event JSON and was not fabricated.
-- The root virtualenv has executable Python and pytest. No formatter was run.
-- The root checkout remains dirty only in the seven owner-owned files listed above. The campaign did not modify or stage them.
-- `.work/` is ignored through `.git/info/exclude`; `df -h .work` confirmed it resides on APFS.
-- Current fetched master is `86b1728a40fc57fd64ca6fb5e7c892b17c061b8c`; the source branch remains unrebased.
-- Resume rehearsal passed in a clean environment. The first command, accepted source commit, current master commit, rejected candidate branch, and handoff document all resolved.
+- Evaluator `baseline` on `fedf6d4`: `complete`, `core_complete=true`, no gaps; report at `.work/tmp/typing-baseline-20261026/report.json`.
+- Evaluator `evaluate --parent 594e7d8 --candidate-tree HEAD`: `complete`, adoption credit, core + precision complete, zero additions; report at `.work/tmp/typing-eval-20261026/report.json`.
+- Targeted mypy (`SENTRY_MYPY_PRE_PUSH=1`) passes on `src/sentry/tagstore/snuba/backend.py`, `src/sentry/integrations/gitlab/client.py`, `src/social_auth/backends/__init__.py`. Read-only Ruff and `git diff --check` pass; `py_compile` passes.
+- Venv restored without devenv per `devenv/sync.py` python-deps step (`brew upgrade uv`, `uv python install 3.13`, `uv sync --frozen --inexact --active`) plus `python -m tools.fast_editable --path .`; `mypy 2.1.0` matches evaluator expectation.
+- Blockers (recorded once): `devservices up --mode migrations` fails (`DependencyError: sentry-shared-postgres`, HTTP 403); focused pytest fails on redis `localhost:6379` refused. No DB-backed tests until services are available.
+- The root checkout is clean except this document; the merge preserved owner files; `.work/` holds only evaluator outputs (7.3G); no push, no formatters.
 
 ### Campaign log
 
-2026-10-24 — Froze the campaign after the query-construction rejection, confirmed all 143 unmerged branches are recorded as parked, and verified that no additional worktrees or running lanes remain. Preserved seven owner-owned changes and recorded the current-master rebase as the next resume step.
+2026-10-26 — Resumed AFK: merged `upstream/master f1a48d9` as `594e7d8`, promoted and exactly accepted tagstore-snuba (`42ab342`) and social-auth (`fedf6d4`) waves, established fixed-policy baseline, restored venv without devenv. Next: select one testable parked proposal (project-serializer pre-checked clean) and continue the hillclimb.
