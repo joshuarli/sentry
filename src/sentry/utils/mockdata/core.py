@@ -109,7 +109,7 @@ def make_sentence(words: int | None = None) -> str:
     return " ".join(random.choice(loremipsum.words) for _ in range(words))
 
 
-def create_sample_event(*args: object, **kwargs: object):
+def create_sample_event(*args: object, **kwargs: object) -> object:
     try:
         event = _create_sample_event(*args, **kwargs)
     except HashDiscarded as e:
