@@ -941,9 +941,7 @@ def get_artifact_counts(release_ids: list[int]) -> Mapping[int, int]:
     return dict(qs)
 
 
-def follows_semver_versioning_scheme(
-    org_id: int, project_id: int, release_version: str | None = None
-) -> bool:
+def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
     """
     Checks if we should follow semantic versioning scheme for ordering based on
     1. Latest ten releases of the project_id passed in all follow semver
