@@ -396,7 +396,7 @@ class Release(Model):
 
     @property
     def is_semver_release(self) -> bool:
-        return self.package is not None
+        return bool(self.package is not None)
 
     def get_previous_release(self, project: Project) -> ReleaseProject | None:
         """Get the release prior to this one. None if none exists"""
