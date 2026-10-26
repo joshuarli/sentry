@@ -22,6 +22,10 @@ Two promotions since the merge passed exact evaluation (`evaluate --parent 594e7
 - `42ab342c55d` refactor(typing): type tagstore snuba filter helpers (`is_boolean_key`, `is_fuzzy_numeric_key`, `_translate_filter_keys`; 1 file, 3+/3-)
 - `fedf6d46155` refactor(typing): type social auth backend flags (`uses_redirect`, `enabled` x2; 1 file, 4+/4-)
 
+Two more promotions since the baseline passed exact evaluation with zero additions:
+- `cacd6ea3683` refactor(typing): type project serializer helpers (`get_deploys_by_project`, `Plugin` TypedDict precision, `SharedProjectSerializer.serialize`; 1 file, 12+/4-; 6 omissions removed, 6 improved)
+- `60e83cab897` refactor(typing): type mockdata core helpers (5 fully-annotated defs; 1 file, 18+/15-; 93 precision removals, 25 omissions removed)
+
 | Measure | Parent (`594e7d8`) | Candidate (`fedf6d4`) | Change |
 |---|---:|---:|---:|
 | Configured additions / removals | — | — | +0 / −0 |
@@ -232,7 +236,9 @@ No next source wave is selected. On resume, fetch current master, rebase the sou
 - Evaluator `baseline` on `fedf6d4`: `complete`, `core_complete=true`, no gaps; report at `.work/tmp/typing-baseline-20261026/report.json`.
 - Evaluator `evaluate --parent 594e7d8 --candidate-tree HEAD`: `complete`, adoption credit, core + precision complete, zero additions; report at `.work/tmp/typing-eval-20261026/report.json`.
 - Targeted mypy (`SENTRY_MYPY_PRE_PUSH=1`) passes on `src/sentry/tagstore/snuba/backend.py`, `src/sentry/integrations/gitlab/client.py`, `src/social_auth/backends/__init__.py`. Read-only Ruff and `git diff --check` pass; `py_compile` passes.
-- Venv restored without devenv per `devenv/sync.py` python-deps step (`brew upgrade uv`, `uv python install 3.13`, `uv sync --frozen --inexact --active`) plus `python -m tools.fast_editable --path .`; `mypy 2.1.0` matches evaluator expectation.
+- Venv restored without devenv per `devenv/sync.py` python-deps step (`brew upgrade uv`, `uv python install 3.13`, `uv sync --frozen --inexact --active`) plus `python -m tools.fast_editable --path .` (required: without it mypy fails with `No module named 'sentry'`); `mypy 2.1.0` matches evaluator expectation. Evaluator runs need `SENTRY_LOG_LEVEL=WARNING`: a `sentry.options_store` INFO log otherwise leaks into mypy stdout and invalidates the measurement.
+- Lane repair rules learned: partially-annotated defs get checked (missing return flagged as new error) while fully-untyped defs stay exempt — prefer full annotation or none; narrowing pass-through `*args/**kwargs` to `object` poisons downstream attribute uses (16 new errors) — leave pass-throughs untyped.
+- Rejected and parked with repair recipes: api-paginator lane (`c1e26a9`, partial `get_result` + `CursorValue -> object` widening; 5 precision + 7 Any additions) — needs `CursorResult[object]` return plus queryset typing or a wave split.
 - Blockers (recorded once): `devservices up --mode migrations` fails (`DependencyError: sentry-shared-postgres`, HTTP 403); focused pytest fails on redis `localhost:6379` refused. No DB-backed tests until services are available.
 - The root checkout is clean except this document; the merge preserved owner files; `.work/` holds only evaluator outputs (7.3G); no push, no formatters.
 
