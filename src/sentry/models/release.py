@@ -145,7 +145,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         build: str,
         project_ids: Sequence[int] | None = None,
         negated: bool = False,
-    ) -> models.QuerySet:
+    ) -> ReleaseQuerySet:
         return self.get_queryset().filter_by_semver_build(
             organization_id,
             operator,
@@ -159,7 +159,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         organization_id: int,
         semver_filter: SemverFilter,
         project_ids: Sequence[int] | None = None,
-    ) -> models.QuerySet:
+    ) -> ReleaseQuerySet:
         return self.get_queryset().filter_by_semver(organization_id, semver_filter, project_ids)
 
     def filter_by_stage(
@@ -395,8 +395,8 @@ class Release(Model):
         )
 
     @property
-    def is_semver_release(self):
-        return self.package is not None
+    def is_semver_release(self) -> bool:
+        return bool(self.package is not None)
 
     def get_previous_release(self, project: Project) -> ReleaseProject | None:
         """Get the release prior to this one. None if none exists"""
