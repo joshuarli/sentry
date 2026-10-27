@@ -32,7 +32,6 @@ from sentry.models.dashboard_widget import (
 from sentry.organizations.absolute_url import has_customer_domain, organization_absolute_url
 from sentry.search.events.fields import is_function, parse_arguments
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
-from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -714,8 +713,8 @@ class DashboardDetailsResponseOptional(TypedDict, total=False):
 class DashboardDetailsResponse(DashboardDetailsResponseOptional):
     id: str
     title: str
-    dateCreated: str
-    createdBy: UserSerializerResponse | None
+    dateCreated: datetime
+    createdBy: dict[str, Any] | None
     widgets: list[DashboardWidgetResponse]
     projects: list[int]
     filters: DashboardFilters
@@ -726,7 +725,12 @@ class DashboardDetailsResponse(DashboardDetailsResponseOptional):
 
 @register(Dashboard)
 class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[Dashboard],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[Dashboard, dict[str, object]]:
         result = {}
 
         widgets = serialize(
@@ -755,7 +759,13 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
 
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs) -> DashboardDetailsResponse:
+    def serialize(
+        self,
+        obj: Dashboard,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> DashboardDetailsResponse:
         page_filters, tag_filters = self.get_filters(obj)
 
         data: DashboardDetailsResponse = {
@@ -786,7 +796,12 @@ class DashboardRevisionResponse(TypedDict):
 
 @register(DashboardRevision)
 class DashboardRevisionSerializer(Serializer[DashboardRevisionResponse]):
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[DashboardRevision],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[DashboardRevision, dict[str, object]]:
         user_ids = [r.created_by_id for r in item_list if r.created_by_id is not None]
         users_by_id = {
             u["id"]: u for u in user_service.serialize_many(filter={"user_ids": user_ids})
@@ -796,7 +811,13 @@ class DashboardRevisionSerializer(Serializer[DashboardRevisionResponse]):
             for revision in item_list
         }
 
-    def serialize(self, obj, attrs, user, **kwargs) -> DashboardRevisionResponse:
+    def serialize(
+        self,
+        obj: DashboardRevision,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> DashboardRevisionResponse:
         created_by = attrs.get("created_by") or {}
         avatar = created_by.get("avatar") or {}
         avatar_type = avatar.get("avatarType")
