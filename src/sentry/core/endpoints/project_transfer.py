@@ -24,6 +24,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.email import MessageBuilder
@@ -83,7 +84,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
         },
     )
     @sudo_required
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Schedule a project for transfer to a new organization.
 
