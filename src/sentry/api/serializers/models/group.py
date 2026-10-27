@@ -496,7 +496,11 @@ class GroupSerializerBase(Serializer, ABC):
             return False
         return key in self.collapse
 
-    def _get_status(self, attrs: Mapping[str, Any], obj: Group):
+    def _get_status(
+        self, attrs: Mapping[str, Any], obj: Group
+    ) -> tuple[GroupStatusDetailsResponseOptional, GroupStatusStr]:
+        status = obj.status
+        status_details: GroupStatusDetailsResponseOptional = {}
         status = obj.status
         status_details = {}
         if attrs["ignore_until"]:
