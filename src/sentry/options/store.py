@@ -141,6 +141,9 @@ class OptionsStore:
         if value is not None:
             return value
 
+        if self.cache is None:
+            return None
+
         cache_key = key.cache_key
         try:
             value = self.cache.get(cache_key)
