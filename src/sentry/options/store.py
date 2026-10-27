@@ -4,8 +4,7 @@ import dataclasses
 import logging
 from random import random
 from time import time
-from typing import TYPE_CHECKING
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from django.core.cache.backends.base import BaseCache
