@@ -610,7 +610,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         modified = False
         for option in incoming:
             public_key = option.get("public_key")
-            existing_info = key_dict.get(public_key, {})
+            existing_info: dict[str, object] = key_dict.get(public_key, {})
 
             option["created"] = existing_info.get("created", timestamp_now)
             option["last_modified"] = existing_info.get("last_modified")
@@ -1366,7 +1366,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
 def flag_has_changed(org: Organization, flag_name: str) -> bool:
     "Returns ``True`` if ``flag`` has changed since initialization."
-    return getattr(old_value(org, "flags"), flag_name, None) != getattr(org.flags, flag_name)
+    return bool(getattr(old_value(org, "flags"), flag_name, None) != getattr(org.flags, flag_name))
 
 
 def update_tracked_data(model):
