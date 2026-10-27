@@ -28,7 +28,7 @@ class ApiApplicationSerializerResponse(TypedDict):
 
 
 @register(ApiApplication)
-class ApiApplicationSerializer(Serializer):
+class ApiApplicationSerializer(Serializer[ApiApplicationSerializerResponse]):
     def serialize(
         self,
         obj: ApiApplication,
