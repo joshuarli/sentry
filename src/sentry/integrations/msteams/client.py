@@ -44,20 +44,25 @@ class MsTeamsClientABC(ApiClient, ABC):
             params["continuationToken"] = continuation_token
         return self.get(url, params=params)
 
-    def get_user_conversation_id(self, user_id: str, tenant_id: str):
+    def get_user_conversation_id(self, user_id: str, tenant_id: str) -> str:
         data = {"members": [{"id": user_id}], "channelData": {"tenant": {"id": tenant_id}}}
         resp = self.post(self.CONVERSATION_URL, data=data)
-        return resp.get("id")
+        conversation_id: str = resp.get("id")
+        return conversation_id
 
-    def send_message(self, conversation_id: str, data: Mapping[str, object]):
-        return self.post(self.ACTIVITY_URL % conversation_id, data=data)
+    def send_message(self, conversation_id: str, data: Mapping[str, object]) -> object:
+        response: object = self.post(self.ACTIVITY_URL % conversation_id, data=data)
+        return response
 
     def update_message(
         self, conversation_id: str, activity_id: str, data: Mapping[str, object]
-    ):
-        return self.put(self.MESSAGE_URL % (conversation_id, activity_id), data=data)
+    ) -> object:
+        response: object = self.put(
+            self.MESSAGE_URL % (conversation_id, activity_id), data=data
+        )
+        return response
 
-    def send_card(self, conversation_id: str, card: Mapping[str, object]):
+    def send_card(self, conversation_id: str, card: Mapping[str, object]) -> object:
         payload = {
             "type": "message",
             "attachments": [
@@ -68,7 +73,7 @@ class MsTeamsClientABC(ApiClient, ABC):
 
     def update_card(
         self, conversation_id: str, activity_id: str, card: Mapping[str, object]
-    ):
+    ) -> object:
         payload = {
             "type": "message",
             "attachments": [
@@ -88,9 +93,18 @@ class MsTeamsPreInstallClient(MsTeamsClientABC):
         self.access_token = access_token
         self.base_url = service_url.rstrip("/")
 
-    def request(self, method, path, data=None, params=None):
+    def request(
+        self,
+        method: str,
+        path: str,
+        data: Mapping[str, object] | None = None,
+        params: Mapping[str, str | int] | None = None,
+    ) -> object:
         headers = {"Authorization": f"Bearer {self.access_token}"}
-        return self._request(method, path, headers=headers, data=data, params=params)
+        response: object = self._request(
+            method, path, headers=headers, data=data, params=params
+        )
+        return response
 
 
 # MsTeamsClient is used with an existing integration object and handles token refreshing
@@ -104,6 +118,7 @@ class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
             if kwargs.get("raw_response"):
                 raise
             translate_msteams_api_error(error)
+            return None
 
     def __init__(self, integration: Integration | RpcIntegration):
         self.integration = integration
@@ -114,8 +129,8 @@ class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
 
     @property
     def access_token(self) -> str:
-        access_token = self.metadata["access_token"]
-        expires_at = self.metadata["expires_at"]
+        access_token: str = self.metadata["access_token"]
+        expires_at: int = self.metadata["expires_at"]
 
         # We don't refresh the access token in cell silos.
         if SiloMode.get_current_mode() != SiloMode.CELL:
