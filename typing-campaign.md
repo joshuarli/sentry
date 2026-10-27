@@ -38,6 +38,7 @@ Two more promotions since the baseline passed exact evaluation with zero additio
 - `4f1f3faf3b5` refactor(typing): type project key validator (`Mapping` in, named local out; 1 file, 6+/3-; 9 precision removals, 2 omissions removed; eventuser sibling parked — response TypedDict lies about nullability)
 - `b0faba7b579` refactor(typing): type apidocs extension hook (sibling-pattern signature + load-bearing assert; 1 file, 6+/2-; 4 precision removals, 3 omissions removed; precise `dict[str, str]` beat explicit `Any`)
 - `18c85dbf5b0` refactor(typing): type transaction names endpoint (`project: Project`; 1 file, 2+/1-; 9 precision removals, 1 omission removed; symbol-sources sibling split out — `dict[str, Any]` param+return is new explicit debt)
+- `7fd9d87e51f` refactor(typing): type custom exception handler (`Exception`, `dict[str, object]`, `Response | None`; 1 file, 2+/1-; 7 precision removals, 3 omissions removed)
 
 | Measure | Parent (`594e7d8`) | Candidate (`fedf6d4`) | Change |
 |---|---:|---:|---:|
