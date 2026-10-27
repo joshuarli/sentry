@@ -1,6 +1,6 @@
 # Sentry typing hillclimb
 
-## Status: active — 2026-10-26 (resumed; AFK unattended)
+## Status: winding down — 2026-10-27 (owner requested winddown; no new lanes)
 
 ### Resume
 
