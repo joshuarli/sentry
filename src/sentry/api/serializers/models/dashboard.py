@@ -397,7 +397,13 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
 
 @register(DashboardWidgetQueryOnDemand)
 class DashboardWidgetQueryOnDemandSerializer(Serializer[OnDemandResponse]):
-    def serialize(self, obj, attrs, user, **kwargs) -> OnDemandResponse:
+    def serialize(
+        self,
+        obj: DashboardWidgetQueryOnDemand,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> OnDemandResponse:
         return {
             "enabled": obj.extraction_enabled(),
             "extractionState": obj.extraction_state,
@@ -407,7 +413,12 @@ class DashboardWidgetQueryOnDemandSerializer(Serializer[OnDemandResponse]):
 
 @register(DashboardWidgetQuery)
 class DashboardWidgetQuerySerializer(Serializer[DashboardWidgetQueryResponse]):
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[DashboardWidgetQuery],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[DashboardWidgetQuery, dict[str, list[Any]]]:
         result = {}
 
         stateful_extraction_version = (
@@ -440,7 +451,13 @@ class DashboardWidgetQuerySerializer(Serializer[DashboardWidgetQueryResponse]):
 
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs) -> DashboardWidgetQueryResponse:
+    def serialize(
+        self,
+        obj: DashboardWidgetQuery,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> DashboardWidgetQueryResponse:
         return {
             "id": str(obj.id),
             "name": obj.name,
@@ -461,7 +478,13 @@ class DashboardWidgetQuerySerializer(Serializer[DashboardWidgetQueryResponse]):
 
 @register(DashboardPermissions)
 class DashboardPermissionsSerializer(Serializer[DashboardPermissionsResponse]):
-    def serialize(self, obj, attrs, user, **kwargs) -> DashboardPermissionsResponse:
+    def serialize(
+        self,
+        obj: DashboardPermissions,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> DashboardPermissionsResponse:
         return {
             "isEditableByEveryone": obj.is_editable_by_everyone,
             "teamsWithEditAccess": list(obj.teams_with_edit_access.values_list("id", flat=True)),
