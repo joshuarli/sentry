@@ -123,7 +123,7 @@ PULL_REQUEST_ACTIVITY_TYPES = {
 
 
 def _resolve_mentioned_users(
-    activities: list[Activity],
+    activities: Sequence[Activity],
 ) -> dict[ActivityId, list[ResolvedMention]]:
     """The Sentry users each activity @mentions, keyed by activity id, resolved in one batch.
 
@@ -164,7 +164,12 @@ class ActivitySerializer(Serializer):
         self.environment_func = environment_func
         self.resolve_mentions = resolve_mentions
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[Activity],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[Activity, dict[str, object]]:
         from sentry.api.serializers.models.group import GroupSerializer
 
         # TODO(dcramer); assert on relations
