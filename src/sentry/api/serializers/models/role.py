@@ -52,7 +52,7 @@ def _serialize_base_role(
 
 
 class OrganizationRoleSerializer(Serializer[OrganizationRoleSerializerResponse]):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         """
         Remove this when deleting "organizations:team-roles" flag
         """
@@ -77,7 +77,7 @@ class OrganizationRoleSerializer(Serializer[OrganizationRoleSerializerResponse])
 
 
 class TeamRoleSerializer(Serializer[TeamRoleSerializerResponse]):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         """
         Remove this when deleting "organizations:team-roles" flag
         """
