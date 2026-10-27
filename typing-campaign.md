@@ -33,6 +33,7 @@ Two more promotions since the baseline passed exact evaluation with zero additio
 - `fae67a3c66f` refactor(typing): type msteams client returns (send/update paths, `request` overloads, token locals; 1 file, 27+/12-; 21 precision removals, 10 omissions removed; dict-returning getters deliberately left untyped — callers treat results as live dicts)
 - `bd2251b5d5c` refactor(typing): type tagkey and attachment endpoint params (3 endpoint `get()` signatures mined from baseline's lowest-diagnostic files; 3 files, 6+/3-; 17 precision removals, 6 omissions removed; first fully self-authored wave — parked list increasingly subsumed by upstream)
 - `6414a0d859` refactor(typing): type project tags and setup wizard endpoints (2 files, 5+/4-; 17 precision removals, 3 omissions removed; transfer endpoint dropped — `dict[str, Any]` spelling is new bypass debt unless grandfathered)
+- `8528df41839` refactor(typing): type committers and org stats endpoints (2 files, 4+/2-; 4 precision removals, 3 omissions removed; create-sample split out — `Project.platform` is `Optional` and poisons `dict.get` defaults)
 
 | Measure | Parent (`594e7d8`) | Candidate (`fedf6d4`) | Change |
 |---|---:|---:|---:|
