@@ -1,7 +1,9 @@
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.pullrequest import PullRequestSerializerResponse
@@ -12,6 +14,8 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class EmptyAuthor(TypedDict):
@@ -63,7 +67,12 @@ class CommitSerializer(Serializer):
         self.exclude = frozenset(exclude if exclude else ())
         self.type = type or ""
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[Commit],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[Commit, dict[str, object]]:
         if "author" not in self.exclude:
             users_by_author = get_users_for_commits(item_list, user)
         else:
@@ -101,7 +110,13 @@ class CommitSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj: Commit, attrs, user, **kwargs) -> CommitSerializerResponse:
+    def serialize(
+        self,
+        obj: Commit,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> CommitSerializerResponse:
         d: CommitSerializerResponse = {
             "id": obj.key,
             "message": obj.message,
@@ -123,7 +138,12 @@ class CommitWithReleaseSerializer(CommitSerializer):
         self.exclude = frozenset(exclude if exclude else ())
         self.type = type or ""
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[Commit],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[Commit, dict[str, object]]:
         from sentry.models.releasecommit import ReleaseCommit
 
         attrs = super().get_attrs(item_list, user)
@@ -137,7 +157,13 @@ class CommitWithReleaseSerializer(CommitSerializer):
             attrs[item]["releases"] = releases_by_commit[item.id]
         return attrs
 
-    def serialize(self, obj, attrs, user, **kwargs) -> CommitSerializerResponseWithReleases:
+    def serialize(
+        self,
+        obj: Commit,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> CommitSerializerResponseWithReleases:
         data = super().serialize(obj, attrs, user)
         ret: CommitSerializerResponseWithReleases = {
             "id": data["id"],
