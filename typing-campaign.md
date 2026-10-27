@@ -1,10 +1,10 @@
 # Sentry typing hillclimb
 
-## Status: paused 2026-10-27 — owner requested winddown; no lanes running.
+## Status: resumed 2026-10-27 — rebased onto upstream/master; no lanes running.
 
 Resume here: `git status --short --branch` on `typing-hillclimb`, then reread the Corrective checkpoint, Resume, and State below. Toolchain notes (venv restore without devenv, `SENTRY_LOG_LEVEL=WARNING`, `fast_editable`) are under Verified.
-Current source tip: `945bd7f36ad` (avatar filename + project transfer params). Accepted by static checks only: exact evaluation, Ruff, `git diff --check`. No pytest ran; devservices is blocked (shared-postgres 403, no redis). "Accepted" means the typing evaluator passed, not that behavior is proven preserved.
-Known defects at this tip: the options-store assertion was restored in `00910daf893` (checked without services; `test_simple_without_cache` still unrun); the msteams `conversation_id: str = resp.get("id")` is an unchecked `Any` assignment. Fix these before any new promotion.
+Current source tip: `b7308e43a62` (msteams conversation-id contract fix). Accepted by static checks only: targeted mypy, Ruff, `git diff --check`, `py_compile`. No pytest ran; devservices is blocked (shared-postgres 403, no redis). "Accepted" means static checks passed, not that behavior is proven preserved.
+Known defects at this tip: the options-store assertion was restored in `00910daf893` (checked without services; `test_simple_without_cache` still unrun); the msteams `conversation_id` now indexes `resp["id"]` in `b7308e43a62` (checked without services; new `test_get_user_conversation_id` + missing-id `KeyError` cases unrun). Defect 3 (re-audit of other `Any`-to-typed locals since `594e7d8527a`) remains open before any new promotion.
 Parked: the 143 branches in the Parked list (none re-verified; upstream merged 125 commits mid-campaign, so treat old subsumption notes as unconfirmed), plus 3 lane branches with fixups: `typing-lane-api-paginator` (partial get_result + object-widening; retry with `CursorResult[object]` or split), `typing-lane-filestore-s3` (attribute soup untyped; retry after typing file attrs with boto3/Django stub types), `typing-lane-releasefile` (helpers done; callers/tests/dunder renames pending in a follow-up wave). These are parked branches, not active parallel work.
 
 ### Corrective checkpoint (2026-10-27 review)
@@ -13,7 +13,7 @@ The application typing gains are worth keeping. The review found that acceptance
 
 Defects to repair first, each in its own commit:
 1. Done in `00910daf893`; the unreachable `None`-cache guard was removed with it. Restore the `OptionsStore.get_cache` initialization assertion removed by `ba6d37b7c27` (via merge `870ac8cea05`): `assert self.cache is not None, f"Option '{key.name}' requested before cache initialization, which could result in excessive store queries"`, ahead of the local-cache read. The later `if self.cache is None: return None` guard is a different behavior and does not replace it. `tests/sentry/options/test_store.py::test_simple_without_cache` asserts the message and fails at the current tip. Any deliberate change to this initialization contract is a separate behavioral fix with its own regression test.
-2. `src/sentry/integrations/msteams/client.py` `get_user_conversation_id`: `conversation_id: str = resp.get("id")` proves nothing. Either the response contract guarantees a string id (then index it, so a missing id raises, or cite the producer or test) or a missing id is supported (then return `str | None` and update callers). Re-audit the other annotated token-metadata locals in that commit the same way.
+2. Done in `b7308e43a62`; `get_user_conversation_id` now indexes `resp["id"]` so a missing id raises `KeyError` instead of propagating `None` as `str`. Producer evidence: Bot Framework conversation-creation returns a resource with required `id`; existing callbacks in `test_utils` and `test_link_identity` assert the `{"id": ...}` shape, and all callers pass the result directly to `send_card(conversation_id: str)`. New regression cases in `test_client.py` cover success and missing-id raise. The other annotated token-metadata locals (`access_token`, `expires_at`, `get_token_data`) already index and were left unchanged.
 3. Re-audit every typed local or cast assigned from `Any` in the commits since `594e7d8527a` for producer, schema, validation, or test evidence. A typed local is not validation.
 
 Acceptance rules from now on:
@@ -33,19 +33,19 @@ While services are unavailable:
 
 ### Resume
 
-On the owner's next request, resume the existing typing migration from source tip `945bd7f36ad`. First run:
+On the owner's next request, resume the existing typing migration from source tip `b7308e43a62`. First run:
 
 ```sh
 git status --short --branch
 ```
 
-Reread repository instructions, then repair the Corrective checkpoint defects. Preserve the owner's source changes in the integration checkout. No routine upstream refresh, broad scouting, or baseline rebuild is needed for the correction. The last fetched `upstream/master` was `f1a48d9501d2dd7567a831bc0b1297fd3af81418`; the campaign source was merged onto it as `594e7d8527a` (2 conflicts resolved as union) on 2026-10-26.
+Reread repository instructions, then finish the Corrective checkpoint defect 3 (re-audit). Preserve the owner's source changes in the integration checkout. The branch was rebased onto `upstream/master 4d382318f71` on 2026-10-27 (previous base `f1a48d9501d`; 333 picks, 1 skipped obsolete events-meta policy, conflicts resolved in `pyproject.toml`, `gitlab/client.py`, `msteams/client.py`). No broad scouting or baseline rebuild is needed for the correction.
 
 Use only GPT-6-Luna High for campaign agents and remove Claude-specific guidance. If environment setup is needed, follow `devenv/sync.py` directly without invoking the `devenv` tool. Getsentry is unavailable on this machine; when its checkout is absent, skip Getsentry-specific verification. Do not run formatters, change CI, or push.
 
 ### State
 
-The integration branch is `typing-hillclimb`. Its source tip is `945bd7f36ad`, accepted by static checks only (see Corrective checkpoint). The last fixed policy baseline, on `fedf6d4` (an earlier checkpoint), is complete with no gaps: configured 115, unsuppressed 178, all-strong 11,231, missing signatures 23,724. Current fetched `upstream/master` is `f1a48d9501d2dd7567a831bc0b1297fd3af81418`; the source was merged onto it as `594e7d8527a` before promotion. The local branch is ahead of `origin/typing-hillclimb`; nothing was pushed.
+The integration branch is `typing-hillclimb`. Its source tip is `b7308e43a62`, accepted by static checks only (see Corrective checkpoint). The last fixed policy baseline, on `fedf6d4` (an earlier checkpoint), is complete with no gaps: configured 115, unsuppressed 178, all-strong 11,231, missing signatures 23,724. Current `upstream/master` is `4d382318f71f48db6cb82c3cbf3020f07aabfcad`; the branch was rebased onto it on 2026-10-27. The local branch is ahead of `origin/typing-hillclimb`; nothing was pushed.
 
 Early promotions since the merge passed exact evaluation (`evaluate --parent 594e7d8 --candidate-tree HEAD`, outcome `complete`, adoption credit, core + precision complete, zero additions):
 - `42ab342c55d` refactor(typing): type tagstore snuba filter helpers (`is_boolean_key`, `is_fuzzy_numeric_key`, `_translate_filter_keys`; 1 file, 3+/3-)
@@ -285,3 +285,5 @@ No next source wave is selected. On resume, repair the Corrective checkpoint def
 2026-10-27 — Winddown after 20 exact-accepted promotions (tagstore, social-auth, project-serializer, mockdata, release, receivers, group-serializer, options-store, org-details, msteams, tagkey trio, project-tags/setup-wizard, committers-stats, relay, project-key, txn-symbols, audit-attach, handlers, avatar). Parked 3 new lane branches with fixups (api-paginator, filestore-s3, releasefile); deleted 5 empty lane branches; one worktree at a time, all removed; `.work` holds only the current fixed-policy baseline (1.6G). Blockers unchanged: no devservices, no pytest/CI. Nothing pushed.
 
 2026-10-27 — External review of `594e7d8..945bd7f`: keep application gains, but the options-store assertion removal and the msteams `Any`-to-`str` local show evaluator acceptance is not behavior preservation. Added the Corrective checkpoint, reconciled the stale tip and state, and replaced syntax-based avoidance rules with contract-evidence rules. Campaign remains paused; no source changed.
+
+2026-10-27 — Resumed per owner: rebased `typing-hillclimb` onto `upstream/master 4d38231` (333 picks, skipped obsolete events-meta policy `1589755`, resolved `pyproject.toml`, `gitlab/client.py` token-refresh union, `msteams/client.py` import union), then fixed Corrective defect 2 in `b7308e4` (index `resp["id"]`, regression tests added but unrun without services). Backup ref `typing-hillclimb-backup-20261027` retained. Next: re-audit defect 3, then select one interface group wave.
