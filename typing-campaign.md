@@ -1,10 +1,10 @@
 # Sentry typing hillclimb
 
-## Status: resumed 2026-10-27 — defects 1-3 repaired; scope-validator + ApiToken + ApiApplication waves landed (provisional), continuing.
+## Status: resumed 2026-10-27 — defects 1-3 repaired; auth + source-control serializer waves landed (provisional), continuing.
 
 Resume here: `git status --short --branch` on `typing-hillclimb`, then reread the Corrective checkpoint, Resume, and State below. Toolchain notes (venv restore without devenv, `SENTRY_LOG_LEVEL=WARNING`, `fast_editable`) are under Verified.
-Current source tip: `787b9883c9d` (parameterize ApiApplication serializer). Accepted by static checks only: targeted mypy, Ruff, `git diff --check`, `py_compile`. No pytest ran; devservices is blocked (shared-postgres 403, no redis). "Accepted" means static checks passed, not that behavior is proven preserved.
-Known defects: all three Corrective defects repaired (options-store assertion `00910daf893`; msteams index `b7308e43a62` + regression tests; re-audit `68dd1ad4fc3` dropping `existing_info: dict[str, object]` over schemaless DB JSON). New msteams + scope-validator + ApiToken tests unrun without services. GitLab 48 response envelopes audited 2026-10-27: 19 supported by docs+tests+callers, 29 docs-only provisional (no contradictions; unobserved returns); avatar casts supported by registry+endpoint tests; remaining casts supported except the fixed trusted-relay case.
+Current source tip: `04043f345bd` (get_users_for_commits params). Accepted by static checks only: targeted mypy, Ruff, `git diff --check`, `py_compile`. No pytest ran; devservices is blocked (shared-postgres 403, no redis). "Accepted" means static checks passed, not that behavior is proven preserved.
+Known defects: all three Corrective defects repaired (options-store assertion `00910daf893`; msteams index `b7308e43a62` + regression tests; re-audit `68dd1ad4fc3` dropping `existing_info: dict[str, object]` over schemaless DB JSON). New msteams + scope-validator + ApiToken + commit-family tests unrun without services. GitLab 48 response envelopes audited 2026-10-27: 19 supported by docs+tests+callers, 29 docs-only provisional (no contradictions; unobserved returns); avatar casts supported by registry+endpoint tests; remaining casts supported except the fixed trusted-relay case.
 Parked: the 143 branches in the Parked list (none re-verified; upstream merged 125 commits mid-campaign, so treat old subsumption notes as unconfirmed), plus 3 lane branches with fixups: `typing-lane-api-paginator` (partial get_result + object-widening; retry with `CursorResult[object]` or split), `typing-lane-filestore-s3` (attribute soup untyped; retry after typing file attrs with boto3/Django stub types), `typing-lane-releasefile` (helpers done; callers/tests/dunder renames pending in a follow-up wave). These are parked branches, not active parallel work.
 
 ### Corrective checkpoint (2026-10-27 review)
@@ -45,12 +45,21 @@ Use only GPT-6-Luna High for campaign agents and remove Claude-specific guidance
 
 ### State
 
-The integration branch is `typing-hillclimb`. Its source tip is `787b9883c9d`, accepted by static checks only (see Corrective checkpoint). The last fixed policy baseline, on `fedf6d4` (an earlier checkpoint), is complete with no gaps: configured 115, unsuppressed 178, all-strong 11,231, missing signatures 23,724. Current `upstream/master` is `4d382318f71f48db6cb82c3cbf3020f07aabfcad`; the branch was rebased onto it on 2026-10-27. The local branch is ahead of `origin/typing-hillclimb`; nothing was pushed by the agent since the owner's push.
+The integration branch is `typing-hillclimb`. Its source tip is `04043f345bd`, accepted by static checks only (see Corrective checkpoint). The last fixed policy baseline, on `fedf6d4` (an earlier checkpoint), is complete with no gaps: configured 115, unsuppressed 178, all-strong 11,231, missing signatures 23,724. Current `upstream/master` is `4d382318f71f48db6cb82c3cbf3020f07aabfcad`; the branch was rebased onto it on 2026-10-27. The local branch is ahead of `origin/typing-hillclimb`; nothing was pushed by the agent since the owner's push.
 
 Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compile` only (pytest blocked; provisional until services return and exact evaluation completes):
 - `6398d0f2ccf` refactor(typing): type scope-list validators for api keys and org tokens (`validate_scope_list` x2; 2 files, 2+/2-; DRF/Django array-of-text schema, SENTRY_SCOPES + forbidden set, endpoint 400 tests)
 - `348d7f7f97c` refactor(typing): type ApiToken serializer request and response contracts (`get_attrs` + `serialize` + `ApiTokenSerializerResponse`; 1 file, 39+/6-; ApiApplication response producer, model field types, include_token callers, serializer unit tests; exact `evaluate` timed out at 10 min, not yet accepted)
 - `787b9883c9d` refactor(typing): parameterize ApiApplication serializer with response type (1 line; completes the producer side of the ApiToken.application contract; no explicit-serializer call sites, zero caller impact)
+- `c41669990fa` refactor(typing): type ApiAuthorization serializer request and response contracts (same producer shape as ApiToken; organization service returns Any | None so the field stays opaque `object`; 1 file, 34+/5-)
+- `1eeafbfac06` refactor(typing): type TeamRole serializer params mirroring sibling (3 annotations matching OrganizationRoleSerializer; 1 file, 7+/1-)
+- `1c3b7b7ca80` refactor(typing): type CommitFileChange serializer request and response contracts (TypedDict with Author | EmptyAuthor per the commit serializer's published schema; fixes dict[int, Any] key type; 1 file, 35+/7-)
+- `1049b829f3d` refactor(typing): type Commit serializer get_attrs and serialize params (deliberately leaves classes unparameterized: explicit-serializer call sites in committers, seer tools, activity, and group-action-log are unaudited; 1 file, 32+/6-)
+- `aae651b9bff` refactor(typing): type PullRequest serializer request and response params (completes the commit pullRequest producer; two mypy findings repaired: str | None external_url, getattr for prefetch-injected valid_attributions; 1 file, 37+/8-)
+- `5f18513730f` refactor(typing): narrow user params on repository serializers to base union (3 params; 1 file, 7+/3-)
+- `04043f345bd` refactor(typing): type get_users_for_commits helper params (mirrors get_users_for_authors; 1 file, 3+/1-)
+
+Deferred with named dependencies (not dropped): GroupSeenSerializer (serialize returns None; parameterizing would push `| None` onto unaudited registry callers — needs caller audit first); CommitSerializer class-level parameterization (explicit-serializer call sites in committers/seer/activity unaudited).
 
 Early promotions since the merge passed exact evaluation (`evaluate --parent 594e7d8 --candidate-tree HEAD`, outcome `complete`, adoption credit, core + precision complete, zero additions):
 - `42ab342c55d` refactor(typing): type tagstore snuba filter helpers (`is_boolean_key`, `is_fuzzy_numeric_key`, `_translate_filter_keys`; 1 file, 3+/3-)
@@ -300,3 +309,5 @@ No next source wave is selected. On resume, repair the Corrective checkpoint def
 2026-10-27 — ApiToken serializer wave `348d7f7` landed (get_attrs/serialize + response TypedDict, static checks pass, serializer unit tests unrun without services; exact evaluate timed out at 10 min, wave provisional). Continuing with next interface-group wave.
 
 2026-10-27 — ApiApplication one-liner `787b988` landed (parameterize with existing response TypedDict; no explicit-serializer call sites, static checks pass). Token serializer group now complete producer-to-consumer. Continuing.
+
+2026-10-27 — Serializer waves `c416699` (ApiAuthorization), `1eeafbf` (TeamRole params), `1c3b7b7` (CommitFileChange), `1049b82` (Commit params), `aae651b` (PullRequest params; 2 mypy findings repaired), `5f18513` (repository user params), `04043f3` (get_users_for_commits): all static checks pass, tests unrun. GroupSeen + CommitSerializer parameterization deferred with named dependencies (unaudited callers). Continuing.
