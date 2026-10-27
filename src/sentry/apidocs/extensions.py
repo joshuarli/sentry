@@ -102,8 +102,12 @@ class RestrictedJsonFieldExtension(OpenApiSerializerFieldExtension):
 
     target_class = "rest_framework.fields.JSONField"
 
-    def map_serializer_field(self, auto_schema, direction):
-        return build_basic_type(OpenApiTypes.OBJECT)
+    def map_serializer_field(
+        self, auto_schema: AutoSchema, direction: Direction
+    ) -> dict[str, str]:
+        schema: dict[str, str] | None = build_basic_type(OpenApiTypes.OBJECT)
+        assert schema is not None
+        return schema
 
 
 # TODO: extension to do default error codes on responses.
