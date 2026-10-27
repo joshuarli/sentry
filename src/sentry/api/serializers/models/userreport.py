@@ -120,7 +120,12 @@ class UserReportWithGroupSerializer(UserReportSerializer):
     ) -> None:
         self.environment_func = environment_func
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[UserReport],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[UserReport, _EventUser]:
         from sentry.api.serializers import GroupSerializer
 
         groups = list(Group.objects.filter(id__in={i.group_id for i in item_list if i.group_id}))
