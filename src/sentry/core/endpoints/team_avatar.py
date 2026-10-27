@@ -26,5 +26,5 @@ class TeamAvatarEndpoint(AvatarMixin[TeamAvatar, Model], TeamEndpoint):
     model = TeamAvatar
     serializer_cls = TeamAvatarSerializer
 
-    def get_avatar_filename(self, obj):
+    def get_avatar_filename(self, obj: TeamAvatar) -> str:
         return f"{obj.slug}.png"
