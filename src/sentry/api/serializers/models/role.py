@@ -83,7 +83,13 @@ class TeamRoleSerializer(Serializer[TeamRoleSerializerResponse]):
         """
         self.organization = kwargs["organization"]
 
-    def serialize(self, obj: TeamRole, attrs, user, **kwargs) -> TeamRoleSerializerResponse:
+    def serialize(
+        self,
+        obj: TeamRole,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> TeamRoleSerializerResponse:
         base = _serialize_base_role(
             obj, self.organization, allowed_roles=kwargs.get("allowed_roles", ())
         )
