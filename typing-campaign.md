@@ -1,10 +1,10 @@
 # Sentry typing hillclimb
 
-## Status: resumed 2026-10-27 — defects 1-3 repaired; scope-validator wave landed, selecting next wave.
+## Status: resumed 2026-10-27 — defects 1-3 repaired; scope-validator + ApiToken waves landed (provisional), continuing.
 
 Resume here: `git status --short --branch` on `typing-hillclimb`, then reread the Corrective checkpoint, Resume, and State below. Toolchain notes (venv restore without devenv, `SENTRY_LOG_LEVEL=WARNING`, `fast_editable`) are under Verified.
-Current source tip: `6398d0f2ccf` (scope-list validators for api keys and org tokens). Accepted by static checks only: targeted mypy, Ruff, `git diff --check`, `py_compile`. No pytest ran; devservices is blocked (shared-postgres 403, no redis). "Accepted" means static checks passed, not that behavior is proven preserved.
-Known defects: all three Corrective defects repaired (options-store assertion `00910daf893`; msteams index `b7308e43a62` + regression tests; re-audit `68dd1ad4fc3` dropping `existing_info: dict[str, object]` over schemaless DB JSON). New msteams + scope-validator tests unrun without services. GitLab 48 response envelopes audited 2026-10-27: 19 supported by docs+tests+callers, 29 docs-only provisional (no contradictions; unobserved returns); avatar casts supported by registry+endpoint tests; remaining casts supported except the fixed trusted-relay case.
+Current source tip: `348d7f7f97c` (ApiToken serializer contracts). Accepted by static checks only: targeted mypy, Ruff, `git diff --check`, `py_compile`. No pytest ran; devservices is blocked (shared-postgres 403, no redis). "Accepted" means static checks passed, not that behavior is proven preserved.
+Known defects: all three Corrective defects repaired (options-store assertion `00910daf893`; msteams index `b7308e43a62` + regression tests; re-audit `68dd1ad4fc3` dropping `existing_info: dict[str, object]` over schemaless DB JSON). New msteams + scope-validator + ApiToken tests unrun without services. GitLab 48 response envelopes audited 2026-10-27: 19 supported by docs+tests+callers, 29 docs-only provisional (no contradictions; unobserved returns); avatar casts supported by registry+endpoint tests; remaining casts supported except the fixed trusted-relay case.
 Parked: the 143 branches in the Parked list (none re-verified; upstream merged 125 commits mid-campaign, so treat old subsumption notes as unconfirmed), plus 3 lane branches with fixups: `typing-lane-api-paginator` (partial get_result + object-widening; retry with `CursorResult[object]` or split), `typing-lane-filestore-s3` (attribute soup untyped; retry after typing file attrs with boto3/Django stub types), `typing-lane-releasefile` (helpers done; callers/tests/dunder renames pending in a follow-up wave). These are parked branches, not active parallel work.
 
 ### Corrective checkpoint (2026-10-27 review)
@@ -45,10 +45,11 @@ Use only GPT-6-Luna High for campaign agents and remove Claude-specific guidance
 
 ### State
 
-The integration branch is `typing-hillclimb`. Its source tip is `6398d0f2ccf`, accepted by static checks only (see Corrective checkpoint). The last fixed policy baseline, on `fedf6d4` (an earlier checkpoint), is complete with no gaps: configured 115, unsuppressed 178, all-strong 11,231, missing signatures 23,724. Current `upstream/master` is `4d382318f71f48db6cb82c3cbf3020f07aabfcad`; the branch was rebased onto it on 2026-10-27. The local branch is ahead of `origin/typing-hillclimb` by the defect-3 fix plus one wave; nothing was pushed since the owner's push.
+The integration branch is `typing-hillclimb`. Its source tip is `348d7f7f97c`, accepted by static checks only (see Corrective checkpoint). The last fixed policy baseline, on `fedf6d4` (an earlier checkpoint), is complete with no gaps: configured 115, unsuppressed 178, all-strong 11,231, missing signatures 23,724. Current `upstream/master` is `4d382318f71f48db6cb82c3cbf3020f07aabfcad`; the branch was rebased onto it on 2026-10-27. The local branch is ahead of `origin/typing-hillclimb`; nothing was pushed by the agent since the owner's push.
 
-Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compile` only (pytest blocked; provisional until services return):
+Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compile` only (pytest blocked; provisional until services return and exact evaluation completes):
 - `6398d0f2ccf` refactor(typing): type scope-list validators for api keys and org tokens (`validate_scope_list` x2; 2 files, 2+/2-; DRF/Django array-of-text schema, SENTRY_SCOPES + forbidden set, endpoint 400 tests)
+- `348d7f7f97c` refactor(typing): type ApiToken serializer request and response contracts (`get_attrs` + `serialize` + `ApiTokenSerializerResponse`; 1 file, 39+/6-; ApiApplication response producer, model field types, include_token callers, serializer unit tests; exact `evaluate` timed out at 10 min, not yet accepted)
 
 Early promotions since the merge passed exact evaluation (`evaluate --parent 594e7d8 --candidate-tree HEAD`, outcome `complete`, adoption credit, core + precision complete, zero additions):
 - `42ab342c55d` refactor(typing): type tagstore snuba filter helpers (`is_boolean_key`, `is_fuzzy_numeric_key`, `_translate_filter_keys`; 1 file, 3+/3-)
@@ -294,3 +295,5 @@ No next source wave is selected. On resume, repair the Corrective checkpoint def
 2026-10-27 — Defect 3 re-audit complete (two explore lanes, no edits): GitLab 48 envelopes (19 supported, 29 docs-only provisional, no contradictions), avatar + all other casts supported except trusted-relay `existing_info` false precision, fixed in `68dd1ad` (annotation removed, no runtime change; mypy+Ruff+diff-check+py_compile pass, pytest blocked). All three Corrective defects repaired. Next: select one related interface-group wave under the acceptance rules.
 
 2026-10-27 — Scope-validator wave `6398d0f` landed (endpoint + model `validate_scope_list`, static checks pass, endpoint 400 tests unrun without services). Continuing with next interface-group wave.
+
+2026-10-27 — ApiToken serializer wave `348d7f7` landed (get_attrs/serialize + response TypedDict, static checks pass, serializer unit tests unrun without services; exact evaluate timed out at 10 min, wave provisional). Continuing with next interface-group wave.
