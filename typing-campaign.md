@@ -28,7 +28,8 @@ Two more promotions since the baseline passed exact evaluation with zero additio
 - `756c6d5d887` refactor(typing): type release semver helpers (`ReleaseQuerySet` return narrowings x2, `is_semver_release -> bool` with `bool()` wrap; 1 file, 4+/4-; 94 precision removals incl. downstream importers, 1 omission removed)
 - `a2a8fedcc67` refactor(typing): type receivers features handlers (see above; 37 removals, 3 residual notes, future work is typing `BaseEvent.data`/`tags`)
 - `fad38db48a4` refactor(typing): type group serializer helpers (`-list/None` returns, `__init__`/`_expand`/`_collapse`/`_seen_stats`/`_get_group_snuba_stats` annotations; 1 file, 26+/22-; 53 precision removals, 21 omissions removed; `_get_status` TypedDict hunk dropped — precise container filled from `Any` is new debt)
-- `870ac8cea05` refactor(typing): type options store accessors (getters/setters/delete with `Key`/`object`/`bool` types, `set_cache_impl`, `Key` helpers; 1 file, 19+/19-; 128 precision removals, 27 omissions removed; 3 residual precision notes forgiven via preexisting anchors)
+- `870ac8cea05` refactor(typing): type options store accessors (see above; 128 removals, 27 omissions removed; 3 residual notes forgiven via preexisting anchors)
+- `0f0d0f6c1ce` refactor(typing): type organization details endpoint (validators, save/delete paths, `flag_has_changed`, pii helpers; 2 files, 42+/31-; 154 precision removals, 56 omissions removed; needed helpers typed + `bool()` wrap + one local annotation)
 
 | Measure | Parent (`594e7d8`) | Candidate (`fedf6d4`) | Change |
 |---|---:|---:|---:|
