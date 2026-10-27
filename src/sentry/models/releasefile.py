@@ -249,7 +249,9 @@ class _ArtifactIndexData:
 class _ArtifactIndexGuard:
     """Ensures atomic write operations to the artifact index"""
 
-    def __init__(self, release: Release, dist: Distribution | None, **filter_args) -> None:
+    def __init__(
+        self, release: Release, dist: Distribution | None, **filter_args: object
+    ) -> None:
         self._release = release
         self._dist = dist
         self._ident = ReleaseFile.get_ident(
