@@ -492,11 +492,11 @@ class DashboardPermissionsSerializer(Serializer[DashboardPermissionsResponse]):
 class DashboardListResponse(TypedDict):
     id: str
     title: str
-    dateCreated: str
-    createdBy: UserSerializerResponse
+    dateCreated: datetime
+    createdBy: dict[str, Any] | None
     environment: list[str]
     filters: DashboardFilters
-    lastVisited: str | None
+    lastVisited: datetime | None
     widgetDisplay: list[str]
     widgetPreview: list[dict[str, str]]
     permissions: DashboardPermissionsResponse | None
@@ -571,7 +571,12 @@ class DashboardFiltersMixin:
 
 
 class DashboardListSerializer(Serializer, DashboardFiltersMixin):
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[Dashboard],
+        user: Any,
+        **kwargs: Any,
+    ) -> dict[Dashboard, _Widget]:
         item_dict = {i.id: i for i in item_list}
         prefetch_related_objects(item_list, "projects__organization")
 
@@ -601,7 +606,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             dashboard_id__in=item_dict.keys()
         ).prefetch_related("teams_with_edit_access")
 
-        result: dict[int, _Widget]
+        result: dict[Dashboard, _Widget]
         result = defaultdict(
             lambda: {
                 "widget_display": [],
@@ -665,7 +670,13 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
 
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs) -> DashboardListResponse:
+    def serialize(
+        self,
+        obj: Dashboard,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> DashboardListResponse:
         return {
             "id": str(obj.id),
             "title": obj.title,
