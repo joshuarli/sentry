@@ -36,6 +36,7 @@ Two more promotions since the baseline passed exact evaluation with zero additio
 - `8528df41839` refactor(typing): type committers and org stats endpoints (2 files, 4+/2-; 4 precision removals, 3 omissions removed; create-sample split out — `Project.platform` is `Optional` and poisons `dict.get` defaults)
 - `3db607df07d` refactor(typing): type relay details delete param (1 line; 2 precision removals, 1 omission removed; auth `__init__` dropped — DRF's overloaded base rejects both `object` and `Any` varargs)
 - `4f1f3faf3b5` refactor(typing): type project key validator (`Mapping` in, named local out; 1 file, 6+/3-; 9 precision removals, 2 omissions removed; eventuser sibling parked — response TypedDict lies about nullability)
+- `b0faba7b579` refactor(typing): type apidocs extension hook (sibling-pattern signature + load-bearing assert; 1 file, 6+/2-; 4 precision removals, 3 omissions removed; precise `dict[str, str]` beat explicit `Any`)
 - `18c85dbf5b0` refactor(typing): type transaction names endpoint (`project: Project`; 1 file, 2+/1-; 9 precision removals, 1 omission removed; symbol-sources sibling split out — `dict[str, Any]` param+return is new explicit debt)
 
 | Measure | Parent (`594e7d8`) | Candidate (`fedf6d4`) | Change |
