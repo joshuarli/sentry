@@ -33,18 +33,16 @@ class MsTeamsClientABC(ApiClient, ABC):
     CONVERSATION_URL = "/v3/conversations"
     MEMBER_URL = "/v3/conversations/%s/pagedmembers"
 
-    def get_channel_list(self, team_id: str) -> object:
+    def get_channel_list(self, team_id: str):
         resp = self.get(self.CHANNEL_URL % team_id)
-        channels: object = resp.get("conversations")
-        return channels
+        return resp.get("conversations")
 
-    def get_member_list(self, team_id: str, continuation_token: str | None = None) -> object:
+    def get_member_list(self, team_id: str, continuation_token: str | None = None):
         url = self.MEMBER_URL % team_id
         params: dict[str, int | str] = {"pageSize": 500}
         if continuation_token:
             params["continuationToken"] = continuation_token
-        members: object = self.get(url, params=params)
-        return members
+        return self.get(url, params=params)
 
     def get_user_conversation_id(self, user_id: str, tenant_id: str) -> str:
         data = {"members": [{"id": user_id}], "channelData": {"tenant": {"id": tenant_id}}}
@@ -113,7 +111,7 @@ class MsTeamsPreInstallClient(MsTeamsClientABC):
 class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
     integration_name = IntegrationProviderSlug.MSTEAMS.value
 
-    def request(self, *args: object, **kwargs: object) -> object | None:
+    def request(self, *args, **kwargs):
         try:
             return super().request(*args, **kwargs)
         except ApiError as error:
