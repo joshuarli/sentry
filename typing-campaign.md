@@ -1,6 +1,11 @@
 # Sentry typing hillclimb
 
-## Status: winding down — 2026-10-27 (owner requested winddown; no new lanes)
+## Status: paused 2026-10-27 — owner requested winddown; no lanes running.
+
+Resume here: `git status --short --branch` on `typing-hillclimb`, then reread Resume/State below. Toolchain notes (venv restore without devenv, `SENTRY_LOG_LEVEL=WARNING`, `fast_editable`) and lane repair rules are under Verified.
+Last accepted: `945bd7f` (avatar filename + project transfer params; exact acceptance, zero new errors, adoption credit). Green per campaign gate only (exact eval + Ruff + `git diff --check` per wave); full pytest/CI never ran — devservices blocked (shared-postgres 403, no redis).
+Parked: the 143 branches in the Parked list (none re-verified; upstream merged 125 commits mid-campaign, so treat old subsumption notes as unconfirmed), plus 3 new lane branches with fixups: `typing-lane-api-paginator` (partial get_result + object-widening; retry with `CursorResult[object]` or split), `typing-lane-filestore-s3` (attribute soup untyped; retry after typing file attrs with boto3/Django stub types), `typing-lane-releasefile` (helpers done; callers/tests/dunder renames pending in a follow-up wave).
+Next slice: rebuild the fixed-policy baseline on HEAD (`tools.mypy_helpers.typing_campaign baseline`), mine 1–2 diagnostic files from its report, run one lane at a time through exact evaluation; do not push.
 
 ### Resume
 
@@ -40,6 +45,7 @@ Two more promotions since the baseline passed exact evaluation with zero additio
 - `18c85dbf5b0` refactor(typing): type transaction names endpoint (`project: Project`; 1 file, 2+/1-; 9 precision removals, 1 omission removed; symbol-sources sibling split out — `dict[str, Any]` param+return is new explicit debt)
 - `7fd9d87e51f` refactor(typing): type custom exception handler (`Exception`, `dict[str, object]`, `Response | None`; 1 file, 2+/1-; 7 precision removals, 3 omissions removed)
 - `c22a9b89c79` refactor(typing): type audit render and attachment cache init (pure-`str` flow, `**kwargs: object` into untyped base; 2 files, 2+/2-; 7 precision removals, 3 omissions removed)
+- `945bd7f36ad` refactor(typing): type avatar filename and project transfer params (re-specialized `AvatarMixin` onto related models; 3 files; exact acceptance with zero new errors, adoption credit)
 
 | Measure | Parent (`594e7d8`) | Candidate (`fedf6d4`) | Change |
 |---|---:|---:|---:|
@@ -261,3 +267,5 @@ No next source wave is selected. On resume, fetch current master, rebase the sou
 ### Campaign log
 
 2026-10-26 — Resumed AFK: merged `upstream/master f1a48d9` as `594e7d8`, promoted and exactly accepted tagstore-snuba (`42ab342`) and social-auth (`fedf6d4`) waves, established fixed-policy baseline, restored venv without devenv. Next: select one testable parked proposal (project-serializer pre-checked clean) and continue the hillclimb.
+
+2026-10-27 — Winddown after 20 exact-accepted promotions (tagstore, social-auth, project-serializer, mockdata, release, receivers, group-serializer, options-store, org-details, msteams, tagkey trio, project-tags/setup-wizard, committers-stats, relay, project-key, txn-symbols, audit-attach, handlers, avatar). Parked 3 new lane branches with fixups (api-paginator, filestore-s3, releasefile); deleted 5 empty lane branches; one worktree at a time, all removed; `.work` holds only the current fixed-policy baseline (1.6G). Blockers unchanged: no devservices, no pytest/CI. Nothing pushed.
