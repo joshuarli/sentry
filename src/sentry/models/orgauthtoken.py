@@ -40,7 +40,7 @@ ORG_AUTH_TOKEN_ALLOWED_SCOPES = frozenset({"org:ci"})
 ORG_AUTH_TOKEN_FORBIDDEN_SCOPES = frozenset({"org:tokens"})
 
 
-def validate_scope_list(value):
+def validate_scope_list(value: list[str]) -> None:
     for choice in value:
         if choice not in SENTRY_SCOPES:
             raise ValidationError(f"{choice} is not a valid scope.")
