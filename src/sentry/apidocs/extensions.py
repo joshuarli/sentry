@@ -104,8 +104,8 @@ class RestrictedJsonFieldExtension(OpenApiSerializerFieldExtension):
 
     def map_serializer_field(
         self, auto_schema: AutoSchema, direction: Direction
-    ) -> dict[str, Any]:
-        schema = build_basic_type(OpenApiTypes.OBJECT)
+    ) -> dict[str, str]:
+        schema: dict[str, str] | None = build_basic_type(OpenApiTypes.OBJECT)
         assert schema is not None
         return schema
 
