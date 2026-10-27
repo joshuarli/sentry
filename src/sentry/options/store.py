@@ -84,8 +84,8 @@ class OptionsStore:
     OptionsManager instead, unless you need raw access to something.
     """
 
-    def __init__(self, cache: BaseCache | None = None, ttl: int | None = None) -> None:
-        self.cache: BaseCache | ConnectionProxy[BaseCache] | None = cache
+    def __init__(self, cache=None, ttl=None):
+        self.cache = cache
         self.ttl = ttl
         self.flush_local_cache()
 
@@ -132,10 +132,6 @@ class OptionsStore:
         First check against our local in-process cache, falling
         back to the network cache.
         """
-        assert self.cache is not None, (
-            f"Option '{key.name}' requested before cache initialization, which could result in excessive store queries"
-        )
-
         value = self.get_local_cache(key)
         if value is not None:
             return value
@@ -253,7 +249,7 @@ class OptionsStore:
 
         return UpdateChannel(option.last_updated_by)
 
-    def set(self, key: Key, value: object, channel: UpdateChannel) -> bool | None:
+    def set(self, key, value, channel: UpdateChannel):
         """
         Store a value in the option store. Value must get persisted to database first,
         then attempt caches. If it fails database, the entire operation blows up.
@@ -265,7 +261,7 @@ class OptionsStore:
         self.set_store(key, value, channel)
         return self.set_cache(key, value)
 
-    def set_store(self, key: Key, value: object, channel: UpdateChannel) -> None:
+    def set_store(self, key, value, channel: UpdateChannel):
         self.model.objects.update_or_create(
             key=key.name,
             defaults={
@@ -275,7 +271,7 @@ class OptionsStore:
             },
         )
 
-    def set_cache(self, key: Key, value: object) -> bool | None:
+    def set_cache(self, key, value):
         if self.cache is None:
             return None
 
