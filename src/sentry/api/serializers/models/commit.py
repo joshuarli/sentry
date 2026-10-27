@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
@@ -64,7 +64,14 @@ def get_users_for_commits(
 
 @register(Commit)
 class CommitSerializer(Serializer):
-    def __init__(self, exclude=None, include=None, type=None, *args, **kwargs):
+    def __init__(
+        self,
+        exclude: Collection[str] | None = None,
+        include: Collection[str] | None = None,
+        type: str | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         Serializer.__init__(self, *args, **kwargs)
         self.exclude = frozenset(exclude if exclude else ())
         self.type = type or ""
@@ -135,7 +142,14 @@ class CommitSerializer(Serializer):
 
 @register(Commit)
 class CommitWithReleaseSerializer(CommitSerializer):
-    def __init__(self, exclude=None, include=None, type=None, *args, **kwargs):
+    def __init__(
+        self,
+        exclude: Collection[str] | None = None,
+        include: Collection[str] | None = None,
+        type: str | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         Serializer.__init__(self, *args, **kwargs)
         self.exclude = frozenset(exclude if exclude else ())
         self.type = type or ""
