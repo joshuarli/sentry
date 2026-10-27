@@ -1,10 +1,13 @@
-from datetime import timedelta
-from typing import Any, TypedDict
+from collections.abc import Callable, Mapping, Sequence
+from datetime import datetime, timedelta
+from typing import Any, NotRequired, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from sentry import quotas
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
@@ -12,6 +15,8 @@ from sentry.search.eap.occurrences.query_utils import build_event_id_in_filter
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.eventuser import EventUser, SerializedEventUser
 
 
@@ -26,7 +31,7 @@ class UserReportSerializerResponse(TypedDict):
     name: str | None
     email: str | None
     comments: str
-    dateCreated: str
+    dateCreated: datetime
     user: SerializedEventUser | None
     event: UserReportEvent
 
@@ -37,12 +42,18 @@ class UserReportWithGroupSerializerResponse(UserReportSerializerResponse):
 
 class _EventUser(TypedDict):
     event_user: EventUser | dict[None, None]
+    group: NotRequired[dict[str, Any] | None]
 
 
 @register(UserReport)
-class UserReportSerializer(Serializer):
-    def get_attrs(self, item_list, user, **kwargs):
-        attrs: dict[str, _EventUser] = {}
+class UserReportSerializer(Serializer[UserReportSerializerResponse]):
+    def get_attrs(
+        self,
+        item_list: Sequence[UserReport],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[UserReport, _EventUser]:
+        attrs: dict[UserReport, _EventUser] = {}
 
         project = Project.objects.get(id=item_list[0].project_id)
         retention = quotas.backend.get_event_retention(organization=project.organization)
@@ -72,19 +83,25 @@ class UserReportSerializer(Serializer):
 
         return attrs
 
-    def serialize(self, obj, attrs, user, **kwargs) -> UserReportSerializerResponse:
+    def serialize(
+        self,
+        obj: UserReport,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> UserReportSerializerResponse:
         # TODO(dcramer): add in various context from the event
         # context == user / http / extra interfaces
 
-        name = obj.name or obj.email
-        email = obj.email
-        user = None
+        name: str | None = obj.name or obj.email
+        email: str | None = obj.email
+        serialized_user: SerializedEventUser | None = None
         if attrs["event_user"]:
             event_user = attrs["event_user"]
             if isinstance(event_user, EventUser):
                 name = name or event_user.name
                 email = email or event_user.email
-                user = event_user.serialize()
+                serialized_user = event_user.serialize()
         return {
             "id": str(obj.id),
             "eventID": obj.event_id,
@@ -92,13 +109,15 @@ class UserReportSerializer(Serializer):
             "email": email,
             "comments": obj.comments,
             "dateCreated": obj.date_added,
-            "user": user,
+            "user": serialized_user,
             "event": {"id": obj.event_id, "eventID": obj.event_id},
         }
 
 
 class UserReportWithGroupSerializer(UserReportSerializer):
-    def __init__(self, environment_func=None):
+    def __init__(
+        self, environment_func: Callable[[], Environment | None] | None = None
+    ) -> None:
         self.environment_func = environment_func
 
     def get_attrs(self, item_list, user, **kwargs):
@@ -123,7 +142,13 @@ class UserReportWithGroupSerializer(UserReportSerializer):
             )
         return attrs
 
-    def serialize(self, obj, attrs, user, **kwargs) -> UserReportWithGroupSerializerResponse:
+    def serialize(
+        self,
+        obj: UserReport,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> UserReportWithGroupSerializerResponse:
         context = super().serialize(obj, attrs, user)
         return {
             **context,
