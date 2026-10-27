@@ -2,32 +2,56 @@
 
 ## Status: paused 2026-10-27 — owner requested winddown; no lanes running.
 
-Resume here: `git status --short --branch` on `typing-hillclimb`, then reread Resume/State below. Toolchain notes (venv restore without devenv, `SENTRY_LOG_LEVEL=WARNING`, `fast_editable`) and lane repair rules are under Verified.
-Last accepted: `945bd7f` (avatar filename + project transfer params; exact acceptance, zero new errors, adoption credit). Green per campaign gate only (exact eval + Ruff + `git diff --check` per wave); full pytest/CI never ran — devservices blocked (shared-postgres 403, no redis).
-Parked: the 143 branches in the Parked list (none re-verified; upstream merged 125 commits mid-campaign, so treat old subsumption notes as unconfirmed), plus 3 new lane branches with fixups: `typing-lane-api-paginator` (partial get_result + object-widening; retry with `CursorResult[object]` or split), `typing-lane-filestore-s3` (attribute soup untyped; retry after typing file attrs with boto3/Django stub types), `typing-lane-releasefile` (helpers done; callers/tests/dunder renames pending in a follow-up wave).
-Next slice: rebuild the fixed-policy baseline on HEAD (`tools.mypy_helpers.typing_campaign baseline`), mine 1–2 diagnostic files from its report, run one lane at a time through exact evaluation; do not push.
+Resume here: `git status --short --branch` on `typing-hillclimb`, then reread the Corrective checkpoint, Resume, and State below. Toolchain notes (venv restore without devenv, `SENTRY_LOG_LEVEL=WARNING`, `fast_editable`) are under Verified.
+Current source tip: `945bd7f36ad` (avatar filename + project transfer params). Accepted by static checks only: exact evaluation, Ruff, `git diff --check`. No pytest ran; devservices is blocked (shared-postgres 403, no redis). "Accepted" means the typing evaluator passed, not that behavior is proven preserved.
+Known defects at this tip: the options-store assertion was removed (see Corrective checkpoint); the msteams `conversation_id: str = resp.get("id")` is an unchecked `Any` assignment. Fix these before any new promotion.
+Parked: the 143 branches in the Parked list (none re-verified; upstream merged 125 commits mid-campaign, so treat old subsumption notes as unconfirmed), plus 3 lane branches with fixups: `typing-lane-api-paginator` (partial get_result + object-widening; retry with `CursorResult[object]` or split), `typing-lane-filestore-s3` (attribute soup untyped; retry after typing file attrs with boto3/Django stub types), `typing-lane-releasefile` (helpers done; callers/tests/dunder renames pending in a follow-up wave). These are parked branches, not active parallel work.
+
+### Corrective checkpoint (2026-10-27 review)
+
+The application typing gains are worth keeping. The review found that acceptance had drifted from "evaluator passes" toward "typing metric improves" without proving the new contracts or preserving runtime behavior. Do not restart the campaign, rewrite the evaluator, or add a detector or provenance framework.
+
+Defects to repair first, each in its own commit:
+1. Restore the `OptionsStore.get_cache` initialization assertion removed by `ba6d37b7c27` (via merge `870ac8cea05`): `assert self.cache is not None, f"Option '{key.name}' requested before cache initialization, which could result in excessive store queries"`, ahead of the local-cache read. The later `if self.cache is None: return None` guard is a different behavior and does not replace it. `tests/sentry/options/test_store.py::test_simple_without_cache` asserts the message and fails at the current tip. Any deliberate change to this initialization contract is a separate behavioral fix with its own regression test.
+2. `src/sentry/integrations/msteams/client.py` `get_user_conversation_id`: `conversation_id: str = resp.get("id")` proves nothing. Either the response contract guarantees a string id (then index it, so a missing id raises, or cite the producer or test) or a missing id is supported (then return `str | None` and update callers). Re-audit the other annotated token-metadata locals in that commit the same way.
+3. Re-audit every typed local or cast assigned from `Any` in the commits since `594e7d8527a` for producer, schema, validation, or test evidence. A typed local is not validation.
+
+Acceptance rules from now on:
+- Every transition from dynamic data to a precise type needs identifiable producer, schema, validation, or test evidence. Typed locals and casts get the same scrutiny as annotations.
+- Decide each annotation as a contract decision. Do not use syntax rules ("a preexisting `Any` spelling in this file makes a new one safe", "never annotate a container filled from `Any`") as evidence either way. `object` is fine for a genuinely opaque value; it is wrong where consumers do mapping operations.
+- A difficult signature left untyped needs a named dependency to repair first, not indefinite avoidance.
+- Pick one related interface group and finish its producer and consumer typing instead of taking the easiest signatures.
+- Do an independent source review before the expensive exact comparison.
+
+While services are unavailable:
+
+| Candidate | Treatment |
+|---|---|
+| Annotations with established contracts and unchanged executable behavior | Continue with targeted mypy, Ruff, and any runnable tests |
+| Added or removed assertions, changed defaults, coercions (`bool()` wraps), exception paths, registration behavior | Needs executable behavioral evidence before promotion |
+| Service-dependent contract whose tests cannot run | Provisional; do not call it verified |
 
 ### Resume
 
-On the owner's next request, resume the existing typing migration from accepted source checkpoint `b628cbcf763bf36a8b1798dfb4ae9eab33a05c80`. First run:
+On the owner's next request, resume the existing typing migration from source tip `945bd7f36ad`. First run:
 
 ```sh
 git status --short --branch
 ```
 
-Reread repository instructions and perform the parent steering checkpoint. Preserve the owner's source changes in the integration checkout. Fetch current GitHub master and rebase the typing source in a separate clean worktree, then establish the fixed policy baseline before selecting a parked proposal. The last fetched `upstream/master` was `f1a48d9501d2dd7567a831bc0b1297fd3af81418`; the campaign source was merged onto it as `594e7d8527a` (2 conflicts resolved as union) on 2026-10-26.
+Reread repository instructions, then repair the Corrective checkpoint defects. Preserve the owner's source changes in the integration checkout. No routine upstream refresh, broad scouting, or baseline rebuild is needed for the correction. The last fetched `upstream/master` was `f1a48d9501d2dd7567a831bc0b1297fd3af81418`; the campaign source was merged onto it as `594e7d8527a` (2 conflicts resolved as union) on 2026-10-26.
 
 Use only GPT-6-Luna High for campaign agents and remove Claude-specific guidance. If environment setup is needed, follow `devenv/sync.py` directly without invoking the `devenv` tool. Getsentry is unavailable on this machine; when its checkout is absent, skip Getsentry-specific verification. Do not run formatters, change CI, or push.
 
 ### State
 
-The integration branch is `typing-hillclimb`. Its accepted source tip is `fedf6d46155f16729ba9bf0fdfc2470ec405f30d` (exact acceptance 2026-10-26; prior tip `b628cbcf763bf36a8b1798dfb4ae9eab33a05c80`). The fixed policy baseline on `fedf6d4` is complete with no gaps: configured 115, unsuppressed 178, all-strong 11,231, missing signatures 23,724. Current fetched `upstream/master` is `f1a48d9501d2dd7567a831bc0b1297fd3af81418`; the source was merged onto it as `594e7d8527a` before promotion. The local branch is ahead of `origin/typing-hillclimb`; nothing was pushed.
+The integration branch is `typing-hillclimb`. Its source tip is `945bd7f36ad`, accepted by static checks only (see Corrective checkpoint). The last fixed policy baseline, on `fedf6d4` (an earlier checkpoint), is complete with no gaps: configured 115, unsuppressed 178, all-strong 11,231, missing signatures 23,724. Current fetched `upstream/master` is `f1a48d9501d2dd7567a831bc0b1297fd3af81418`; the source was merged onto it as `594e7d8527a` before promotion. The local branch is ahead of `origin/typing-hillclimb`; nothing was pushed.
 
-Two promotions since the merge passed exact evaluation (`evaluate --parent 594e7d8 --candidate-tree HEAD`, outcome `complete`, adoption credit, core + precision complete, zero additions):
+Early promotions since the merge passed exact evaluation (`evaluate --parent 594e7d8 --candidate-tree HEAD`, outcome `complete`, adoption credit, core + precision complete, zero additions):
 - `42ab342c55d` refactor(typing): type tagstore snuba filter helpers (`is_boolean_key`, `is_fuzzy_numeric_key`, `_translate_filter_keys`; 1 file, 3+/3-)
 - `fedf6d46155` refactor(typing): type social auth backend flags (`uses_redirect`, `enabled` x2; 1 file, 4+/4-)
 
-Two more promotions since the baseline passed exact evaluation with zero additions:
+Later promotions passed exact evaluation with zero additions (evaluator acceptance only; `870ac8cea05` removed a runtime assertion and `fae67a3c66f` added the unchecked msteams local):
 - `cacd6ea3683` refactor(typing): type project serializer helpers (`get_deploys_by_project`, `Plugin` TypedDict precision, `SharedProjectSerializer.serialize`; 1 file, 12+/4-; 6 omissions removed, 6 improved)
 - `60e83cab897` refactor(typing): type mockdata core helpers (5 fully-annotated defs; 1 file, 18+/15-; 93 precision removals, 25 omissions removed)
 - `756c6d5d887` refactor(typing): type release semver helpers (`ReleaseQuerySet` return narrowings x2, `is_semver_release -> bool` with `bool()` wrap; 1 file, 4+/4-; 94 precision removals incl. downstream importers, 1 omission removed)
@@ -47,16 +71,7 @@ Two more promotions since the baseline passed exact evaluation with zero additio
 - `c22a9b89c79` refactor(typing): type audit render and attachment cache init (pure-`str` flow, `**kwargs: object` into untyped base; 2 files, 2+/2-; 7 precision removals, 3 omissions removed)
 - `945bd7f36ad` refactor(typing): type avatar filename and project transfer params (re-specialized `AvatarMixin` onto related models; 3 files; exact acceptance with zero new errors, adoption credit)
 
-| Measure | Parent (`594e7d8`) | Candidate (`fedf6d4`) | Change |
-|---|---:|---:|---:|
-| Configured additions / removals | — | — | +0 / −0 |
-| Unsuppressed additions / removals | — | — | +0 / −0 |
-| Precision additions / removals | — | — | +0 / −26 |
-| New Any obligations | — | — | +0 |
-| New / removed signature omissions | — | — | +0 / −10 |
-| Signature regressions / improvements | — | — | +0 / +10 |
-
-Credited modules: `sentry.tagstore.snuba.backend`, `social_auth.backends`. Targeted mypy, Ruff, and `git diff --check` pass on all touched files; `py_compile` passes. Focused pytest and devservices remain blocked (see Verified).
+The tagstore and social-auth promotions together removed 26 precision diagnostics and 10 signature omissions with no additions against `594e7d8`. Targeted mypy, Ruff, `git diff --check`, and `py_compile` passed on those files.
 
 The latest candidate was commit `a8125f3e92f87d4a0156dc9761e1b1849ff97ca2` (tree `f7680fe9eb55dedfff2ef8ec3fabf2d97b8c8eb2`), on branch `typing-wave-20261024-query-construction`, against accepted parent `b628cbcf763bf36a8b1798dfb4ae9eab33a05c80`. Exact evaluation rejected it. The candidate changes `mep_to_eap.py` and `metrics/query_builder.py`; it is preserved as an unaccepted branch.
 
@@ -71,15 +86,15 @@ The latest candidate was commit `a8125f3e92f87d4a0156dc9761e1b1849ff97ca2` (tree
 
 The evaluator recorded `core_complete=true` and adoption credit, but rejected the candidate: four new configured/unsuppressed errors follow the optional `list[...] | None` MEP result contract and its stale test expectation; the metrics query change adds precision errors and Any obligations at the SNQL expression boundary. Focused tests passed 116 with 6 skipped. The scoped all-strong comparison found the same 25 existing metrics-builder diagnostics on parent and candidate after line relocation; MEP had none. Read-only Ruff and `git diff --check` passed. Independent source review found no concrete runtime behavior issue. This does not establish exact acceptance or campaign-wide precision completion.
 
-The prior accepted source promotion was `b628cbcf763`. Two new source promotions (`42ab342`, `fedf6d4`) were merged and exactly accepted on 2026-10-26 (see State). No other new source work was merged. The seven owner-owned source and test files from `6f359a3` remain intact through the upstream merge (verified: `6f359a3..HEAD` diff empty for those paths). The optional raw evaluator report is not required to resume.
+The seven owner-owned source and test files from `6f359a3` remain intact through the upstream merge (verified: `6f359a3..HEAD` diff empty for those paths). The optional raw evaluator report is not required to resume.
 
 ### Direction
 
-The migration has delivered seven accepted source promotions since the earlier checkpoint, including concrete contracts in serializers, integrations, query helpers, and adapters. Core typing completion and precision completion remain separate objectives. The latest source candidate was rejected, and the owner has requested a clean stop.
+The migration has delivered 20 evaluator-accepted source promotions since the earlier checkpoint, including concrete contracts in serializers, integrations, query helpers, and adapters; two need repair (see Corrective checkpoint). Core typing completion and precision completion remain separate objectives. The latest source candidate was rejected, and the owner has requested a clean stop.
 
 The limiting stage remains exact global acceptance and proposal correctness. The latest candidate reduced aggregate debt but introduced four configured and unsuppressed errors and additional precision debt. Preserve the corrected evaluator. On resume, inspect the candidate branches against the rebased accepted source and select one testable source wave. Keep intermediate changes provisional until exact combined tree acceptance.
 
-The campaign is frozen. No lanes are running, and no new work may start until the owner resumes it. On resume, use one coordinator and at most two preparation lanes. Keep locked dependencies. If required services remain unavailable, record the blocker once and continue with independent, testable work.
+The campaign is frozen. No lanes are running, and no new work may start until the owner resumes it. On resume, use one coordinator and at most two preparation lanes, repair the Corrective checkpoint defects first, then continue under its acceptance rules. Keep locked dependencies. If required services remain unavailable, record the blocker once and continue only with work its table allows.
 
 ### Open lanes
 
@@ -250,22 +265,23 @@ The only retained worktree is the root integration checkout. It has seven owner-
 
 ### Not started
 
-No next source wave is selected. On resume, fetch current master, rebase the source in a clean worktree, establish its fixed policy baseline, perform the parent steering checkpoint, then select one testable parked proposal.
+No next source wave is selected. On resume, repair the Corrective checkpoint defects, then select one related interface group (producer and consumer together) and review its diff, callers, and tests before the exact comparison.
 
 ### Verified
 
-- Evaluator `baseline` on `fedf6d4`: `complete`, `core_complete=true`, no gaps; report at `.work/tmp/typing-baseline-20261026/report.json`.
-- Evaluator `evaluate --parent 594e7d8 --candidate-tree HEAD`: `complete`, adoption credit, core + precision complete, zero additions; report at `.work/tmp/typing-eval-20261026/report.json`.
-- Targeted mypy (`SENTRY_MYPY_PRE_PUSH=1`) passes on `src/sentry/tagstore/snuba/backend.py`, `src/sentry/integrations/gitlab/client.py`, `src/social_auth/backends/__init__.py`. Read-only Ruff and `git diff --check` pass; `py_compile` passes.
+- Historical (earlier checkpoint `fedf6d4`, not the current tip): fixed-policy baseline `complete`, `core_complete=true`; exact evaluation against `594e7d8` complete with adoption credit. Later promotions were each exactly evaluated, but no current-tip baseline report is on record.
+- Historical: targeted mypy (`SENTRY_MYPY_PRE_PUSH=1`) passed on `src/sentry/tagstore/snuba/backend.py`, `src/sentry/integrations/gitlab/client.py`, `src/social_auth/backends/__init__.py`. Read-only Ruff and `git diff --check` pass; `py_compile` passes.
 - Venv restored without devenv per `devenv/sync.py` python-deps step (`brew upgrade uv`, `uv python install 3.13`, `uv sync --frozen --inexact --active`) plus `python -m tools.fast_editable --path .` (required: without it mypy fails with `No module named 'sentry'`); `mypy 2.1.0` matches evaluator expectation. Evaluator runs need `SENTRY_LOG_LEVEL=WARNING`: a `sentry.options_store` INFO log otherwise leaks into mypy stdout and invalidates the measurement.
 - Lane repair rules learned: partially-annotated defs get checked (missing return flagged as new error) while fully-untyped defs stay exempt — prefer full annotation or none; narrowing pass-through `*args/**kwargs` to `object` poisons downstream attribute uses (16 new errors) — leave pass-throughs untyped.
-- Rejected and parked with repair recipes: api-paginator lane (`c1e26a9`, partial `get_result` + `CursorValue -> object` widening; 5 precision + 7 Any additions) — needs `CursorResult[object]` return plus queryset typing or a wave split. Filestore-s3 lane (`c758e8eeb99` + subsumed-hunk fix): attribute soup must be typed before methods — needs `_multipart`/`_entries`/`obj`/`file` attrs with boto3/Django stub types, `File` → `File[bytes]`, and investigation of `assert`-narrowing unreachables. Releasefile wave (`98a929da`, 36+/19-): needs multi-file treatment — `validate_pii_*` helpers are done in-lane but test file + endpoint callers + dunder renames need their own waves. Jira-server wave: blocked on untyped `ApiClient.get/post` (`-> Any`) base — type the shared base first. Release wave needed two repairs: `bool()` wrap for `Any is not None` no-any-return, and dropping the `follows_semver_versioning_scheme -> bool` hunk (body flows `cache.get` Any) — 4th-hunk lesson: review the FULL parked diff, not just its head. Group-serializer wave needed the same class of repair: dropped `_get_status` TypedDict hunk — rule: never newly-annotate a container that gets filled from `Any` sources (attrs dicts, untyped calls); the forgiveness path only covers preexisting anchors. Options-store wave needed three repairs: restored a dropped `None`-cache guard (behavior!), dropped the `model`/`model_cls -> type[...]` annotations (resolving Any-chains into Django generics creates explicit debt — only resolve into well-typed custom classes like `ReleaseQuerySet`), and dropped the `__init__`/`set`/`set_store`/`set_cache` Optional-cache web (leaks caller `Any` obligations into unchanged files + breaks a test) plus a redundant narrowing assert. Receivers wave accepted with 3 residual precision notes (`BaseEvent.data` still `Any`); repair sketch is typing `BaseEvent.data`/`tags`. Msteams wave needed one repair: dropped two `-> object` getters whose dict-style callers broke (narrow returns must match live usage, not just the body). Transfer-tagkeys wave dropped accept_project_transfer: explicit-`Any` spellings (`dict[str, Any]`) are new bypass debt unless the same spelling already exists in that file — tagstore passed only by grandfathering.
+- Rejected and parked with repair recipes: api-paginator lane (`c1e26a9`, partial `get_result` + `CursorValue -> object` widening; 5 precision + 7 Any additions) — needs `CursorResult[object]` return plus queryset typing or a wave split. Filestore-s3 lane (`c758e8eeb99` + subsumed-hunk fix): attribute soup must be typed before methods — needs `_multipart`/`_entries`/`obj`/`file` attrs with boto3/Django stub types, `File` → `File[bytes]`, and investigation of `assert`-narrowing unreachables. Releasefile wave (`98a929da`, 36+/19-): needs multi-file treatment — `validate_pii_*` helpers are done in-lane but test file + endpoint callers + dunder renames need their own waves. Jira-server wave: blocked on untyped `ApiClient.get/post` (`-> Any`) base — type the shared base first. Release wave needed two repairs: `bool()` wrap for `Any is not None` no-any-return, and dropping the `follows_semver_versioning_scheme -> bool` hunk (body flows `cache.get` Any) — 4th-hunk lesson: review the FULL parked diff, not just its head. Group-serializer wave needed the same class of repair: dropped `_get_status` TypedDict hunk — that hunk was dropped because its producer was `Any`; decide such cases by producer evidence, not by a blanket rule. Options-store wave needed three repairs: restored a dropped `None`-cache guard (that guard is not the removed initialization assertion, which was never restored; see Corrective checkpoint), dropped the `model`/`model_cls -> type[...]` annotations (resolving Any-chains into Django generics creates explicit debt — only resolve into well-typed custom classes like `ReleaseQuerySet`), and dropped the `__init__`/`set`/`set_store`/`set_cache` Optional-cache web (leaks caller `Any` obligations into unchanged files + breaks a test) plus a redundant narrowing assert. Receivers wave accepted with 3 residual precision notes (`BaseEvent.data` still `Any`); repair sketch is typing `BaseEvent.data`/`tags`. Msteams wave needed one repair: dropped two `-> object` getters whose dict-style callers broke (narrow returns must match live usage, not just the body). Transfer-tagkeys wave dropped accept_project_transfer: explicit-`Any` spellings (`dict[str, Any]`) are new bypass debt unless the same spelling already exists in that file — tagstore passed only by grandfathering.
 - Screening correction: symmetric `merge-base...branch` diffs mislead after the upstream merge (several parked branches are already subsumed by upstream or would regress it: search-events-fields, dashboard-serializer, test-runner-init). Gate on direct `git diff HEAD <branch>` showing the branch strictly improving on HEAD.
 - Blockers (recorded once): `devservices up --mode migrations` fails (`DependencyError: sentry-shared-postgres`, HTTP 403); focused pytest fails on redis `localhost:6379` refused. No DB-backed tests until services are available.
-- The root checkout is clean except this document; the merge preserved owner files; `.work/` holds only evaluator outputs (7.3G); no push, no formatters.
+- The root checkout is clean; the merge preserved owner files; `.work/` holds only evaluator outputs (7.3G); no push, no formatters.
 
 ### Campaign log
 
 2026-10-26 — Resumed AFK: merged `upstream/master f1a48d9` as `594e7d8`, promoted and exactly accepted tagstore-snuba (`42ab342`) and social-auth (`fedf6d4`) waves, established fixed-policy baseline, restored venv without devenv. Next: select one testable parked proposal (project-serializer pre-checked clean) and continue the hillclimb.
 
 2026-10-27 — Winddown after 20 exact-accepted promotions (tagstore, social-auth, project-serializer, mockdata, release, receivers, group-serializer, options-store, org-details, msteams, tagkey trio, project-tags/setup-wizard, committers-stats, relay, project-key, txn-symbols, audit-attach, handlers, avatar). Parked 3 new lane branches with fixups (api-paginator, filestore-s3, releasefile); deleted 5 empty lane branches; one worktree at a time, all removed; `.work` holds only the current fixed-policy baseline (1.6G). Blockers unchanged: no devservices, no pytest/CI. Nothing pushed.
+
+2026-10-27 — External review of `594e7d8..945bd7f`: keep application gains, but the options-store assertion removal and the msteams `Any`-to-`str` local show evaluator acceptance is not behavior preservation. Added the Corrective checkpoint, reconciled the stale tip and state, and replaced syntax-based avoidance rules with contract-evidence rules. Campaign remains paused; no source changed.
