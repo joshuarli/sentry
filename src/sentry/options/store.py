@@ -308,7 +308,6 @@ class OptionsStore:
             pass
 
         try:
-            assert self.cache is not None
             self.cache.delete(cache_key)
             return True
         except Exception:
