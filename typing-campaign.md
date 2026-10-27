@@ -39,6 +39,7 @@ Two more promotions since the baseline passed exact evaluation with zero additio
 - `b0faba7b579` refactor(typing): type apidocs extension hook (sibling-pattern signature + load-bearing assert; 1 file, 6+/2-; 4 precision removals, 3 omissions removed; precise `dict[str, str]` beat explicit `Any`)
 - `18c85dbf5b0` refactor(typing): type transaction names endpoint (`project: Project`; 1 file, 2+/1-; 9 precision removals, 1 omission removed; symbol-sources sibling split out — `dict[str, Any]` param+return is new explicit debt)
 - `7fd9d87e51f` refactor(typing): type custom exception handler (`Exception`, `dict[str, object]`, `Response | None`; 1 file, 2+/1-; 7 precision removals, 3 omissions removed)
+- `c22a9b89c79` refactor(typing): type audit render and attachment cache init (pure-`str` flow, `**kwargs: object` into untyped base; 2 files, 2+/2-; 7 precision removals, 3 omissions removed)
 
 | Measure | Parent (`594e7d8`) | Candidate (`fedf6d4`) | Change |
 |---|---:|---:|---:|
