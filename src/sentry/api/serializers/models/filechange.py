@@ -1,17 +1,38 @@
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, TypedDict
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
-from sentry.api.serializers.models.commit import get_users_for_commits
+from sentry.api.serializers.models.commit import EmptyAuthor, get_users_for_commits
+from sentry.api.serializers.release_details_types import Author
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.repository import Repository
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
+
+
+class CommitFileChangeSerializerResponse(TypedDict):
+    id: str
+    orgId: int
+    author: Author | EmptyAuthor
+    commitMessage: str | None
+    filename: str
+    type: str
+    repoName: str | None
 
 
 @register(CommitFileChange)
-class CommitFileChangeSerializer(Serializer):
-    def get_attrs(self, item_list, user, **kwargs):
+class CommitFileChangeSerializer(Serializer[CommitFileChangeSerializerResponse]):
+    def get_attrs(
+        self,
+        item_list: Sequence[CommitFileChange],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[CommitFileChange, dict[str, object]]:
         commits = list(
             Commit.objects.filter(id__in=[f.commit_id for f in item_list]).select_related("author")
         )
@@ -24,7 +45,7 @@ class CommitFileChangeSerializer(Serializer):
             ).values_list("id", "name")
         )
 
-        result: dict[int, Any] = {}
+        result: dict[CommitFileChange, dict[str, object]] = {}
         for item in item_list:
             commit = commits_by_id[item.commit_id]
             result[item] = {
@@ -35,8 +56,14 @@ class CommitFileChangeSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs):
-        return {
+    def serialize(
+        self,
+        obj: CommitFileChange,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> CommitFileChangeSerializerResponse:
+        data: CommitFileChangeSerializerResponse = {
             "id": str(obj.id),
             "orgId": obj.organization_id,
             "author": attrs.get("user", {}),
@@ -45,3 +72,4 @@ class CommitFileChangeSerializer(Serializer):
             "type": obj.type,
             "repoName": attrs.get("repository_name", ""),
         }
+        return data
