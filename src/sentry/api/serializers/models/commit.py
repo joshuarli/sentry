@@ -48,7 +48,9 @@ class CommitSerializerResponseWithReleases(CommitSerializerResponse):
     releases: list[CommitReleaseSerializerResponse]
 
 
-def get_users_for_commits(item_list, user=None) -> Mapping[str, Author]:
+def get_users_for_commits(
+    item_list: Sequence[Commit], user: User | RpcUser | AnonymousUser | None = None
+) -> Mapping[str, Author]:
     authors = list(
         CommitAuthor.objects.get_many_from_cache([i.author_id for i in item_list if i.author_id])
     )
