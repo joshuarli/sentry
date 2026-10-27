@@ -19,8 +19,6 @@ from sentry.utils.types import Type
 if TYPE_CHECKING:
     from django.utils.connection import ConnectionProxy
 
-    from sentry.models.options import ControlOption, Option
-
 CACHE_FETCH_ERR = "Unable to fetch option cache for %s"
 CACHE_UPDATE_ERR = "Unable to update option cache for %s"
 
@@ -90,11 +88,11 @@ class OptionsStore:
         self.flush_local_cache()
 
     @property
-    def model(self) -> type[Option] | type[ControlOption]:
+    def model(self):
         return self.model_cls()
 
     @classmethod
-    def model_cls(cls) -> type[Option] | type[ControlOption]:
+    def model_cls(cls):
         from sentry.models.options import ControlOption, Option
         from sentry.silo.base import SiloMode
 
