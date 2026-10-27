@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 from urllib.parse import urlencode
 
 import sentry_sdk
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 
 from sentry import features
@@ -31,6 +33,8 @@ from sentry.organizations.absolute_url import has_customer_domain, organization_
 from sentry.search.events.fields import is_function, parse_arguments
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.users.api.serializers.user import UserSerializerResponse
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.avatar import get_gravatar_url
@@ -105,7 +109,7 @@ class DashboardWidgetResponse(TypedDict):
     displayType: str
     thresholds: ThresholdType | None
     interval: str
-    dateCreated: str
+    dateCreated: datetime
     dashboardId: str
     queries: list[DashboardWidgetQueryResponse]
     limit: int | None
@@ -125,8 +129,13 @@ class DashboardPermissionsResponse(TypedDict):
 
 @register(DashboardWidget)
 class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
-    def get_attrs(self, item_list, user, **kwargs):
-        result = {}
+    def get_attrs(
+        self,
+        item_list: Sequence[DashboardWidget],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[DashboardWidget, dict[str, list[Any]]]:
+        result: dict[DashboardWidget, dict[str, list[Any]]] = {}
         data_sources = serialize(
             list(
                 DashboardWidgetQuery.objects.filter(widget_id__in=[i.id for i in item_list])
@@ -141,7 +150,9 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
 
         return result
 
-    def get_explore_urls(self, obj, attrs):
+    def get_explore_urls(
+        self, obj: DashboardWidget, attrs: Mapping[str, Any]
+    ) -> list[str]:
         from sentry.explore.translation.dashboards_translation import (
             translate_dashboard_widget_queries,
         )
@@ -310,7 +321,13 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
 
         return urls
 
-    def serialize(self, obj, attrs, user, **kwargs) -> DashboardWidgetResponse:
+    def serialize(
+        self,
+        obj: DashboardWidget,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> DashboardWidgetResponse:
         # Text widgets don't have a widget_type
         if obj.display_type == DashboardWidgetDisplayTypes.TEXT:
             widget_type = None
