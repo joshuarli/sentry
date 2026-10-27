@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from typing import Any, TypeAlias, TypedDict
 
@@ -10,6 +10,7 @@ from sentry.issues.action_log.types import ActionSource, GroupActionType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
+from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.pullrequest import PullRequest
 from sentry.sentry_apps.api.serializers.sentry_app_avatar import (
@@ -160,7 +161,11 @@ def _resolve_mentioned_users(
 
 @register(Activity)
 class ActivitySerializer(Serializer):
-    def __init__(self, environment_func=None, resolve_mentions: bool = False):
+    def __init__(
+        self,
+        environment_func: Callable[[], Environment | None] | None = None,
+        resolve_mentions: bool = False,
+    ) -> None:
         self.environment_func = environment_func
         self.resolve_mentions = resolve_mentions
 
@@ -276,7 +281,13 @@ class ActivitySerializer(Serializer):
             for item in item_list
         }
 
-    def serialize(self, obj: Activity, attrs, user, **kwargs):
+    def serialize(
+        self,
+        obj: Activity,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> ActivitySerializerResponse:
         if (
             obj.type == ActivityType.SET_RESOLVED_IN_RELEASE.value
             and obj.data
