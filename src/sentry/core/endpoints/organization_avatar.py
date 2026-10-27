@@ -17,6 +17,6 @@ class OrganizationAvatarEndpoint(
     object_type = "organization"
     model = OrganizationAvatar
 
-    def get_avatar_filename(self, obj):
+    def get_avatar_filename(self, obj: OrganizationAvatar) -> str:
         # for consistency with organization details endpoint
         return f"{obj.slug}.png"
