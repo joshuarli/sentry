@@ -2,9 +2,13 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
+
 from sentry.api.serializers import Serializer, register
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class RepositorySettingsSerializerResponse(TypedDict):
@@ -31,7 +35,7 @@ class RepositorySerializerResponse(RepositorySerializerResponseOptional):
 @register(RepositorySettings)
 class RepositorySettingsSerializer(Serializer[RepositorySettingsSerializerResponse]):
     def serialize(
-        self, obj: RepositorySettings, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+        self, obj: RepositorySettings, attrs: Mapping[str, Any], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> RepositorySettingsSerializerResponse:
         return {
             "enabledCodeReview": obj.enabled_code_review,
@@ -49,7 +53,7 @@ class RepositorySerializer(Serializer[RepositorySerializerResponse]):
         return key in self.expand
 
     def get_attrs(
-        self, item_list: Sequence[Repository], user: Any, **kwargs: Any
+        self, item_list: Sequence[Repository], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> dict[Repository, dict[str, Any]]:
         result: dict[Repository, dict[str, Any]] = {repo: {} for repo in item_list}
 
@@ -65,7 +69,7 @@ class RepositorySerializer(Serializer[RepositorySerializerResponse]):
         return result
 
     def serialize(
-        self, obj: Repository, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+        self, obj: Repository, attrs: Mapping[str, Any], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> RepositorySerializerResponse:
         external_slug = None
         integration_id = None
