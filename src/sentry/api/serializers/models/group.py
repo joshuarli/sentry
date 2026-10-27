@@ -495,11 +495,9 @@ class GroupSerializerBase(Serializer, ABC):
             return False
         return key in self.collapse
 
-    def _get_status(
-        self, attrs: Mapping[str, Any], obj: Group
-    ) -> tuple[GroupStatusDetailsResponseOptional, GroupStatusStr]:
+    def _get_status(self, attrs: Mapping[str, Any], obj: Group):
         status = obj.status
-        status_details: GroupStatusDetailsResponseOptional = {}
+        status_details = {}
         if attrs["ignore_until"]:
             snooze = attrs["ignore_until"]
             if snooze.is_valid(group=obj):
