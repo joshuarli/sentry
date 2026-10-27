@@ -34,6 +34,7 @@ Two more promotions since the baseline passed exact evaluation with zero additio
 - `bd2251b5d5c` refactor(typing): type tagkey and attachment endpoint params (3 endpoint `get()` signatures mined from baseline's lowest-diagnostic files; 3 files, 6+/3-; 17 precision removals, 6 omissions removed; first fully self-authored wave — parked list increasingly subsumed by upstream)
 - `6414a0d859` refactor(typing): type project tags and setup wizard endpoints (2 files, 5+/4-; 17 precision removals, 3 omissions removed; transfer endpoint dropped — `dict[str, Any]` spelling is new bypass debt unless grandfathered)
 - `8528df41839` refactor(typing): type committers and org stats endpoints (2 files, 4+/2-; 4 precision removals, 3 omissions removed; create-sample split out — `Project.platform` is `Optional` and poisons `dict.get` defaults)
+- `3db607df07d` refactor(typing): type relay details delete param (1 line; 2 precision removals, 1 omission removed; auth `__init__` dropped — DRF's overloaded base rejects both `object` and `Any` varargs)
 
 | Measure | Parent (`594e7d8`) | Candidate (`fedf6d4`) | Change |
 |---|---:|---:|---:|
