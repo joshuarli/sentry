@@ -55,7 +55,7 @@ class RegistrationValidator(serializers.Serializer[RegistrationRequest]):
         choices=get_timezone_choices(), required=False, allow_blank=True
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)
         if not newsletter.backend.is_enabled():
             self.fields.pop("subscribe")
