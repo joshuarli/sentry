@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from django.core.signing import BadSignature, SignatureExpired
 from django.http import Http404
@@ -43,7 +44,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
     authentication_classes = (SessionAuthentication,)
     permission_classes = (SentryIsAuthenticated,)
 
-    def get_validated_data(self, data, user: User):
+    def get_validated_data(self, data: dict[str, Any], user: User) -> tuple[dict[str, Any], Project]:
         try:
             data = unsign(force_str(data), salt=SALT)
         except SignatureExpired:
