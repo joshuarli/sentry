@@ -30,6 +30,7 @@ Two more promotions since the baseline passed exact evaluation with zero additio
 - `fad38db48a4` refactor(typing): type group serializer helpers (`-list/None` returns, `__init__`/`_expand`/`_collapse`/`_seen_stats`/`_get_group_snuba_stats` annotations; 1 file, 26+/22-; 53 precision removals, 21 omissions removed; `_get_status` TypedDict hunk dropped — precise container filled from `Any` is new debt)
 - `870ac8cea05` refactor(typing): type options store accessors (see above; 128 removals, 27 omissions removed; 3 residual notes forgiven via preexisting anchors)
 - `0f0d0f6c1ce` refactor(typing): type organization details endpoint (validators, save/delete paths, `flag_has_changed`, pii helpers; 2 files, 42+/31-; 154 precision removals, 56 omissions removed; needed helpers typed + `bool()` wrap + one local annotation)
+- `fae67a3c66f` refactor(typing): type msteams client returns (send/update paths, `request` overloads, token locals; 1 file, 27+/12-; 21 precision removals, 10 omissions removed; dict-returning getters deliberately left untyped — callers treat results as live dicts)
 
 | Measure | Parent (`594e7d8`) | Candidate (`fedf6d4`) | Change |
 |---|---:|---:|---:|
