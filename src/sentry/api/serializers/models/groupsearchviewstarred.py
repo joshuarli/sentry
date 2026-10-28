@@ -1,4 +1,5 @@
 from collections.abc import Mapping, Sequence
+from datetime import datetime
 from typing import Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
@@ -22,9 +23,9 @@ class GroupSearchViewStarredSerializerResponse(TypedDict):
     projects: list[int]
     environments: list[str]
     timeFilters: dict
-    lastVisited: str | None
-    dateCreated: str
-    dateUpdated: str
+    lastVisited: datetime | None
+    dateCreated: datetime | None
+    dateUpdated: datetime
 
 
 @register(GroupSearchViewStarred)

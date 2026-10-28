@@ -1,5 +1,6 @@
 from collections.abc import Mapping, Sequence
-from typing import Any, TypedDict
+from datetime import datetime
+from typing import Any, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
@@ -32,9 +33,9 @@ class GroupSearchViewSerializerResponse(TypedDict):
     projects: list[int]
     environments: list[str]
     timeFilters: GroupSearchViewTimeFilters
-    lastVisited: str | None
-    dateCreated: str
-    dateUpdated: str
+    lastVisited: datetime | None
+    dateCreated: datetime | None
+    dateUpdated: datetime
     starred: bool
     stars: int
 
@@ -96,7 +97,7 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
 
     def serialize(
         self,
-        obj: Any,
+        obj: GroupSearchView,
         attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
@@ -108,7 +109,9 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
             "createdBy": attrs.get("created_by"),
             "name": obj.name,
             "query": obj.query,
-            "querySort": obj.query_sort,
+            # Model choices constrain query_sort to SortOptions values, which
+            # exactly match SORT_LITERALS.
+            "querySort": cast(SORT_LITERALS, obj.query_sort),
             "projects": projects,
             "environments": obj.environments,
             "timeFilters": obj.time_filters,
