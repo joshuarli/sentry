@@ -1,13 +1,45 @@
+from collections.abc import Mapping, Sequence
+from datetime import datetime
+from typing import Any, TypedDict
+
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.broadcast import Broadcast, BroadcastSeen
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
+
+
+class BroadcastSerializerResponse(TypedDict):
+    id: str
+    message: str
+    title: str
+    link: str | None
+    mediaUrl: str | None
+    isActive: bool
+    dateCreated: datetime
+    dateExpires: datetime | None
+    hasSeen: bool
+    category: str | None
+
+
+class AdminBroadcastSerializerResponse(BroadcastSerializerResponse):
+    userCount: int
+    createdBy: str | None
+    upstreamId: str | None
+    syncLocked: bool
 
 
 @register(Broadcast)
-class BroadcastSerializer(Serializer):
-    def get_attrs(self, item_list, user, **kwargs):
-        if not user.is_authenticated:
+class BroadcastSerializer(Serializer[BroadcastSerializerResponse]):
+    def get_attrs(
+        self,
+        item_list: Sequence[Broadcast],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[Broadcast, dict[str, Any]]:
+        if isinstance(user, AnonymousUser) or not user.is_authenticated:
             seen = set()
         else:
             seen = set(
@@ -18,7 +50,13 @@ class BroadcastSerializer(Serializer):
 
         return {item: {"seen": item.id in seen} for item in item_list}
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self,
+        obj: Broadcast,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> BroadcastSerializerResponse:
         return {
             "id": str(obj.id),
             "message": obj.message,
@@ -34,7 +72,12 @@ class BroadcastSerializer(Serializer):
 
 
 class AdminBroadcastSerializer(BroadcastSerializer):
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[Broadcast],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[Broadcast, dict[str, Any]]:
         attrs = super().get_attrs(item_list, user)
         counts = dict(
             BroadcastSeen.objects.filter(broadcast__in=item_list)
@@ -48,10 +91,18 @@ class AdminBroadcastSerializer(BroadcastSerializer):
             attrs[item]["user_count"] = counts.get(item.id, 0)
         return attrs
 
-    def serialize(self, obj, attrs, user, **kwargs):
-        context = super().serialize(obj, attrs, user)
-        context["userCount"] = attrs["user_count"]
-        context["createdBy"] = obj.created_by_id.email if obj.created_by_id else None
-        context["upstreamId"] = obj.upstream_id
-        context["syncLocked"] = obj.sync_locked
+    def serialize(
+        self,
+        obj: Broadcast,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> AdminBroadcastSerializerResponse:
+        context: AdminBroadcastSerializerResponse = {
+            **super().serialize(obj, attrs, user),
+            "userCount": attrs["user_count"],
+            "createdBy": obj.created_by_id.email if obj.created_by_id else None,
+            "upstreamId": obj.upstream_id,
+            "syncLocked": obj.sync_locked,
+        }
         return context
