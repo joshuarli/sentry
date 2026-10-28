@@ -443,14 +443,14 @@ class SqlFormatEventSerializer(EventSerializer):
     def get_attrs(
         self,
         item_list: Sequence[Event | GroupEvent],
-        user: Any,
+        user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> dict[Event | GroupEvent, dict[str, Any]]:
         is_public = kwargs.pop("is_public", False)
         return super().get_attrs(item_list, user, is_public=is_public)
 
     # Various checks to ensure that we don't spend too much time formatting
-    def _should_skip_formatting(self, query: str):
+    def _should_skip_formatting(self, query: str) -> bool:
         if (
             (not query)
             | (len(self.formatted_sql_cache) >= MAX_SQL_FORMAT_OPS)
@@ -478,7 +478,10 @@ class SqlFormatEventSerializer(EventSerializer):
         return formatted
 
     def _format_breadcrumb_messages(
-        self, event_data: EventSerializerResponse, event: Event | GroupEvent, user: User
+        self,
+        event_data: EventSerializerResponse,
+        event: Event | GroupEvent,
+        user: User | RpcUser | AnonymousUser,
     ) -> EventSerializerResponse:
         try:
             breadcrumbs = next(
@@ -503,7 +506,10 @@ class SqlFormatEventSerializer(EventSerializer):
             return event_data
 
     def _get_release_info(
-        self, user, event, include_full_release_data: bool
+        self,
+        user: User | RpcUser | AnonymousUser,
+        event: Event | GroupEvent,
+        include_full_release_data: bool,
     ) -> GroupEventReleaseSerializerResponse | None:
         version = event.get_tag("sentry:release")
         if not version:
@@ -522,7 +528,10 @@ class SqlFormatEventSerializer(EventSerializer):
             return serialize(release, user, GroupEventReleaseSerializer())
 
     def _format_db_spans(
-        self, event_data: EventSerializerResponse, event: Event | GroupEvent, user: User
+        self,
+        event_data: EventSerializerResponse,
+        event: Event | GroupEvent,
+        user: User | RpcUser | AnonymousUser,
     ) -> EventSerializerResponse:
         try:
             spans = next(
@@ -543,7 +552,13 @@ class SqlFormatEventSerializer(EventSerializer):
             sentry_sdk.capture_exception(exc)
             return event_data
 
-    def serialize(self, obj, attrs, user, **kwargs) -> SqlFormatEventSerializerResponse:
+    def serialize(
+        self,
+        obj: Event | GroupEvent,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> SqlFormatEventSerializerResponse:
         include_full_release_data = kwargs.pop("include_full_release_data", False)
         result = super().serialize(obj, attrs, user, **kwargs)
 
