@@ -1137,8 +1137,12 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
     @staticmethod
     def _execute_error_seen_stats_query(
-        item_list, start=None, end=None, conditions=None, environment_ids=None
-    ):
+        item_list: Sequence[Group],
+        start: datetime | None = None,
+        end: datetime | None = None,
+        conditions: Sequence[Sequence[Any]] | None = None,
+        environment_ids: list[int] | None = None,
+    ) -> dict[str, Any]:
         project_ids = list({item.project_id for item in item_list})
         group_ids = [item.id for item in item_list]
         aggregations = [
@@ -1169,8 +1173,12 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
     @staticmethod
     def _execute_generic_seen_stats_query(
-        item_list, start=None, end=None, conditions=None, environment_ids=None
-    ):
+        item_list: Sequence[Group],
+        start: datetime | None = None,
+        end: datetime | None = None,
+        conditions: Sequence[Sequence[Any]] | None = None,
+        environment_ids: list[int] | None = None,
+    ) -> dict[str, Any]:
         project_ids = list({item.project_id for item in item_list})
         group_ids = [item.id for item in item_list]
         aggregations = [
@@ -1200,8 +1208,11 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
     @staticmethod
     def _parse_seen_stats_results(
-        result, item_list, use_result_first_seen_times_seen, environment_ids=None
-    ):
+        result: dict[str, Any],
+        item_list: Sequence[Group],
+        use_result_first_seen_times_seen: bool,
+        environment_ids: list[int] | None = None,
+    ) -> dict[Group, SeenStats]:
         seen_data = {
             issue["group_id"]: fix_tag_value_data(
                 dict(filter(lambda key: key[0] != "group_id", issue.items()))
@@ -1228,7 +1239,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 first_seen = {item.id: item.first_seen for item in item_list}
             times_seen = {item.id: item.times_seen for item in item_list}
 
-        return {
+        seen_stats: dict[Group, SeenStats] = {
             item: {
                 "times_seen": times_seen.get(item.id, 0),
                 "first_seen": first_seen.get(item.id),
@@ -1237,6 +1248,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
             }
             for item in item_list
         }
+        return seen_stats
 
 
 class SimpleGroupSerializerResponse(TypedDict):
