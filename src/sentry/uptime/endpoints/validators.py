@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Sequence
-from typing import Any, override
+from typing import override
 
 import jsonschema
 from django.contrib.auth.models import AnonymousUser
@@ -9,7 +9,6 @@ from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.fields import URLField
 from rest_framework.request import Request
-from rest_framework.serializers import BaseSerializer
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_SUCCESS,
@@ -156,12 +155,7 @@ def _validate_request_size(
         )
 
 
-def _validate_check_config(
-    attrs: dict[str, Any],
-    uptime_subscription: UptimeSubscription | None,
-    organization: Organization,
-    user: User | RpcUser | AnonymousUser | None,
-) -> None:
+def _validate_check_config(attrs, uptime_subscription: UptimeSubscription | None, organization: Organization, user: User | RpcUser | AnonymousUser | None) -> None:
     validated_data = attrs
     if uptime_subscription is not None:
         validated_data = {}
@@ -221,7 +215,7 @@ class UptimeValidatorBase(CamelSnakeSerializer):
 
 @extend_schema_serializer()
 class UptimeCheckPreviewValidator(UptimeValidatorBase):
-    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+    def validate(self, attrs):
         _validate_request_size(
             attrs.get("method", "GET"),
             attrs.get("url", ""),
@@ -241,7 +235,7 @@ class UptimeCheckPreviewValidator(UptimeValidatorBase):
     def validate_headers(self, headers: object) -> object:
         return _validate_headers(headers)
 
-    def create(self, validated_data: dict[str, Any]) -> CheckConfig:
+    def create(self, validated_data) -> CheckConfig:
         region_config = get_region_config(get_active_regions()[0].slug)
         assert region_config is not None
         return checker_api.create_preview_check(validated_data, region_config)
@@ -299,7 +293,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
         help_text="Number of consecutive failed checks required to mark monitor as down.",
     )
 
-    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+    def validate(self, attrs):
         # When creating a new uptime monitor, check if we would exceed the organization limit
         if not self.instance:
             organization = self.context["organization"]
@@ -349,7 +343,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
     def validate_mode(self, mode: int) -> UptimeMonitorMode:
         return _validate_mode(mode, self.context["request"])
 
-    def create(self, validated_data: dict[str, Any]) -> Detector:
+    def create(self, validated_data) -> Detector:
         if validated_data.get("environment") is not None:
             environment = Environment.get_or_create(
                 project=self.context["project"],
@@ -368,7 +362,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
             interval_seconds=validated_data["interval_seconds"],
             timeout_ms=validated_data["timeout_ms"],
             name=validated_data["name"],
-            status=validated_data.get("status", ObjectStatus.ACTIVE),
+            status=validated_data.get("status"),
             mode=validated_data.get("mode", UptimeMonitorMode.MANUAL),
             owner=validated_data.get("owner"),
             trace_sampling=validated_data.get("trace_sampling", False),
@@ -389,7 +383,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
 
         return detector
 
-    def update(self, instance: Detector, data: dict[str, Any]) -> Detector:
+    def update(self, instance: Detector, data) -> Detector:
         uptime_subscription = get_uptime_subscription(instance)
 
         url = data["url"] if "url" in data else uptime_subscription.url
@@ -549,7 +543,7 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
     def validate_mode(self, mode: int) -> UptimeMonitorMode:
         return _validate_mode(mode, self.context["request"])
 
-    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+    def validate(self, attrs):
         attrs = super().validate(attrs)
 
         headers = []
@@ -576,7 +570,7 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
         return attrs
 
     @override
-    def create_source(self, validated_data: dict[str, Any]) -> UptimeSubscription:
+    def create_source(self, validated_data) -> UptimeSubscription:
         with atomic_transaction(using=(router.db_for_write(UptimeSubscription),)):
             uptime_subscription = create_uptime_subscription(
                 url=validated_data["url"],
@@ -617,7 +611,7 @@ class UptimeDomainCheckFailureConfigValidator(CamelSnakeSerializer):
     )
     mode = serializers.IntegerField(required=False, default=UptimeMonitorMode.MANUAL)
 
-    def bind(self, field_name: str, parent: BaseSerializer[Any, Any]) -> None:
+    def bind(self, field_name: str, parent) -> None:
         super().bind(field_name, parent)
         if not parent:
             return
@@ -626,7 +620,7 @@ class UptimeDomainCheckFailureConfigValidator(CamelSnakeSerializer):
         if parent.instance and hasattr(parent.instance, field_name):
             self.instance = getattr(parent.instance, field_name)
 
-    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+    def validate(self, attrs):
         """
         Handle mode validation and automatic mode switching.
 
@@ -710,7 +704,7 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
         return value
 
     @override
-    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+    def validate(self, attrs):
         attrs = super().validate(attrs)
 
         # Always enforce the correct uptime conditions - these are fixed for all
@@ -733,7 +727,7 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
         return attrs
 
     @override
-    def create(self, validated_data: dict[str, Any]) -> Detector:
+    def create(self, validated_data) -> Detector:
         detector = super().create(validated_data)
 
         try:
@@ -746,7 +740,7 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
         return detector
 
     @override
-    def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
+    def update(self, instance: Detector, validated_data) -> Detector:
         # Prevent condition_group updates. These are set on creation and can't be modified by users
         validated_data.pop("condition_group", None)
 
@@ -774,7 +768,7 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
 
         return instance
 
-    def update_data_source(self, instance: Detector, data_source: dict[str, Any]) -> Detector:
+    def update_data_source(self, instance: Detector, data_source) -> Detector:
         subscription = get_uptime_subscription(instance)
         update_uptime_subscription(
             detector=instance,
