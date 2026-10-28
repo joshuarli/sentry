@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import TypedDict, cast
 
@@ -9,6 +9,7 @@ from sentry.api.serializers import Serializer, register
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
+from sentry.models.organization import Organization
 from sentry.models.savedsearch import SORT_LITERALS
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
@@ -42,8 +43,8 @@ class GroupSearchViewSerializerResponse(TypedDict):
 
 @register(GroupSearchView)
 class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
-    def __init__(self, *args, **kwargs) -> None:
-        self.organization = kwargs.pop("organization", None)
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        self.organization = cast(Organization | None, kwargs.pop("organization", None))
         super().__init__(*args, **kwargs)
 
     def get_attrs(
@@ -98,7 +99,7 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
     def serialize(
         self,
         obj: GroupSearchView,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> GroupSearchViewSerializerResponse:
@@ -106,7 +107,7 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
 
         return {
             "id": str(obj.id),
-            "createdBy": attrs.get("created_by"),
+            "createdBy": cast(UserSerializerResponse | None, attrs.get("created_by")),
             "name": obj.name,
             "query": obj.query,
             # Model choices constrain query_sort to SortOptions values, which
@@ -115,9 +116,9 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
             "projects": projects,
             "environments": obj.environments,
             "timeFilters": obj.time_filters,
-            "lastVisited": attrs.get("last_visited", None),
-            "starred": attrs.get("starred", False),
-            "stars": attrs.get("stars", 0),
+            "lastVisited": cast(datetime | None, attrs.get("last_visited", None)),
+            "starred": cast(bool, attrs.get("starred", False)),
+            "stars": cast(int, attrs.get("stars", 0)),
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
         }

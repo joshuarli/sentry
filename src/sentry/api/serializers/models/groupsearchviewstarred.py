@@ -1,6 +1,6 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import TypedDict
+from typing import TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -10,6 +10,7 @@ from sentry.api.serializers.models.groupsearchview import (
     GroupSearchViewSerializerResponse,
 )
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
+from sentry.models.organization import Organization
 from sentry.models.savedsearch import SORT_LITERALS
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -30,8 +31,8 @@ class GroupSearchViewStarredSerializerResponse(TypedDict):
 
 @register(GroupSearchViewStarred)
 class GroupSearchViewStarredSerializer(Serializer[GroupSearchViewStarredSerializerResponse]):
-    def __init__(self, *args, **kwargs) -> None:
-        self.organization = kwargs.pop("organization", None)
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        self.organization = cast(Organization | None, kwargs.pop("organization", None))
         super().__init__(*args, **kwargs)
 
     def get_attrs(
@@ -51,19 +52,19 @@ class GroupSearchViewStarredSerializer(Serializer[GroupSearchViewStarredSerializ
     def serialize(
         self,
         obj: GroupSearchViewStarred,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> GroupSearchViewStarredSerializerResponse:
         return {
-            "id": attrs["id"],
-            "name": attrs["name"],
-            "query": attrs["query"],
-            "querySort": attrs["querySort"],
-            "projects": attrs["projects"],
-            "environments": attrs["environments"],
-            "timeFilters": attrs["timeFilters"],
-            "lastVisited": attrs["lastVisited"],
-            "dateCreated": attrs["dateCreated"],
-            "dateUpdated": attrs["dateUpdated"],
+            "id": cast(str, attrs["id"]),
+            "name": cast(str, attrs["name"]),
+            "query": cast(str, attrs["query"]),
+            "querySort": cast(SORT_LITERALS, attrs["querySort"]),
+            "projects": cast(list[int], attrs["projects"]),
+            "environments": cast(list[str], attrs["environments"]),
+            "timeFilters": cast(dict[str, object], attrs["timeFilters"]),
+            "lastVisited": cast(datetime | None, attrs["lastVisited"]),
+            "dateCreated": cast(datetime | None, attrs["dateCreated"]),
+            "dateUpdated": cast(datetime, attrs["dateUpdated"]),
         }
