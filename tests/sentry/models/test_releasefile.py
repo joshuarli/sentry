@@ -206,6 +206,7 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
         def f():
             sleep(initial_delay * self.tick)
             with _ArtifactIndexGuard(self.release, None).writable_data(create=create) as data:
+                assert data is not None
                 sleep(locked_delay * self.tick)
                 data.update_files(files)
 
@@ -254,6 +255,7 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
         dist = None
 
         with _ArtifactIndexGuard(release, dist).writable_data(create=True) as data:
+            assert data is not None
             data.update_files({"0": 0})
 
         update1 = self._create_update_fn(0, 2, {"foo": "bar"}, create=False)
