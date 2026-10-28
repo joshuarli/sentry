@@ -79,7 +79,7 @@ metadata = IntegrationMetadata(
 
 
 class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._client = None
 
@@ -104,11 +104,11 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
     def get_client(self) -> Any:
         return self.client
 
-    def get_one_lambda_function(self, name: str):
+    def get_one_lambda_function(self, name):
         # https://boto3.amazonaws.com/v1/documentation/api/1.22.12/reference/services/lambda.html
         return self.client.get_function(FunctionName=name)["Configuration"]
 
-    def get_serialized_lambda_function(self, name: str):
+    def get_serialized_lambda_function(self, name):
         function = self.get_one_lambda_function(name)
         return self.serialize_lambda_function(function)
 
@@ -158,7 +158,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         return [self.serialize_lambda_function(function) for function in functions]
 
     @wrap_lambda_updater()
-    def enable_function(self, target: str):
+    def enable_function(self, target):
         function = self.get_one_lambda_function(target)
         config_data = self.get_config_data()
         project_id = config_data["default_project_id"]
@@ -170,7 +170,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         return self.get_serialized_lambda_function(target)
 
     @wrap_lambda_updater()
-    def disable_function(self, target: str):
+    def disable_function(self, target):
         function = self.get_one_lambda_function(target)
         layer_arn = get_latest_layer_for_function(function)
 
@@ -179,7 +179,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         return self.get_serialized_lambda_function(target)
 
     @wrap_lambda_updater()
-    def update_function_to_latest_version(self, target: str):
+    def update_function_to_latest_version(self, target):
         function = self.get_one_lambda_function(target)
         layer_arn = get_latest_layer_for_function(function)
 

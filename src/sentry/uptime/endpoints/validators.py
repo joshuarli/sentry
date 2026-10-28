@@ -45,7 +45,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     update_uptime_detector,
     update_uptime_subscription,
 )
-from sentry.uptime.types import CheckConfig, UptimeMonitorMode
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.audit import create_audit_entry
@@ -235,7 +235,7 @@ class UptimeCheckPreviewValidator(UptimeValidatorBase):
     def validate_headers(self, headers: object) -> object:
         return _validate_headers(headers)
 
-    def create(self, validated_data) -> CheckConfig:
+    def create(self, validated_data):
         region_config = get_region_config(get_active_regions()[0].slug)
         assert region_config is not None
         return checker_api.create_preview_check(validated_data, region_config)
@@ -343,7 +343,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
     def validate_mode(self, mode: int) -> UptimeMonitorMode:
         return _validate_mode(mode, self.context["request"])
 
-    def create(self, validated_data) -> Detector:
+    def create(self, validated_data):
         if validated_data.get("environment") is not None:
             environment = Environment.get_or_create(
                 project=self.context["project"],
@@ -611,7 +611,7 @@ class UptimeDomainCheckFailureConfigValidator(CamelSnakeSerializer):
     )
     mode = serializers.IntegerField(required=False, default=UptimeMonitorMode.MANUAL)
 
-    def bind(self, field_name: str, parent) -> None:
+    def bind(self, field_name, parent):
         super().bind(field_name, parent)
         if not parent:
             return

@@ -497,7 +497,7 @@ class GitlabIntegration(
     def get_group_id(self):
         return self.model.metadata["group_id"]
 
-    def search_projects(self, query: str | None):
+    def search_projects(self, query):
         client = self.get_client()
         group_id = self.get_group_id()
         return client.search_projects(group_id, query)
@@ -678,7 +678,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
             force=True,
         )
 
-    def get_group_info(self, access_token: str, installation_data):
+    def get_group_info(self, access_token, installation_data):
         client = GitLabSetupApiClient(
             base_url=installation_data["url"],
             access_token=access_token,
