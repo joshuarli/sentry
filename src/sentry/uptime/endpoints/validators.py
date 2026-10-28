@@ -9,6 +9,7 @@ from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.fields import URLField
 from rest_framework.request import Request
+from rest_framework.serializers import BaseSerializer
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_SUCCESS,
@@ -548,7 +549,7 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
     def validate_mode(self, mode: int) -> UptimeMonitorMode:
         return _validate_mode(mode, self.context["request"])
 
-    def validate(self, attrs: dict[str, Any]):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         attrs = super().validate(attrs)
 
         headers = []
@@ -616,7 +617,7 @@ class UptimeDomainCheckFailureConfigValidator(CamelSnakeSerializer):
     )
     mode = serializers.IntegerField(required=False, default=UptimeMonitorMode.MANUAL)
 
-    def bind(self, field_name, parent):
+    def bind(self, field_name: str, parent: BaseSerializer[Any, Any]) -> None:
         super().bind(field_name, parent)
         if not parent:
             return
@@ -773,7 +774,7 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
 
         return instance
 
-    def update_data_source(self, instance: Detector, data_source: dict[str, Any]):
+    def update_data_source(self, instance: Detector, data_source: dict[str, Any]) -> Detector:
         subscription = get_uptime_subscription(instance)
         update_uptime_subscription(
             detector=instance,
