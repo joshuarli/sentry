@@ -803,9 +803,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         return jira_projects
 
     @all_silo_function
-    def get_create_issue_config(
-        self, group: Group | None, user: User | RpcUser, **kwargs: Any
-    ):
+    def get_create_issue_config(self, group: Group | None, user: User | RpcUser, **kwargs: Any):
         """
         We use the `group` to get three things: organization_slug, project
         defaults, and default title and description. In the case where we're
@@ -993,7 +991,7 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         return fields
 
-    def create_issue(self, data: dict[str, Any], **kwargs: Any):
+    def create_issue(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
         Get the (cached) "createmeta" from Jira to use as a "schema". Clean up
         the Jira issue by removing all fields that aren't enumerated by this
