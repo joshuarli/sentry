@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 from typing import Any, NotRequired, TypedDict
 
@@ -164,7 +164,7 @@ class BaseEventSerializerResponse(TypedDict):
     location: str | None
     user: EventUserApiContext | None
     tags: list[EventTag]
-    platform: str
+    platform: str | None
     dateReceived: datetime | None
     contexts: dict[str, Any] | None
     size: int | None
@@ -317,7 +317,13 @@ class EventSerializer(Serializer):
             and ".frames." not in name
         )
 
-    def serialize(self, obj, attrs, user, **kwargs) -> EventSerializerResponse:
+    def serialize(
+        self,
+        obj: Event | GroupEvent,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> EventSerializerResponse:
         from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
 
         errors = [
