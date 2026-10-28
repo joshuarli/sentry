@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from operator import attrgetter
 from typing import Any, NamedTuple, NoReturn, TypedDict
 
@@ -541,7 +541,9 @@ class JiraIntegration(IssueSyncIntegration):
 
         return audit_data or None
 
-    def _filter_active_projects(self, project_mappings: QuerySet[IntegrationExternalProject]):
+    def _filter_active_projects(
+        self, project_mappings: QuerySet[IntegrationExternalProject]
+    ) -> list[IntegrationExternalProject]:
         client = self.get_client()
         if features.has("organizations:jira-paginated-project-config", self.organization):
             project_ids = [pm.external_id for pm in project_mappings]
@@ -710,13 +712,14 @@ class JiraIntegration(IssueSyncIntegration):
         # Copied because the mapping dict assembled below is only for the response; the stored
         # value of this key is a bool.
         config = dict(self.org_integration.config)
-        project_mappings = IntegrationExternalProject.objects.filter(
+        project_mappings_query = IntegrationExternalProject.objects.filter(
             organization_integration_id=self.org_integration.id
         )
+        project_mappings: Iterable[IntegrationExternalProject] = project_mappings_query
         sync_status_forward = {}
 
         try:
-            project_mappings = self._filter_active_projects(project_mappings)
+            project_mappings = self._filter_active_projects(project_mappings_query)
         except ApiError as e:
             logger.info(
                 "jira.get-config-data.filter-active-projects-failed",
@@ -779,7 +782,7 @@ class JiraIntegration(IssueSyncIntegration):
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project", "issuetype", "priority", "labels"]
 
-    def get_persisted_user_default_config_fields(self):
+    def get_persisted_user_default_config_fields(self) -> list[str]:
         return ["reporter"]
 
     def get_persisted_ignored_fields(self):
@@ -843,7 +846,7 @@ class JiraIntegration(IssueSyncIntegration):
                 output.extend(["", "{code}", body, "{code}"])
         return "\n".join(output)
 
-    def get_client(self):
+    def get_client(self) -> JiraCloudClient:
         logging_context = {"org_id": self.organization_id}
 
         if self.organization_id is not None:

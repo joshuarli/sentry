@@ -71,7 +71,7 @@ class JiraCloudClient(ApiClient):
             logging_context=logging_context,
         )
 
-    def finalize_request(self, prepared_request: PreparedRequest):
+    def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         assert prepared_request.url is not None
         assert prepared_request.method is not None
         path = prepared_request.url[len(self.base_url) :]
@@ -95,19 +95,19 @@ class JiraCloudClient(ApiClient):
     def get_cache_prefix(self) -> str:
         return "sentry-jira-2:"
 
-    def user_id_get_param(self):
+    def user_id_get_param(self) -> str:
         """
         Jira-Cloud requires GDPR compliant API usage so we have to use accountId
         """
         return "accountId"
 
-    def user_id_field(self):
+    def user_id_field(self) -> str:
         """
         Jira-Cloud requires GDPR compliant API usage so we have to use accountId
         """
         return "accountId"
 
-    def user_query_param(self):
+    def user_query_param(self) -> str:
         """
         Jira-Cloud requires GDPR compliant API usage so we have to use query
         """
@@ -223,7 +223,7 @@ class JiraCloudClient(ApiClient):
         data = {"type": "badge", "value": {"label": badge_num}}
         return self.put(self.PROPERTIES_URL % (issue_key, properties_key), data=data)
 
-    def get_email(self, account_id):
+    def get_email(self, account_id: str) -> str | None:
         user = self.get_cached(self.EMAIL_URL, params={"accountId": account_id})
         return user.get("email")
 
