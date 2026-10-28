@@ -74,6 +74,7 @@ Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compi
 - `1f24219b986` refactor(typing): type ExternalEventSerializer response contract (ExternalEventSerializerResponse TypedDict; tags list[EventTag]; user and-narrowing mirrored on sibling SimpleEvent pattern; 1 file, 20+/4-; 2 mypy findings repaired)
 - `885ff9818bc` refactor(typing): type SharedEventSerializer serialize params (mirrors base contract; dict[str, Any] return per in-body annotation and latestEvent consumer; 1 file, 7+/1-; override ignore per SharedGroup subset precedent)
 - `d3d703abb7f` refactor(typing): type IssueEventSerializer helpers and serialize params (user-report/sdk-updates/resolved-with contracts vs wrap_event_response consumer; _get_resolved_with widened off Event annotation-only; 1 file, 12+/4-)
+- `c98c1e22a44` refactor(typing): type SqlFormatEventSerializer helpers and params (get_attrs user narrowing; _format user widening over unused param; _get_release_info event union + version fallback; 1 file, 21+/6-)
 
 Deferred with named dependencies (not dropped): GroupSeenSerializer stays untyped (no callers; endpoint builds the payload manually); release.py GroupEvent slice parked (pre-existing Author-alias valid-type errors plus unreachable-code findings in-file; needs shared-alias repair with repo-wide verification); CommitSerializer class-level parameterization (explicit-serializer call sites unaudited); Dashboard list get_attrs user narrowing and event get_entries user contract (need service-backed tests proving anonymous-equivalence); map_device_class_tags precision (heterogeneous tag-dict shapes need a shared mapping protocol); SimpleEventSerializer get_attrs (bind_nodes demands Sequence[Event] while the serializer contract accepts GroupEvent; needs eventstore contract audit first).
 
@@ -357,3 +358,5 @@ No next source wave is selected. On resume, repair the Corrective checkpoint def
 2026-10-28 — Wave `885ff98` (SharedEventSerializer serialize params mirroring base + dict[str, Any] return per latestEvent consumer; group serializer tests require snuba, provisional). Continuing.
 
 2026-10-28 — Wave `d3d703a` (IssueEventSerializer helpers + serialize params vs wrap_event_response consumer; endpoint tests require snuba, provisional). Continuing with SqlFormat helpers and release serializers.
+
+2026-10-28 — Wave `c98c1e2` (SqlFormatEventSerializer get_attrs/helper/serialize params vs organization_event_details consumer; tests require snuba, provisional). Continuing with release serializers.
