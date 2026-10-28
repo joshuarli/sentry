@@ -45,10 +45,12 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
+from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
+from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -464,7 +466,7 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         return configuration
 
-    def update_organization_config(self, data) -> None:
+    def update_organization_config(self, data):
         """
         Update the configuration field for an organization integration.
         """
@@ -556,7 +558,9 @@ class JiraServerIntegration(IssueSyncIntegration):
             metadata=self.model.metadata,
         )
 
-    def get_link_issue_config(self, group: Group, **kwargs) -> list[IntegrationIssueConfigField]:
+    def get_link_issue_config(
+        self, group: Group, **kwargs: object
+    ) -> list[IntegrationIssueConfigField]:
         fields = super().get_link_issue_config(group, **kwargs)
         org = group.organization
         autocomplete_url = reverse(
@@ -601,7 +605,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         return self.org_integration.config.get(self.issues_ignored_fields_key, [])
 
     def get_group_description(
-        self, group: Group, event, **kwargs
+        self, group: Group, event: GroupEvent | None, **kwargs: object
     ) -> str:
         output = [
             "Sentry Issue: [{}|{}]".format(
@@ -622,7 +626,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             raise IntegrationFormError({"externalIssue": "Invalid Jira issue URL"})
         return {"externalIssue": key.upper()}
 
-    def get_issue(self, issue_id: str, **kwargs):
+    def get_issue(self, issue_id: str, **kwargs: object) -> dict[str, object]:
         """
         Jira installation's implementation of IssueSyncIntegration's `get_issue`.
         """
@@ -637,7 +641,9 @@ class JiraServerIntegration(IssueSyncIntegration):
             "metadata": {PROVIDER_ISSUE_ID_KEY: issue.get("id")},
         }
 
-    def create_comment(self, issue_id: int | str, user_id: int, group_note):
+    def create_comment(
+        self, issue_id: int | str, user_id: int, group_note: Activity
+    ) -> dict[str, object]:
         # https://jira.atlassian.com/secure/WikiRendererHelpAction.jspa?section=texteffects
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
@@ -649,13 +655,15 @@ class JiraServerIntegration(IssueSyncIntegration):
         attribution = f"{user.name} wrote:\n\n"
         return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
-    def update_comment(self, issue_id: int | str, user_id: int, group_note):
+    def update_comment(
+        self, issue_id: int | str, user_id: int, group_note: Activity
+    ) -> dict[str, object]:
         quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
         return self.get_client().update_comment(
             issue_id, group_note.data["external_id"], quoted_comment
         )
 
-    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+    def search_issues(self, query: str | None, **kwargs: object) -> dict[str, Any]:
         assert query is not None, "search_issues requires a query string"
         try:
             resp = self.get_client().search_issues(query)
@@ -685,7 +693,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             results.append((key, value))
         return results
 
-    def error_message_from_json(self, data) -> str:
+    def error_message_from_json(self, data):
         message = ""
         if data.get("errorMessages"):
             message = " ".join(data["errorMessages"])
@@ -706,7 +714,7 @@ class JiraServerIntegration(IssueSyncIntegration):
     def search_url(self, org_slug: str) -> str:
         return reverse("sentry-extensions-jiraserver-search", args=[org_slug, self.model.id])
 
-    def build_dynamic_field(self, field_meta, group: Group | None = None):
+    def build_dynamic_field(self, field_meta, group=None):
         """
         Builds a field based on Jira's meta field information
         """
@@ -774,7 +782,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         fkwargs["type"] = fieldtype
         return fkwargs
 
-    def get_projects(self, cached: bool = True):
+    def get_projects(self, cached=True):
         client = self.get_client()
         no_projects_error_message = "Could not fetch project list from Jira Server. Ensure that Jira Server is available and your account is still active."
         try:
@@ -1387,7 +1395,12 @@ class JiraServerIntegration(IssueSyncIntegration):
             should_unresolve=c_from in done_statuses and c_to not in done_statuses,
         )
 
-    def after_link_issue(self, external_issue: ExternalIssue, data=None, **kwargs) -> None:
+    def after_link_issue(
+        self,
+        external_issue: ExternalIssue,
+        data: Mapping[str, str] | None = None,
+        **kwargs: object,
+    ) -> None:
         super().after_link_issue(external_issue, **kwargs)
 
         if data:
@@ -1463,7 +1476,13 @@ class JiraServerIntegrationProvider(IntegrationProvider):
             },
         }
 
-    def create_webhook(self, external_id: str, webhook_secret: str, install, credentials) -> None:
+    def create_webhook(
+        self,
+        external_id: str,
+        webhook_secret: str,
+        install: InstallationConfigData,
+        credentials: Mapping[str, str],
+    ) -> None:
         client = JiraServerSetupClient(
             install["url"], install["consumer_key"], install["private_key"], install["verify_ssl"]
         )
