@@ -636,7 +636,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             "metadata": {PROVIDER_ISSUE_ID_KEY: issue.get("id")},
         }
 
-    def create_comment(self, issue_id: str, user_id: int, group_note: Any) -> Any:
+    def create_comment(self, issue_id: int | str, user_id: int, group_note: Any) -> Any:
         # https://jira.atlassian.com/secure/WikiRendererHelpAction.jspa?section=texteffects
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
@@ -648,7 +648,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         attribution = f"{user.name} wrote:\n\n"
         return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
-    def update_comment(self, issue_id: str, user_id: int, group_note: Any) -> Any:
+    def update_comment(self, issue_id: int | str, user_id: int, group_note: Any) -> Any:
         quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
         return self.get_client().update_comment(
             issue_id, group_note.data["external_id"], quoted_comment
