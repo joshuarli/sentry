@@ -98,7 +98,7 @@ class ReleaseFile(Model):
         app_label = "sentry"
         db_table = "sentry_releasefile"
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         from sentry.models.distribution import Distribution
 
         if not self.ident and self.name:
@@ -108,7 +108,7 @@ class ReleaseFile(Model):
             self.ident = type(self).get_ident(self.name, dist)
         return super().save(*args, **kwargs)
 
-    def update(self, *args, **kwargs):
+    def update(self, *args: Any, **kwargs: Any) -> int:
         # If our name is changing, we must also change the ident
         if "name" in kwargs and "ident" not in kwargs:
             dist_name = None
@@ -246,7 +246,7 @@ class _ArtifactIndexData:
 class _ArtifactIndexGuard:
     """Ensures atomic write operations to the artifact index"""
 
-    def __init__(self, release: Release, dist: Distribution | None, **filter_args):
+    def __init__(self, release: Release, dist: Distribution | None, **filter_args: Any) -> None:
         self._release = release
         self._dist = dist
         self._ident = ReleaseFile.get_ident(
