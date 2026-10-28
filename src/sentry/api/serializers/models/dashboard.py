@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
 from urllib.parse import urlencode
 
 import sentry_sdk
@@ -152,13 +152,13 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
         return result
 
     def get_explore_urls(
-        self, obj: DashboardWidget, attrs
+        self, obj: DashboardWidget, attrs: Mapping[str, object]
     ) -> list[str]:
         from sentry.explore.translation.dashboards_translation import (
             translate_dashboard_widget_queries,
         )
 
-        transaction_queries = attrs["queries"]
+        transaction_queries = cast(Sequence[Mapping[str, object]], attrs["queries"])
         urls = []
 
         for q_index, transaction_query in enumerate(transaction_queries):
@@ -577,12 +577,13 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
         self,
         item_list: Sequence[Dashboard],
         user: User | RpcUser | AnonymousUser,
-        **kwargs,
+        **kwargs: object,
     ) -> dict[Dashboard, _Widget]:
         item_dict = {i.id: i for i in item_list}
         prefetch_related_objects(item_list, "projects__organization")
 
-        organization = (kwargs.get("context") or {}).get("organization")
+        context = cast(Mapping[str, object], kwargs.get("context") or {})
+        organization = context.get("organization")
         use_user_last_visited = organization is not None and features.has(
             "organizations:dashboards-user-last-visited", organization, actor=user
         )

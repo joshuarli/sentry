@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import TypedDict
+from typing import TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count
@@ -54,7 +54,7 @@ class BroadcastSerializer(Serializer[BroadcastSerializerResponse]):
     def serialize(
         self,
         obj: Broadcast,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> BroadcastSerializerResponse:
@@ -67,7 +67,7 @@ class BroadcastSerializer(Serializer[BroadcastSerializerResponse]):
             "isActive": obj.is_active,
             "dateCreated": obj.date_added,
             "dateExpires": obj.date_expires,
-            "hasSeen": attrs["seen"],
+            "hasSeen": cast(bool, attrs["seen"]),
             "category": obj.category,
         }
 
@@ -95,13 +95,13 @@ class AdminBroadcastSerializer(BroadcastSerializer):
     def serialize(
         self,
         obj: Broadcast,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> AdminBroadcastSerializerResponse:
         context: AdminBroadcastSerializerResponse = {
             **super().serialize(obj, attrs, user),
-            "userCount": attrs["user_count"],
+            "userCount": cast(int, attrs["user_count"]),
             "createdBy": obj.created_by_id.email if obj.created_by_id else None,
             "upstreamId": obj.upstream_id,
             "syncLocked": obj.sync_locked,

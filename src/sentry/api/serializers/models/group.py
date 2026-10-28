@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, Literal, Protocol, TypedDict, TypeGuard
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypedDict, TypeGuard, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -1144,9 +1144,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
         item_list: Sequence[Group],
         start: datetime | None = None,
         end: datetime | None = None,
-        conditions=None,
+        conditions: Sequence[Sequence[object]] | None = None,
         environment_ids: list[int] | None = None,
-    ):
+    ) -> dict[str, object]:
         project_ids = list({item.project_id for item in item_list})
         group_ids = [item.id for item in item_list]
         aggregations = [
@@ -1180,9 +1180,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
         item_list: Sequence[Group],
         start: datetime | None = None,
         end: datetime | None = None,
-        conditions=None,
+        conditions: Sequence[Sequence[object]] | None = None,
         environment_ids: list[int] | None = None,
-    ):
+    ) -> dict[str, object]:
         project_ids = list({item.project_id for item in item_list})
         group_ids = [item.id for item in item_list]
         aggregations = [
@@ -1212,7 +1212,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
     @staticmethod
     def _parse_seen_stats_results(
-        result,
+        result: Mapping[str, object],
         item_list: Sequence[Group],
         use_result_first_seen_times_seen: bool,
         environment_ids: list[int] | None = None,
@@ -1221,7 +1221,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
             issue["group_id"]: fix_tag_value_data(
                 dict(filter(lambda key: key[0] != "group_id", issue.items()))
             )
-            for issue in result["data"]
+            for issue in cast("Sequence[Mapping[str, object]]", result["data"])
         }
         user_counts = {item_id: value["count"] for item_id, value in seen_data.items()}
         last_seen = {item_id: value["last_seen"] for item_id, value in seen_data.items()}

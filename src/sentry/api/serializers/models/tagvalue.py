@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import cast
 
 from django.contrib.auth.models import AnonymousUser
@@ -30,10 +30,10 @@ class UserTagValueSerializer(Serializer):
     def serialize(
         self,
         obj: GroupTagValue,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
-    ):
+    ) -> dict[str, object]:
         result: dict[str, object] = {}
         if isinstance(attrs["user"], EventUser):
             result = cast(dict[str, object], attrs["user"].serialize())
