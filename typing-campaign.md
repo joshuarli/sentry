@@ -98,6 +98,7 @@ Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compi
 - `325d1a00c86` refactor(typing): narrow remaining serializer user and attrs params (onboarding/chunk/trace; unused in bodies; 3 files, 20+/3-; 52 tests green)
 - `f02c781cf0a` refactor(typing): narrow trace attribute value serializer params (sibling contract; 1 file, 10+/1-; 29 tests green serially)
 - `1718d596fd0` refactor(typing): type group release serializer contracts (registry dispatch deterministic; fixes in-body key annotation; 1 file, 55+/12-; 21 tests green)
+- `b7e3fa300bb` refactor(typing): type explore and starred search view contracts (user union + adapter; explicit subset; 2 files, 69+/25-; 129 tests green)
 - `e942d522a34` refactor(typing): type uptime validator entry contracts (repairs parked lane on current tree; monitor create/update split out; 1 file, 13+/6-; 33 tests green)
 - `234eca0c89f` refactor(typing): type uptime monitor create and update (validated-data contracts; status fallback made explicit; 1 file, 3+/3-; 42 tests green)
 - `3398be4e89f` refactor(typing): finish uptime validator contracts (DataSource validate/bind; Detector return correction; 1 file, 4+/3-; 42 tests green)
@@ -442,6 +443,8 @@ No next source wave is selected. On resume, repair the Corrective checkpoint def
 2026-10-28 — Trace attribute value sibling: `f02c781` (same unused-params pattern). Continuing with the next interface group.
 
 2026-10-28 — Group release serializers typed: `1718d59` (single-consumer contracts; deterministic registry dispatch). Continuing with the next interface group.
+
+2026-10-28 — Explore and starred search views typed: `b7e3fa3` (user contract; explicit subset instead of subtyping). Continuing with the next interface group.
 
 2026-10-28 — Parked uptime lane repaired: `e942d52` (entry contracts on current tree; monitor create/update split out). Continuing with the next interface group.
 
