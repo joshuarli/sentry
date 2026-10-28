@@ -116,7 +116,7 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
 
     # IntegrationInstallation methods
 
-    def error_message_from_json(self, data):
+    def error_message_from_json(self, data: Mapping[str, Any]) -> str:
         return data.get("error", {}).get("message", "unknown error")
 
     # RepositoryIntegration methods
@@ -317,7 +317,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
                 "expect_exists": True,
             }
 
-    def setup(self):
+    def setup(self) -> None:
         from sentry.plugins.base import bindings
 
         bindings.add(
