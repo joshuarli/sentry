@@ -168,7 +168,9 @@ def _get_authors_metadata(
     return result
 
 
-def _get_last_commit_metadata(item_list, user):
+def _get_last_commit_metadata(
+    item_list: Sequence[Release], user: User | RpcUser | AnonymousUser
+) -> dict[Release, dict[str, Any]]:
     """
     Returns a dictionary of release_id => commit metadata,
     where each commit metadata dict contains last_commit.
@@ -187,7 +189,7 @@ def _get_last_commit_metadata(item_list, user):
     else:
         commits = {}
 
-    result = {}
+    result: dict[Release, dict[str, Any]] = {}
     for item in item_list:
         result[item] = {
             "last_commit": commits.get(item.last_commit_id),
@@ -195,7 +197,9 @@ def _get_last_commit_metadata(item_list, user):
     return result
 
 
-def _get_last_deploy_metadata(item_list, user):
+def _get_last_deploy_metadata(
+    item_list: Sequence[Release], user: User | RpcUser | AnonymousUser
+) -> dict[Release, dict[str, Any]]:
     """
     Returns a dictionary of release_id => deploy metadata,
     where each commit metadata dict contains last_deploy
@@ -215,7 +219,7 @@ def _get_last_deploy_metadata(item_list, user):
     else:
         deploys = {}
 
-    result = {}
+    result: dict[Release, dict[str, Any]] = {}
     for item in item_list:
         result[item] = {"last_deploy": deploys.get(item.last_deploy_id)}
     return result
@@ -736,13 +740,18 @@ class GroupEventReleaseSerializer(Serializer):
     The minimal representation of a release necessary for group events
     """
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[Release],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[Release, dict[str, Any]]:
         last_commit_metadata_attrs = _get_last_commit_metadata(item_list, user)
         deploy_metadata_attrs = _get_last_deploy_metadata(item_list, user)
 
-        result = {}
+        result: dict[Release, dict[str, Any]] = {}
         for item in item_list:
-            p = {}
+            p: dict[str, Any] = {}
             p.update(last_commit_metadata_attrs[item])
             p.update(deploy_metadata_attrs[item])
 
