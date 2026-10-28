@@ -348,7 +348,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
     def validate_mode(self, mode: int) -> UptimeMonitorMode:
         return _validate_mode(mode, self.context["request"])
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> Detector:
         if validated_data.get("environment") is not None:
             environment = Environment.get_or_create(
                 project=self.context["project"],
@@ -367,7 +367,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
             interval_seconds=validated_data["interval_seconds"],
             timeout_ms=validated_data["timeout_ms"],
             name=validated_data["name"],
-            status=validated_data.get("status"),
+            status=validated_data.get("status", ObjectStatus.ACTIVE),
             mode=validated_data.get("mode", UptimeMonitorMode.MANUAL),
             owner=validated_data.get("owner"),
             trace_sampling=validated_data.get("trace_sampling", False),
@@ -388,7 +388,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
 
         return detector
 
-    def update(self, instance: Detector, data):
+    def update(self, instance: Detector, data: dict[str, Any]) -> Detector:
         uptime_subscription = get_uptime_subscription(instance)
 
         url = data["url"] if "url" in data else uptime_subscription.url
