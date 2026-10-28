@@ -926,7 +926,7 @@ class JiraIntegration(IssueSyncIntegration):
                 "There was an error updating a comment on the Jira issue."
             ) from e
 
-    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+    def search_issues(self, query: str | None, **kwargs: Any) -> dict[str, Any]:
         assert query is not None, "search_issues requires a query string"
         try:
             resp = self.get_client().search_issues(query)
