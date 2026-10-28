@@ -64,7 +64,7 @@ class JiraServerClient(ApiClient):
         integration: RpcIntegration | Integration,
         identity: RpcIdentity,
         logging_context: Any | None = None,
-    ):
+    ) -> None:
         self.base_url = integration.metadata["base_url"]
         self.identity = identity
         super().__init__(
@@ -104,10 +104,10 @@ class JiraServerClient(ApiClient):
     def user_query_param(self) -> str:
         return "username"
 
-    def get_issue(self, issue_id):
+    def get_issue(self, issue_id: str):
         return self.get(self.ISSUE_URL % (issue_id,))
 
-    def search_issues(self, query):
+    def search_issues(self, query: str):
         issue_key = parse_jira_issue_key(query, self.base_url)
         if issue_key is not None:
             # the key pattern cannot contain a quote, so it needs no escaping
@@ -120,10 +120,10 @@ class JiraServerClient(ApiClient):
             params={"jql": jql, "startAt": 0, "maxResults": 20, "fields": "summary"},
         )
 
-    def create_comment(self, issue_key, comment):
+    def create_comment(self, issue_key: str, comment: str):
         return self.post(self.COMMENTS_URL % issue_key, data={"body": comment})
 
-    def update_comment(self, issue_key, comment_id, comment):
+    def update_comment(self, issue_key: str, comment_id: str, comment: str):
         return self.put(self.COMMENT_URL % (issue_key, comment_id), data={"body": comment})
 
     def get_projects_list(self, cached: bool = True):
@@ -131,11 +131,11 @@ class JiraServerClient(ApiClient):
             return self.get(self.PROJECT_URL)
         return self.get_cached(self.PROJECT_URL)
 
-    def get_issue_types(self, project_id):
+    def get_issue_types(self, project_id: str):
         # Get a list of issue types for the given project
         return self.get_cached(self.ISSUE_TYPES_URL % (project_id))
 
-    def get_issue_fields(self, project_id, issue_type_id):
+    def get_issue_fields(self, project_id: str, issue_type_id: str):
         # Get a list of fields for the issue type and project
         return self.get_cached(self.ISSUE_FIELDS_URL % (project_id, issue_type_id))
 
@@ -148,7 +148,7 @@ class JiraServerClient(ApiClient):
                 return project["key"]
         return ""
 
-    def get_versions(self, project):
+    def get_versions(self, project: str):
         return self.get_cached(self.VERSIONS_URL % project)
 
     def get_priorities(self):
@@ -169,23 +169,23 @@ class JiraServerClient(ApiClient):
         """
         return self.get_cached(self.PRIORITIES_URL)
 
-    def search_users_for_project(self, project, username):
+    def search_users_for_project(self, project: str, username: str):
         # Jira Server wants a project key, while cloud is indifferent.
         project_key = self.get_project_key_for_id(project)
         return self.get_cached(
             self.USERS_URL, params={"project": project_key, self.user_query_param(): username}
         )
 
-    def search_users_for_issue(self, issue_key, email):
+    def search_users_for_issue(self, issue_key: str, email: str):
         return self.get_cached(
             self.USERS_URL, params={"issueKey": issue_key, self.user_query_param(): email}
         )
 
-    def get_user(self, user_id):
+    def get_user(self, user_id: str):
         user_id_get_param = self.user_id_get_param()
         return self.get_cached(self.USER_URL, params={user_id_get_param: user_id})
 
-    def create_issue(self, raw_form_data):
+    def create_issue(self, raw_form_data: Mapping[str, object]):
         data = {"fields": raw_form_data}
         return self.post(self.CREATE_URL, data=data)
 
@@ -195,25 +195,25 @@ class JiraServerClient(ApiClient):
     def get_valid_statuses(self):
         return self.get_cached(self.STATUS_URL)
 
-    def get_transitions(self, issue_key):
+    def get_transitions(self, issue_key: str):
         return self.get_cached(self.TRANSITION_URL % issue_key)["transitions"]
 
-    def transition_issue(self, issue_key, transition_id):
+    def transition_issue(self, issue_key: str, transition_id: str):
         return self.post(
             self.TRANSITION_URL % issue_key, data={"transition": {"id": transition_id}}
         )
 
-    def assign_issue(self, key, name_or_account_id):
+    def assign_issue(self, key: str, name_or_account_id: str | None):
         user_id_field = self.user_id_field()
         return self.put(self.ASSIGN_URL % key, data={user_id_field: name_or_account_id})
 
-    def set_issue_property(self, issue_key, badge_num):
+    def set_issue_property(self, issue_key: str, badge_num):
         module_key = "sentry-issues-glance"
         properties_key = f"com.atlassian.jira.issue:{JIRA_KEY}:{module_key}:status"
         data = {"type": "badge", "value": {"label": badge_num}}
         return self.put(self.PROPERTIES_URL % (issue_key, properties_key), data=data)
 
-    def get_field_autocomplete(self, name, value):
+    def get_field_autocomplete(self, name: str, value: str):
         if name.startswith(CUSTOMFIELD_PREFIX):
             # Transform `customfield_0123` into `cf[0123]`
             cf_id = name[len(CUSTOMFIELD_PREFIX) :]
@@ -243,7 +243,7 @@ class JiraServerSetupClient(ApiClient):
     @control_silo_function
     def __init__(
         self, base_url: str, consumer_key: str, private_key: str, verify_ssl: bool = True
-    ):
+    ) -> None:
         self.base_url = base_url
         self.consumer_key = consumer_key
         self.private_key = private_key
@@ -288,7 +288,9 @@ class JiraServerSetupClient(ApiClient):
         resp = self.post(url, auth=auth, allow_text=True)
         return dict(parse_qsl(resp.text))
 
-    def create_issue_webhook(self, external_id, secret, credentials):
+    def create_issue_webhook(
+        self, external_id: str, secret: str, credentials: Mapping[str, str]
+    ):
         auth = OAuth1(
             client_key=credentials["consumer_key"],
             rsa_key=credentials["private_key"],
