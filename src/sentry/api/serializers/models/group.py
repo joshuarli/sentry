@@ -501,11 +501,7 @@ class GroupSerializerBase(Serializer, ABC):
             return False
         return key in self.collapse
 
-    def _get_status(
-        self, attrs: Mapping[str, Any], obj: Group
-    ) -> tuple[GroupStatusDetailsResponseOptional, GroupStatusStr]:
-        status = obj.status
-        status_details: GroupStatusDetailsResponseOptional = {}
+    def _get_status(self, attrs: Mapping[str, Any], obj: Group):
         status = obj.status
         status_details = {}
         if attrs["ignore_until"]:
@@ -1088,9 +1084,12 @@ class GroupSerializerSnuba(GroupSerializerBase):
         if search_filters is not None:
             for search_filter in search_filters:
                 if search_filter.key.name not in self.skip_snuba_fields:
-                    formatted_conditions, projects_to_filter, group_ids = format_search_filter(
-                        search_filter,
-                        params=snuba_params,
+                    formatted_conditions, projects_to_filter, group_ids = cast(
+                        "tuple[list[Sequence[object]], list[int], list[int] | None]",
+                        format_search_filter(
+                            search_filter,
+                            params=snuba_params,
+                        ),
                     )
 
                     # if no re-formatted conditions, use fallback method
@@ -1098,9 +1097,12 @@ class GroupSerializerSnuba(GroupSerializerBase):
                     if formatted_conditions:
                         new_condition = formatted_conditions[0]
                     elif group_ids:
-                        new_condition = convert_search_filter_to_snuba_query(
-                            search_filter,
-                            params=snuba_params,
+                        new_condition = cast(
+                            "Sequence[Sequence[object]] | None",
+                            convert_search_filter_to_snuba_query(
+                                search_filter,
+                                params=snuba_params,
+                            ),
                         )
 
                     if new_condition:
@@ -1160,18 +1162,21 @@ class GroupSerializerSnuba(GroupSerializerBase):
         if environment_ids:
             filters["environment"] = environment_ids
 
-        return aliased_query(
-            dataset=Dataset.Events,
-            start=start,
-            end=end,
-            groupby=["group_id"],
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            condition_resolver=get_snuba_column_name,
-            referrer="serializers.GroupSerializerSnuba._execute_error_seen_stats_query",
-            tenant_ids=(
-                {"organization_id": item_list[0].project.organization_id} if item_list else None
+        return cast(
+            dict[str, object],
+            aliased_query(
+                dataset=Dataset.Events,
+                start=start,
+                end=end,
+                groupby=["group_id"],
+                conditions=conditions,
+                filter_keys=filters,
+                aggregations=aggregations,
+                condition_resolver=get_snuba_column_name,
+                referrer="serializers.GroupSerializerSnuba._execute_error_seen_stats_query",
+                tenant_ids=(
+                    {"organization_id": item_list[0].project.organization_id} if item_list else None
+                ),
             ),
         )
 
@@ -1195,18 +1200,21 @@ class GroupSerializerSnuba(GroupSerializerBase):
         if environment_ids:
             filters["environment"] = environment_ids
 
-        return aliased_query(
-            dataset=Dataset.IssuePlatform,
-            start=start,
-            end=end,
-            groupby=["group_id"],
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            condition_resolver=get_snuba_column_name,
-            referrer="serializers.GroupSerializerSnuba._execute_generic_seen_stats_query",
-            tenant_ids=(
-                {"organization_id": item_list[0].project.organization_id} if item_list else None
+        return cast(
+            dict[str, object],
+            aliased_query(
+                dataset=Dataset.IssuePlatform,
+                start=start,
+                end=end,
+                groupby=["group_id"],
+                conditions=conditions,
+                filter_keys=filters,
+                aggregations=aggregations,
+                condition_resolver=get_snuba_column_name,
+                referrer="serializers.GroupSerializerSnuba._execute_generic_seen_stats_query",
+                tenant_ids=(
+                    {"organization_id": item_list[0].project.organization_id} if item_list else None
+                ),
             ),
         )
 
@@ -1218,8 +1226,11 @@ class GroupSerializerSnuba(GroupSerializerBase):
         environment_ids: list[int] | None = None,
     ) -> dict[Group, SeenStats]:
         seen_data = {
-            issue["group_id"]: fix_tag_value_data(
-                dict(filter(lambda key: key[0] != "group_id", issue.items()))
+            cast(int, issue["group_id"]): cast(
+                dict[str, object],
+                fix_tag_value_data(
+                    {k: v for k, v in issue.items() if k != "group_id"}
+                ),
             )
             for issue in cast("Sequence[Mapping[str, object]]", result["data"])
         }
@@ -1245,10 +1256,10 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
         seen_stats: dict[Group, SeenStats] = {
             item: {
-                "times_seen": times_seen.get(item.id, 0),
-                "first_seen": first_seen.get(item.id),
-                "last_seen": last_seen.get(item.id),
-                "user_count": user_counts.get(item.id, 0),
+                "times_seen": cast(int, times_seen.get(item.id, 0)),
+                "first_seen": cast("datetime | None", first_seen.get(item.id)),
+                "last_seen": cast("datetime | None", last_seen.get(item.id)),
+                "user_count": cast(int, user_counts.get(item.id, 0)),
             }
             for item in item_list
         }
