@@ -284,7 +284,7 @@ class EventSerializer(Serializer):
     def get_attrs(
         self,
         item_list: Sequence[Event | GroupEvent],
-        user: Any,
+        user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> dict[Event | GroupEvent, dict[str, Any]]:
         is_public = kwargs.pop("is_public", False)
