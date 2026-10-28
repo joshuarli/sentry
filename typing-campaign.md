@@ -115,6 +115,7 @@ Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compi
 - `6175c477aad` refactor(typing): type release file serializer contracts; delete dead UserRollbackSerializer (sha1 nullable per column; encode helper split out; 45 tests green)
 - `937a75b069e` refactor(typing): type access request and codeowner serializer contracts (registry-backed nested responses; None-key guard; 2 files, 55+/9-; 54 tests green)
 - `f42813515fb` refactor(typing): type remaining paginator entry points (opaque/generic results; ChainPaginator split out on value-domain question; 1 file, 10+/3-; 51 tests green)
+- `67237bbc5fe` refactor(typing): type release details queryset helpers (explicit kwargs; date-query TypedDict; 1 file, 55+/33-; 48 tests green)
 - `9a4eff1d69b` refactor(typing): type project stats, options, and release helpers (get_stats split out on dataset overloads; 1 file, 6+/5-; 65 tests green serially)
 - `e2c5b412373` refactor(typing): type jira client and integration contracts (clean cherry-pick; ApiClient base split out; 2 files, 14+/11-; 80 tests green)
 - `e7346e52dd4` refactor(typing): type jira server client params (verifier narrowing declined on live None path; 1 file, 21+/19-; 72 tests green)
@@ -484,6 +485,8 @@ No next source wave is selected. On resume, repair the Corrective checkpoint def
 2026-10-28 — Access request and codeowner serializers typed: `937a75b` (registry-backed nested responses; None-key guard). Continuing with the next interface group.
 
 2026-10-28 — Remaining paginator entry points typed: `f428135` (ChainPaginator split out on int-cursor validation question). Continuing with the next interface group.
+
+2026-10-28 — Release details queryset helpers typed: `67237bb` (explicit kwargs; date-query TypedDict). Continuing with the next interface group.
 
 2026-10-28 — Project helpers typed: `9a4eff1` (get_stats split out on dataset overloads). Continuing with the next interface group.
 
