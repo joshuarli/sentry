@@ -111,6 +111,7 @@ Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compi
 - `45848f11eae` refactor(typing): type tag value and tombstone serializer contracts (tombstone response; None-key lookups split out; 2 files, 48+/7-; 15 tests green serially)
 - `6175c477aad` refactor(typing): type release file serializer contracts; delete dead UserRollbackSerializer (sha1 nullable per column; encode helper split out; 45 tests green)
 - `937a75b069e` refactor(typing): type access request and codeowner serializer contracts (registry-backed nested responses; None-key guard; 2 files, 55+/9-; 54 tests green)
+- `1e9753fc67b` refactor(typing): type release index data and stream protocol details (nullable-yield guard; get_or_create assert; protocol match; 2 files, 18+/14-; 16 tests green)
 - `dbf118c2c1e` fix(tests): pin admin broadcast creator email contract (previously untested Admin path; 1 file, 11+/0-)
 - `4ade7ff1e9f` refactor(typing): type broadcast serializer contracts (response TypedDicts; user unions; relation-named created_by_id stands; 1 file, 62+/11-; 25 tests green)
 
@@ -466,6 +467,8 @@ No next source wave is selected. On resume, repair the Corrective checkpoint def
 2026-10-28 — Release file serializer typed + dead UserRollbackSerializer deleted (no registry entry, callers, or tests): `6175c47`. Continuing with the next interface group.
 
 2026-10-28 — Access request and codeowner serializers typed: `937a75b` (registry-backed nested responses; None-key guard). Continuing with the next interface group.
+
+2026-10-28 — Release index data and stream protocol details typed: `1e9753f` (nullable-yield guard; assert documents the create-path invariant). Continuing with the next interface group.
 
 2026-10-28 — Broadcast serializers typed: `4ade7ff` (suspected created_by_id defect disproven by relation-name evidence + repro test `dbf118c`; response contracts; user unions). Continuing with the next interface group.
 
