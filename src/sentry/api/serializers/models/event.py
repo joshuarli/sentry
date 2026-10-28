@@ -258,7 +258,9 @@ class EventSerializer(Serializer):
 
         return (message, meta_with_chunks(message, msg_meta))
 
-    def _get_user_report(self, user, event):
+    def _get_user_report(
+        self, user: User | RpcUser | AnonymousUser, event: Event | GroupEvent
+    ) -> UserReportSerializerResponse | None:
         try:
             user_report = UserReport.objects.get(
                 event_id=event.event_id, project_id=event.project_id
@@ -567,10 +569,10 @@ class IssueEventSerializer(SqlFormatEventSerializer):
         is_public = kwargs.pop("is_public", False)
         return super().get_attrs(item_list, user, is_public=is_public, **kwargs)
 
-    def _get_sdk_updates(self, obj):
+    def _get_sdk_updates(self, obj: Event | GroupEvent) -> list[dict[str, Any]]:
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
 
-    def _get_resolved_with(self, obj: Event) -> list[str]:
+    def _get_resolved_with(self, obj: Event | GroupEvent) -> list[str]:
         stacktraces = find_stacktraces_in_data(obj.data)
 
         frame_lists = [stacktrace.get_frames() for stacktrace in stacktraces]
@@ -585,7 +587,13 @@ class IssueEventSerializer(SqlFormatEventSerializer):
 
         return list(unique_resolution_methods)
 
-    def serialize(self, obj, attrs, user, **kwargs) -> IssueEventSerializerResponse:
+    def serialize(
+        self,
+        obj: Event | GroupEvent,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> IssueEventSerializerResponse:
         result = super().serialize(obj, attrs, user, **kwargs)
 
         return {
