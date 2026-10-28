@@ -758,7 +758,13 @@ class GroupEventReleaseSerializer(Serializer):
             result[item] = p
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs) -> GroupEventReleaseSerializerResponse:
+    def serialize(
+        self,
+        obj: Release,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> GroupEventReleaseSerializerResponse:
         return {
             "id": obj.id,
             "commitCount": obj.commit_count,
