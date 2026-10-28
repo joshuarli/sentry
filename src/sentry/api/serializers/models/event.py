@@ -715,7 +715,13 @@ class ExternalEventSerializer(EventSerializer):
     should be used for Integrations that need to include event data.
     """
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self,
+        obj: Event | GroupEvent,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser | None,
+        **kwargs: Any,
+    ):
         from sentry.notifications.utils import get_notification_group_title
 
         tags = [{"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags]
@@ -725,7 +731,7 @@ class ExternalEventSerializer(EventSerializer):
                 tag["query"] = query
         map_device_class_tags(tags)
 
-        user = obj.get_minimal_user()
+        minimal_user = obj.get_minimal_user()
 
         return {
             "groupID": str(obj.group_id) if obj.group_id else None,
@@ -737,7 +743,7 @@ class ExternalEventSerializer(EventSerializer):
             "title": get_notification_group_title(obj.group, obj, 1024),
             "location": obj.location,
             "culprit": obj.culprit,
-            "user": user and user.get_api_context(),
+            "user": minimal_user and minimal_user.get_api_context(),
             "tags": tags,
             "platform": obj.platform,
             "datetime": obj.datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
