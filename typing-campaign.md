@@ -442,6 +442,8 @@ No next source wave is selected. On resume, repair the Corrective checkpoint def
 
 2026-10-28 — SimpleEventSerializer serialize params: `7fa8670` (event family complete except transaction floats). Continuing with the next interface group.
 
+2026-10-28 — Transaction float payload question resolved by experiment, no code change: Relay rejects transactions without start_timestamp (`invalid transaction event: start_timestamp hard-required`), so the float response contract is enforced upstream and the `.get()` None case is unreachable on the transaction path. `__serialize_transaction_attrs` stays as-is deliberately; coercing a default would be dead code for the checker. Continuing with the next interface group.
+
 2026-10-28 — Audit log entry serializer typed: `9de1067` (response vs typed registry; helpers stay file-private). Continuing with the next interface group.
 
 2026-10-28 — Broadcast serializers typed: `4ade7ff` (suspected created_by_id defect disproven by relation-name evidence + repro test `dbf118c`; response contracts; user unions). Continuing with the next interface group.
