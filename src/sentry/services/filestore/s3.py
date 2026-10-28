@@ -40,10 +40,9 @@ import mimetypes
 import os
 import posixpath
 import threading
-from datetime import datetime
 from gzip import GzipFile
 from io import BytesIO
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 from urllib import parse as urlparse
 
 from boto3.session import Session
@@ -67,7 +66,7 @@ else:
     _S3Boto3StorageFileBase = File
 
 
-def _get_thread_local_session() -> Session:
+def _get_thread_local_session():
     try:
         return _thread_local_connection.session
     except AttributeError:
@@ -75,8 +74,7 @@ def _get_thread_local_session() -> Session:
         return rv
 
 
-def resource(*args: Any, **kwargs: Any) -> Any:
-    # boto3 ships no stubs; the resource handle stays opaque.
+def resource(*args, **kwargs):
     return _get_thread_local_session().resource(*args, **kwargs)
 
 
@@ -136,13 +134,7 @@ class S3Boto3StorageFile(_S3Boto3StorageFileBase):
     #       BufferedIO streams in the Python 2.6 io module.
     buffer_size = 5242880
 
-    def __init__(
-        self,
-        name: str,
-        mode: str,
-        storage: S3Boto3Storage,
-        buffer_size: int | None = None,
-    ) -> None:
+    def __init__(self, name, mode, storage, buffer_size=None):
         self._storage = storage
         self.name = name[len(self._storage.location) :].lstrip("/")
         self._mode = mode
@@ -158,8 +150,7 @@ class S3Boto3StorageFile(_S3Boto3StorageFileBase):
         #     self.obj.load()
         self._is_dirty = False
         self._file: BytesIO | GzipFile | None = None
-        # boto3 ships no stubs, so the multipart handle stays dynamic.
-        self._multipart: Any = None
+        self._multipart = None
         # 5 MB is the minimum part size (if there is more than one part).
         # Amazon allows up to 10,000 parts.  The default supports uploads
         # up to roughly 50 GB.  Increase the part size to accommodate
@@ -169,11 +160,11 @@ class S3Boto3StorageFile(_S3Boto3StorageFileBase):
         self._write_counter = 0
 
     @property
-    def size(self) -> int:
+    def size(self):
         return self.obj.content_length
 
-    @property  # type: ignore[override]  # buffered in-memory file replaces the base plain attribute
-    def file(self) -> BytesIO | GzipFile | None:
+    @property
+    def file(self):
         if self._file is None:
             with metrics.timer("filestore.read", instance="s3"):
                 self._file = BytesIO()
@@ -186,15 +177,15 @@ class S3Boto3StorageFile(_S3Boto3StorageFileBase):
         return self._file
 
     @file.setter
-    def file(self, value: BytesIO | GzipFile | None) -> None:
+    def file(self, value):
         self._file = value
 
-    def read(self, *args: Any, **kwargs: Any) -> bytes:
+    def read(self, *args, **kwargs):
         if "r" not in self._mode:
             raise AttributeError("File was not opened in read mode.")
         return super().read(*args, **kwargs)
 
-    def write(self, content: bytes | str) -> int:  # type: ignore[override]  # accepts str via force_bytes coercion
+    def write(self, content):
         if "w" not in self._mode:
             raise AttributeError("File was not opened in write mode.")
         self._is_dirty = True
@@ -214,29 +205,25 @@ class S3Boto3StorageFile(_S3Boto3StorageFileBase):
         return super().write(force_bytes(content))
 
     @property
-    def _buffer_file_size(self) -> int:
-        buf = self.file
-        assert buf is not None
-        pos = buf.tell()
-        buf.seek(0, os.SEEK_END)
-        length = buf.tell()
-        buf.seek(pos)
+    def _buffer_file_size(self):
+        pos = self.file.tell()
+        self.file.seek(0, os.SEEK_END)
+        length = self.file.tell()
+        self.file.seek(pos)
         return length
 
-    def _flush_write_buffer(self) -> None:
+    def _flush_write_buffer(self):
         """
         Flushes the write buffer.
         """
         if self._buffer_file_size:
             self._write_counter += 1
-            buf = self.file
-            assert buf is not None
-            buf.seek(0)
+            self.file.seek(0)
             assert self._multipart is not None
             part = self._multipart.Part(self._write_counter)
-            part.upload(Body=buf.read())
+            part.upload(Body=self.file.read())
 
-    def close(self) -> None:
+    def close(self):
         if self._is_dirty:
             self._flush_write_buffer()
             assert self._multipart is not None
@@ -313,9 +300,7 @@ class S3Boto3Storage(Storage):
     region_name: str | None = None
     use_ssl = True
 
-    def __init__(
-        self, acl: str | None = None, bucket: str | None = None, **settings: object
-    ) -> None:
+    def __init__(self, acl=None, bucket=None, **settings):
         # check if some of the settings we've provided as class attributes
         # need to be overwritten with values passed in here
         for name, value in settings.items():
@@ -335,7 +320,7 @@ class S3Boto3Storage(Storage):
         if self.secure_urls:
             self.url_protocol = "https:"
 
-        self._entries: dict[str, Any] = {}
+        self._entries = {}
         self._bucket = None
         self._connection = None
 
@@ -349,8 +334,7 @@ class S3Boto3Storage(Storage):
             )
 
     @property
-    def connection(self) -> Any:
-        # boto3 ships no stubs; the connection handle stays opaque.
+    def connection(self):
         # TODO: Support host, port like in s3boto
         # Note that proxies are handled by environment variables that the underlying
         # urllib/requests libraries read. See https://github.com/boto/boto3/issues/338
@@ -375,8 +359,7 @@ class S3Boto3Storage(Storage):
         return self._connection
 
     @property
-    def bucket(self) -> Any:
-        # boto3 ships no stubs; the Bucket handle stays opaque.
+    def bucket(self):
         """
         Get the current bucket. If there is no current bucket object
         create it.
@@ -386,7 +369,7 @@ class S3Boto3Storage(Storage):
         return self._bucket
 
     @property
-    def entries(self) -> dict[str, Any]:
+    def entries(self):
         """
         Get the locally cached files for the bucket.
         """
@@ -415,8 +398,7 @@ class S3Boto3Storage(Storage):
         secret_key = self.secret_key or lookup_env(self.secret_key_names)
         return access_key, secret_key
 
-    def _get_or_create_bucket(self, name: str | None) -> Any:
-        # boto3 ships no stubs; the Bucket handle stays opaque.
+    def _get_or_create_bucket(self, name):
         """
         Retrieves a bucket if it exists, otherwise creates it.
         """
@@ -499,7 +481,7 @@ class S3Boto3Storage(Storage):
             raise  # Let it bubble up if it was some other error
         return f
 
-    def _save(self, name: str, content: File[bytes]) -> str:
+    def _save(self, name, content):
         with metrics.timer("filestore.save", instance="s3"):
             cleaned_name = self._clean_name(name)
             name = self._normalize_name(cleaned_name)
@@ -511,9 +493,8 @@ class S3Boto3Storage(Storage):
             # setting the content_type in the key object is not enough.
             parameters.update({"ContentType": content_type})
 
-            upload_content: File[bytes] | BytesIO = content
             if self.gzip and content_type in self.gzip_content_types:
-                upload_content = self._compress_content(content)
+                content = self._compress_content(content)
                 parameters.update({"ContentEncoding": "gzip"})
 
             encoded_name = self._encode_name(name)
@@ -521,15 +502,12 @@ class S3Boto3Storage(Storage):
             if self.preload_metadata:
                 self._entries[encoded_name] = obj
 
-            self._save_content(obj, upload_content, parameters=parameters)
+            self._save_content(obj, content, parameters=parameters)
             # Note: In boto3, after a put, last_modified is automatically reloaded
             # the next time it is accessed; no need to specifically reload it.
         return cleaned_name
 
-    def _save_content(
-        self, obj: Any, content: File[bytes] | BytesIO, parameters: dict[str, Any] | None
-    ) -> None:
-        # obj is a boto3 S3 Object; boto3 ships no stubs so it stays opaque.
+    def _save_content(self, obj, content, parameters):
         # only pass backwards incompatible arguments if they vary from the default
         put_parameters = parameters.copy() if parameters else {}
         if self.encryption:
@@ -541,11 +519,11 @@ class S3Boto3Storage(Storage):
         content.seek(0, os.SEEK_SET)
         obj.upload_fileobj(content, ExtraArgs=put_parameters)
 
-    def delete(self, name: str) -> None:
+    def delete(self, name):
         name = self._normalize_name(self._clean_name(name))
         self.bucket.Object(self._encode_name(name)).delete()
 
-    def exists(self, name: str) -> bool:
+    def exists(self, name):
         if not name:
             try:
                 self.bucket
@@ -562,7 +540,7 @@ class S3Boto3Storage(Storage):
         except self.connection_response_error:
             return False
 
-    def listdir(self, name: str) -> tuple[list[str], list[str]]:
+    def listdir(self, name):
         name = self._normalize_name(self._clean_name(name))
         # for the bucket.objects.filter and logic below name needs to end in /
         # But for the root path "" we leave it as an empty string
@@ -583,7 +561,7 @@ class S3Boto3Storage(Storage):
                 dirs.add(parts[0])
         return list(dirs), files
 
-    def size(self, name: str) -> int:
+    def size(self, name):
         name = self._normalize_name(self._clean_name(name))
         if self.entries:
             entry = self.entries.get(name)
@@ -592,7 +570,7 @@ class S3Boto3Storage(Storage):
             return 0
         return self.bucket.Object(self._encode_name(name)).content_length
 
-    def get_modified_time(self, name: str) -> datetime:
+    def get_modified_time(self, name):
         """
         Returns an (aware) datetime object containing the last modified time if
         USE_TZ is True, otherwise returns a naive datetime in the local timezone.
@@ -609,7 +587,7 @@ class S3Boto3Storage(Storage):
         else:
             return localtime(entry.last_modified).replace(tzinfo=None)
 
-    def modified_time(self, name: str) -> datetime:
+    def modified_time(self, name):
         """Returns a naive datetime object containing the last modified time."""
         return localtime(self.get_modified_time(name)).replace(tzinfo=None)
 
@@ -641,12 +619,7 @@ class S3Boto3Storage(Storage):
         split_url = split_url._replace(query="&".join(joined_qs))
         return split_url.geturl()
 
-    def url(  # type: ignore[override]  # backend requires a key
-        self,
-        name: str,
-        parameters: dict[str, Any] | None = None,
-        expire: int | None = None,
-    ) -> str:
+    def url(self, name, parameters=None, expire=None):
         # Preserve the trailing slash after normalizing the path.
         # TODO: Handle force_http=not self.secure_urls like in s3boto
         name = self._normalize_name(self._clean_name(name))
