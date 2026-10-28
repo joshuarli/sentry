@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any, NotRequired, TypedDict, cast
 from urllib.parse import urlparse
 
@@ -464,7 +464,7 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         return configuration
 
-    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+    def update_organization_config(self, data) -> None:
         """
         Update the configuration field for an organization integration.
         """
@@ -514,7 +514,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         if org_integration is not None:
             self.org_integration = org_integration
 
-    def get_config_data(self) -> dict[str, Any]:
+    def get_config_data(self):
         config = self.org_integration.config
         project_mappings = integration_service.get_integration_external_projects(
             organization_id=self.org_integration.organization_id,
@@ -556,7 +556,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             metadata=self.model.metadata,
         )
 
-    def get_link_issue_config(self, group: Group, **kwargs: Any) -> list[dict[str, Any]]:
+    def get_link_issue_config(self, group: Group, **kwargs) -> list[IntegrationIssueConfigField]:
         fields = super().get_link_issue_config(group, **kwargs)
         org = group.organization
         autocomplete_url = reverse(
@@ -601,7 +601,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         return self.org_integration.config.get(self.issues_ignored_fields_key, [])
 
     def get_group_description(
-        self, group: Group, event: Any, **kwargs: Any
+        self, group: Group, event, **kwargs
     ) -> str:
         output = [
             "Sentry Issue: [{}|{}]".format(
@@ -622,7 +622,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             raise IntegrationFormError({"externalIssue": "Invalid Jira issue URL"})
         return {"externalIssue": key.upper()}
 
-    def get_issue(self, issue_id: str, **kwargs: Any) -> dict[str, Any]:
+    def get_issue(self, issue_id: str, **kwargs):
         """
         Jira installation's implementation of IssueSyncIntegration's `get_issue`.
         """
@@ -637,7 +637,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             "metadata": {PROVIDER_ISSUE_ID_KEY: issue.get("id")},
         }
 
-    def create_comment(self, issue_id: int | str, user_id: int, group_note: Any) -> Any:
+    def create_comment(self, issue_id: int | str, user_id: int, group_note):
         # https://jira.atlassian.com/secure/WikiRendererHelpAction.jspa?section=texteffects
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
@@ -649,13 +649,13 @@ class JiraServerIntegration(IssueSyncIntegration):
         attribution = f"{user.name} wrote:\n\n"
         return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
-    def update_comment(self, issue_id: int | str, user_id: int, group_note: Any) -> Any:
+    def update_comment(self, issue_id: int | str, user_id: int, group_note):
         quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
         return self.get_client().update_comment(
             issue_id, group_note.data["external_id"], quoted_comment
         )
 
-    def search_issues(self, query: str | None, **kwargs: Any) -> dict[str, Any]:
+    def search_issues(self, query: str | None, **kwargs):
         assert query is not None, "search_issues requires a query string"
         try:
             resp = self.get_client().search_issues(query)
@@ -664,9 +664,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         except ApiError as e:
             self.raise_error(e)
 
-    def make_choices(
-        self, values: Sequence[Mapping[str, Any]] | None
-    ) -> list[tuple[Any, Any]]:
+    def make_choices(self, values):
         if not values:
             return []
         results = []
@@ -687,7 +685,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             results.append((key, value))
         return results
 
-    def error_message_from_json(self, data: Mapping[str, Any]) -> str:
+    def error_message_from_json(self, data) -> str:
         message = ""
         if data.get("errorMessages"):
             message = " ".join(data["errorMessages"])
@@ -698,7 +696,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             message += " ".join(f"{k}: {v}" for k, v in errors.items())
         return message
 
-    def error_fields_from_json(self, data: Mapping[str, Any]) -> dict[str, list[Any]] | None:
+    def error_fields_from_json(self, data):
         errors = data.get("errors")
         if not errors:
             return None
@@ -708,9 +706,7 @@ class JiraServerIntegration(IssueSyncIntegration):
     def search_url(self, org_slug: str) -> str:
         return reverse("sentry-extensions-jiraserver-search", args=[org_slug, self.model.id])
 
-    def build_dynamic_field(
-        self, field_meta: Mapping[str, Any], group: Group | None = None
-    ) -> dict[str, Any] | None:
+    def build_dynamic_field(self, field_meta, group: Group | None = None):
         """
         Builds a field based on Jira's meta field information
         """
@@ -778,7 +774,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         fkwargs["type"] = fieldtype
         return fkwargs
 
-    def get_projects(self, cached: bool = True) -> list[dict[str, Any]]:
+    def get_projects(self, cached: bool = True):
         client = self.get_client()
         no_projects_error_message = "Could not fetch project list from Jira Server. Ensure that Jira Server is available and your account is still active."
         try:
@@ -806,8 +802,8 @@ class JiraServerIntegration(IssueSyncIntegration):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User | RpcUser, **kwargs: Any
-    ) -> list[IntegrationIssueConfigField]:
+        self, group: Group | None, user: User | RpcUser, **kwargs
+    ):
         """
         We use the `group` to get three things: organization_slug, project
         defaults, and default title and description. In the case where we're
@@ -881,7 +877,7 @@ class JiraServerIntegration(IssueSyncIntegration):
                     "type": "blank",
                     "help": "Could not fetch issue creation metadata from Jira Server. Ensure that"
                     " the integration user has access to the requested project.",
-                },  # type: ignore[typeddict-item]  # error-display field deliberately carries no label
+                },
             ]
 
         issue_type_choices_formatted = [
@@ -998,7 +994,7 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         return fields
 
-    def create_issue(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+    def create_issue(self, data, **kwargs):
         """
         Get the (cached) "createmeta" from Jira to use as a "schema". Clean up
         the Jira issue by removing all fields that aren't enumerated by this
@@ -1391,9 +1387,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             should_unresolve=c_from in done_statuses and c_to not in done_statuses,
         )
 
-    def after_link_issue(
-        self, external_issue: ExternalIssue, data: dict[str, Any] | None = None, **kwargs: Any
-    ) -> None:
+    def after_link_issue(self, external_issue: ExternalIssue, data=None, **kwargs) -> None:
         super().after_link_issue(external_issue, **kwargs)
 
         if data:
@@ -1469,9 +1463,7 @@ class JiraServerIntegrationProvider(IntegrationProvider):
             },
         }
 
-    def create_webhook(
-        self, external_id: str, webhook_secret: str, install: dict[str, Any], credentials: dict[str, Any]
-    ) -> None:
+    def create_webhook(self, external_id: str, webhook_secret: str, install, credentials) -> None:
         client = JiraServerSetupClient(
             install["url"], install["consumer_key"], install["private_key"], install["verify_ssl"]
         )
