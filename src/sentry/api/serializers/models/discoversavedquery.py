@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from datetime import datetime
 from typing import TypedDict
 
@@ -109,7 +109,7 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
         item_list: Sequence[DiscoverSavedQuery],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
-    ):
+    ) -> defaultdict[DiscoverSavedQuery, dict[str, object]]:
         result: defaultdict[DiscoverSavedQuery, dict[str, object]] = defaultdict(
             lambda: {"created_by": {}, "explore_query": None}
         )

@@ -2,7 +2,7 @@ import re
 from collections.abc import Mapping, Sequence
 from copy import copy
 from datetime import datetime
-from typing import TypedDict
+from typing import TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
@@ -91,7 +91,7 @@ class AuditLogEntrySerializer(Serializer[AuditLogEntrySerializerResponse]):
     def serialize(
         self,
         obj: AuditLogEntry,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> AuditLogEntrySerializerResponse:
@@ -115,12 +115,12 @@ class AuditLogEntrySerializer(Serializer[AuditLogEntrySerializerResponse]):
 
         return {
             "id": str(obj.id),
-            "actor": attrs["actor"],
+            "actor": cast(dict[str, object], attrs["actor"]),
             "event": audit_log_event.api_name,
             "ipAddress": obj.ip_address,
             "note": note,
             "targetObject": obj.target_object,
-            "targetUser": attrs["targetUser"],
+            "targetUser": cast(dict[str, object] | int | None, attrs["targetUser"]),
             "data": fix(obj.data),
             "agentDelegation": agent_delegation,
             "dateCreated": obj.datetime,

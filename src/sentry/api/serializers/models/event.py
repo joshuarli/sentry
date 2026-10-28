@@ -225,9 +225,7 @@ class GroupEventDetailsResponse(IssueEventSerializerResponse):
 @register(GroupEvent)
 @register(Event)
 class EventSerializer(Serializer):
-    def _get_interface_with_meta(
-        self, event: Event | GroupEvent, name: str, is_public: bool = False
-    ):
+    def _get_interface_with_meta(self, event, name, is_public=False):
         interface = event.get_interface(name)
         if not interface:
             return (None, None)
@@ -245,14 +243,12 @@ class EventSerializer(Serializer):
 
         return (data, meta_with_chunks(data, api_meta))
 
-    def _get_attr_with_meta(
-        self, event: Event | GroupEvent, attr: str, default=None
-    ):
+    def _get_attr_with_meta(self, event, attr, default=None):
         value = event.data.get(attr, default)
         meta = get_path(event.data, "_meta", attr)
         return (value, meta_with_chunks(value, meta))
 
-    def _get_legacy_message_with_meta(self, event: Event | GroupEvent):
+    def _get_legacy_message_with_meta(self, event):
         meta = event.data.get("_meta")
 
         message: str | None = get_path(event.data, "logentry", "formatted")
@@ -283,7 +279,7 @@ class EventSerializer(Serializer):
         self,
         item_list: Sequence[Event | GroupEvent],
         user: User | RpcUser | AnonymousUser,
-        **kwargs,
+        **kwargs: object,
     ) -> dict[Event | GroupEvent, dict[str, object]]:
         is_public = bool(kwargs.pop("is_public", False))
         crash_files = get_crash_files(item_list)
@@ -317,7 +313,7 @@ class EventSerializer(Serializer):
             }
         return results
 
-    def should_display_error(self, error) -> bool:
+    def should_display_error(self, error: Mapping[str, object]) -> bool:
         name = error.get("name")
         if not isinstance(name, str):
             return True
@@ -456,7 +452,7 @@ class SqlFormatEventSerializer(EventSerializer):
         self,
         item_list: Sequence[Event | GroupEvent],
         user: User | RpcUser | AnonymousUser,
-        **kwargs,
+        **kwargs: object,
     ) -> dict[Event | GroupEvent, dict[str, object]]:
         is_public = bool(kwargs.pop("is_public", False))
         return super().get_attrs(item_list, user, is_public=is_public)
@@ -636,7 +632,7 @@ class SharedEventSerializer(EventSerializer):
         self,
         item_list: Sequence[Event | GroupEvent],
         user: User | RpcUser | AnonymousUser,
-        **kwargs,
+        **kwargs: object,
     ) -> dict[Event | GroupEvent, dict[str, object]]:
         return super().get_attrs(item_list, user, is_public=True, **kwargs)
 

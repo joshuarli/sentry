@@ -1,5 +1,5 @@
 from collections import namedtuple
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import TypedDict, cast
 
@@ -49,12 +49,12 @@ class GroupReleaseSerializer(Serializer[GroupReleaseSerializerResponse]):
     def serialize(
         self,
         obj: GroupRelease,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> GroupReleaseSerializerResponse:
         return {
-            "release": attrs["release"],
+            "release": cast(ReleaseSerializerResponse | None, attrs["release"]),
             "environment": obj.environment,
             "firstSeen": obj.first_seen,
             "lastSeen": obj.last_seen,
@@ -124,12 +124,12 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
     def serialize(
         self,
         obj: GroupRelease,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> GroupReleaseWithStatsSerializerResponse:
         data: GroupReleaseWithStatsSerializerResponse = {
             **super().serialize(obj, attrs, user),
-            "stats": attrs["stats"],
+            "stats": cast(dict[str, list[tuple[float, float]]], attrs["stats"]),
         }
         return data
