@@ -1,8 +1,8 @@
 import base64
 import uuid
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import TypedDict
+from typing import TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -91,30 +91,32 @@ class ArtifactBundlesSerializer(Serializer[ArtifactBundlesSerializerResponse]):
     def serialize(
         self,
         obj: ArtifactBundleRow,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> ArtifactBundlesSerializerResponse:
         return {
             "bundleId": str(attrs["bundle_id"]),
-            "associations": attrs["associations"],
-            "fileCount": attrs["file_count"],
-            "dateModified": self._format_date(attrs["date_last_modified"]),
-            "date": self._format_date(attrs["date_uploaded"]),
+            "associations": cast(
+                "list[ArtifactBundleAssociationResponse]", attrs["associations"]
+            ),
+            "fileCount": cast(int, attrs["file_count"]),
+            "dateModified": self._format_date(
+                cast("datetime | None", attrs["date_last_modified"])
+            ),
+            "date": self._format_date(cast("datetime | None", attrs["date_uploaded"])),
         }
 
 
 class ArtifactBundleFilesSerializer(Serializer[ArtifactBundleFilesSerializerResponse]):
-    def __init__(self, archive: ArtifactBundleArchive, *args, **kwargs: object) -> None:
+    def __init__(self, archive: ArtifactBundleArchive, *args: object, **kwargs: object) -> None:
         Serializer.__init__(self, *args, **kwargs)
         self.archive = archive
 
-    def get_attrs(
-        self, item_list, user: User | RpcUser | AnonymousUser, **kwargs: object
-    ):
+    def get_attrs(self, item_list, user, **kwargs):
         return {item: self._compute_attrs(item) for item in item_list}
 
-    def _compute_attrs(self, item) -> dict[str, object]:
+    def _compute_attrs(self, item):
         file_path = item.file_path
         info = item.info
 
@@ -131,13 +133,7 @@ class ArtifactBundleFilesSerializer(Serializer[ArtifactBundleFilesSerializerResp
             "sourcemap": sourcemap,
         }
 
-    def serialize(
-        self,
-        obj,
-        attrs,
-        user: User | RpcUser | AnonymousUser,
-        **kwargs: object,
-    ) -> ArtifactBundleFilesSerializerResponse:
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": base64.urlsafe_b64encode(attrs["file_path"].encode()).decode(),
             # In case the file type string was invalid, we return the sentinel value INVALID_SOURCE_FILE_TYPE.
