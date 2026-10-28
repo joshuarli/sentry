@@ -709,22 +709,38 @@ class SimpleEventSerializer(EventSerializer):
         }
 
 
+class ExternalEventSerializerResponse(TypedDict):
+    groupID: str | None
+    eventID: str
+    project: str
+    message: str
+    title: str
+    location: str | None
+    culprit: str | None
+    user: EventUserApiContext | None
+    tags: list[EventTag]
+    platform: str | None
+    datetime: str
+
+
 class ExternalEventSerializer(EventSerializer):
     """
     Event serializer for the minimum event data needed to send to an external service. This
     should be used for Integrations that need to include event data.
     """
 
-    def serialize(
+    def serialize(  # type: ignore[override]  # intentionally different shape
         self,
         obj: Event | GroupEvent,
         attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser | None,
         **kwargs: Any,
-    ):
+    ) -> ExternalEventSerializerResponse:
         from sentry.notifications.utils import get_notification_group_title
 
-        tags = [{"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags]
+        tags: list[EventTag] = [
+            {"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags
+        ]
         for tag in tags:
             query = convert_user_tag_to_query(tag["key"], tag["value"])
             if query:
@@ -743,7 +759,7 @@ class ExternalEventSerializer(EventSerializer):
             "title": get_notification_group_title(obj.group, obj, 1024),
             "location": obj.location,
             "culprit": obj.culprit,
-            "user": minimal_user and minimal_user.get_api_context(),
+            "user": minimal_user.get_api_context() if minimal_user is not None else None,
             "tags": tags,
             "platform": obj.platform,
             "datetime": obj.datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
