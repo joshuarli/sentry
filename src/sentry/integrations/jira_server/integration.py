@@ -1386,7 +1386,9 @@ class JiraServerIntegration(IssueSyncIntegration):
             should_unresolve=c_from in done_statuses and c_to not in done_statuses,
         )
 
-    def after_link_issue(self, external_issue, data=None, **kwargs):
+    def after_link_issue(
+        self, external_issue: ExternalIssue, data: dict[str, Any] | None = None, **kwargs: Any
+    ) -> None:
         super().after_link_issue(external_issue, **kwargs)
 
         if data:
@@ -1462,7 +1464,9 @@ class JiraServerIntegrationProvider(IntegrationProvider):
             },
         }
 
-    def create_webhook(self, external_id, webhook_secret, install, credentials):
+    def create_webhook(
+        self, external_id: str, webhook_secret: str, install: dict[str, Any], credentials: dict[str, Any]
+    ) -> None:
         client = JiraServerSetupClient(
             install["url"], install["consumer_key"], install["private_key"], install["verify_ssl"]
         )
