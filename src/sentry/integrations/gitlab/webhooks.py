@@ -208,7 +208,7 @@ class GitlabWebhook(SCMWebhook, ABC):
         return "{}:{}".format(integration.metadata["instance"], project_id)
 
     def get_repo(
-        self, integration: RpcIntegration, organization: RpcOrganization, event
+        self, integration: RpcIntegration, organization: RpcOrganization, event: Mapping[str, Any]
     ) -> Repository | None:
         """
         Given a webhook payload, get the associated Repository record.
@@ -225,7 +225,7 @@ class GitlabWebhook(SCMWebhook, ABC):
             return None
         return repo
 
-    def update_repo_data(self, repo: Repository, event) -> None:
+    def update_repo_data(self, repo: Repository, event: Mapping[str, Any]) -> None:
         """
         Given a webhook payload, update stored repo data if needed.
 
@@ -254,7 +254,7 @@ class IssuesEventWebhook(GitlabWebhook):
 
     EVENT_TYPE = IntegrationWebhookEventType.INBOUND_SYNC
 
-    def __call__(self, event, **kwargs) -> None:
+    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
         if not (
             (organization := kwargs.get("organization"))
             and (integration := kwargs.get("integration"))
@@ -467,7 +467,7 @@ class MergeEventWebhook(GitlabWebhook):
         handle_merge_request_event,
     )
 
-    def __call__(self, event, **kwargs) -> None:
+    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
         if not (
             (organization := kwargs.get("organization"))
             and (integration := kwargs.get("integration"))
@@ -615,7 +615,7 @@ class NoteEventWebhook(GitlabWebhook):
     EVENT_TYPE = IntegrationWebhookEventType.ISSUE_COMMENT
     WEBHOOK_EVENT_PROCESSORS = (handle_merge_request_note_event,)
 
-    def __call__(self, event, **kwargs) -> None:
+    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
         if not (
             (organization := kwargs.get("organization"))
             and (integration := kwargs.get("integration"))
@@ -668,7 +668,7 @@ class PushEventWebhook(GitlabWebhook):
 
     EVENT_TYPE = IntegrationWebhookEventType.PUSH
 
-    def __call__(self, event, **kwargs) -> None:
+    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
         if not (
             (organization := kwargs.get("organization"))
             and (integration := kwargs.get("integration"))

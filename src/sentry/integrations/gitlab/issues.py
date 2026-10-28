@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping, Sequence
-from typing import Any
 
 from django.urls import reverse
 
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
-from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import IntegrationIssueConfigField
 from sentry.integrations.utils.issue_url import get_issue_url_path
 from sentry.models.group import Group
@@ -41,7 +39,7 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         return ["project"]
 
     def get_projects_and_default(
-        self, group: Group | None, params, **kwargs
+        self, group: Group | None, params: Mapping[str, object], **kwargs
     ) -> tuple[str, list[tuple[str, str]]]:
         if group:
             defaults = self.get_project_defaults(group.project_id)
@@ -144,7 +142,9 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
-    def get_link_issue_config(self, group: Group, **kwargs):
+    def get_link_issue_config(
+        self, group: Group, **kwargs
+    ) -> list[IntegrationIssueConfigField]:
         params = kwargs.pop("params", {})
         default_project, project_choices = self.get_projects_and_default(group, params, **kwargs)
 
