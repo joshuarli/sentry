@@ -1,4 +1,4 @@
-from typing import Any, TypedDict
+from typing import TypedDict
 
 import sentry_sdk
 from django.db.models import Q, QuerySet
@@ -261,9 +261,7 @@ class OrganizationReleaseDetailsPaginationMixin:
         }
 
     @staticmethod
-    def __get_top_of_queryset_release_version_based_on_order_by(
-        org: Organization, proj_and_env_dict: dict[str, Any], order_by: list[str]
-    ) -> str | None:
+    def __get_top_of_queryset_release_version_based_on_order_by(org, proj_and_env_dict, order_by):
         """
         Helper function that executes a query on Release table orders that query based on `order_by`
         input provided
@@ -309,7 +307,7 @@ class OrganizationReleaseDetailsPaginationMixin:
         last_release_version = None
 
         if sort == "date":
-            proj_and_env_dict: dict[str, Any] = {"project_id": project_id}
+            proj_and_env_dict: dict[str, list[int] | list[str]] = {"project_id": project_id}
             if environment is not None:
                 proj_and_env_dict["environment"] = environment
 
