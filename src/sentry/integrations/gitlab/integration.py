@@ -170,7 +170,7 @@ class GitlabIntegration(
             return GitLabApiClient(self)
 
     # IntegrationInstallation methods
-    def error_message_from_json(self, data: Mapping[str, Any]) -> Any:
+    def error_message_from_json(self, data):
         """
         Extract error messages from gitlab API errors.
         Generic errors come in the `error` key while validation errors
@@ -494,16 +494,16 @@ class GitlabIntegration(
 
     # Gitlab only functions
 
-    def get_group_id(self) -> Any:
+    def get_group_id(self):
         return self.model.metadata["group_id"]
 
-    def search_projects(self, query: str | None) -> list[Any]:
+    def search_projects(self, query: str | None):
         client = self.get_client()
         group_id = self.get_group_id()
         return client.search_projects(group_id, query)
 
     # TODO(cathy): define in issue ABC
-    def search_issues(self, query: str | None, **kwargs: Any) -> list[dict[str, Any]]:
+    def search_issues(self, query: str | None, **kwargs) -> list[dict[str, Any]]:
         client = self.get_client()
         project_id = kwargs["project_id"]
         iids = kwargs["iids"]
@@ -678,7 +678,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
             force=True,
         )
 
-    def get_group_info(self, access_token: str, installation_data: Mapping[str, Any]) -> Any:
+    def get_group_info(self, access_token: str, installation_data):
         client = GitLabSetupApiClient(
             base_url=installation_data["url"],
             access_token=access_token,
