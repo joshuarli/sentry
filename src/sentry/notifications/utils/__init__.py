@@ -141,10 +141,11 @@ def process_serialized_committers(
         for commit in committer["commits"]:
             if commit["id"] not in commits:
                 commit_data = dict(commit)
-                commit_data["shortId"] = commit_data["id"][:7]
+                commit_data["shortId"] = cast(str, commit_data["id"])[:7]
                 commit_data["author"] = committer["author"]
+                commit_message = cast(str | None, commit_data["message"])
                 commit_data["subject"] = (
-                    commit_data["message"].split("\n", 1)[0] if commit_data["message"] else ""
+                    commit_message.split("\n", 1)[0] if commit_message else ""
                 )
                 if commit.get("pullRequest"):
                     commit_data["pull_request"] = commit["pullRequest"]

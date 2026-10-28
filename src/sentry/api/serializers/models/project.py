@@ -609,9 +609,9 @@ class ProjectSerializer(Serializer):
     def serialize(
         self,
         obj: Project,
-        attrs,
+        attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: object,
+        **kwargs: Any,
     ) -> ProjectSerializerResponse:
         status_label = STATUS_LABELS.get(obj.status, "unknown")
 
@@ -736,9 +736,9 @@ class ProjectWithTeamSerializer(ProjectSerializer):
     def serialize(
         self,
         obj: Project,
-        attrs,
+        attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: object,
+        **kwargs: Any,
     ) -> ProjectWithTeamResponseDict:
         base = super().serialize(obj, attrs, user)
         # TODO(jess): remove this when this is deprecated
@@ -859,9 +859,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
     def serialize(  # type: ignore[override]  # intentionally different data shape
         self,
         obj: Project,
-        attrs,
+        attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: object,
+        **kwargs: Any,
     ) -> OrganizationProjectResponse:
         context = OrganizationProjectResponse(
             team=attrs["teams"][0] if attrs["teams"] else None,
@@ -1103,9 +1103,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
     def serialize(
         self,
         obj: Project,
-        attrs,
+        attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: object,
+        **kwargs: Any,
     ) -> DetailedProjectResponse:
         base = super().serialize(obj, attrs, user)
 
