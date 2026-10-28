@@ -800,7 +800,7 @@ class ExternalEventSerializer(EventSerializer):
         }
 
 
-def map_device_class_tags(tags):
+def map_device_class_tags(tags: list[EventTag]) -> list[EventTag]:
     """
     If device.class tag exists, set the value to high, medium, low
     """
