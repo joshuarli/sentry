@@ -139,7 +139,14 @@ class BasePaginator:
     def value_from_cursor(self, cursor: Cursor) -> CursorValue:
         raise NotImplementedError
 
-    def get_result(self, limit=100, cursor=None, count_hits=False, known_hits=None, max_hits=None):
+    def get_result(
+        self,
+        limit: int = 100,
+        cursor: Cursor | None = None,
+        count_hits: bool = False,
+        known_hits: int | None = None,
+        max_hits: int | None = None,
+    ) -> CursorResult[object]:
         # cursors are:
         #   (identifier(integer), row offset, is_prev)
         if cursor is None:
@@ -200,7 +207,7 @@ class BasePaginator:
         if cursor.is_prev:
             results.reverse()
 
-        cursor = build_cursor(
+        result_cursor = build_cursor(
             results=results,
             limit=limit,
             hits=hits,
@@ -215,9 +222,9 @@ class BasePaginator:
         # This will reduce the number of rows returned rather than fill a full page,
         # and could result in an empty page being returned
         if self.post_query_filter:
-            cursor.results = self.post_query_filter(cursor.results)
+            result_cursor.results = self.post_query_filter(result_cursor.results)
 
-        return cursor
+        return result_cursor
 
     def count_hits(self, max_hits: int) -> int:
         return count_hits(self.queryset, max_hits)
