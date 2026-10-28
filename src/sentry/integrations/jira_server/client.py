@@ -120,10 +120,10 @@ class JiraServerClient(ApiClient):
             params={"jql": jql, "startAt": 0, "maxResults": 20, "fields": "summary"},
         )
 
-    def create_comment(self, issue_key: str, comment: str):
+    def create_comment(self, issue_key: int | str, comment: str):
         return self.post(self.COMMENTS_URL % issue_key, data={"body": comment})
 
-    def update_comment(self, issue_key: str, comment_id: str, comment: str):
+    def update_comment(self, issue_key: int | str, comment_id: str, comment: str):
         return self.put(self.COMMENT_URL % (issue_key, comment_id), data={"body": comment})
 
     def get_projects_list(self, cached: bool = True):
