@@ -7,11 +7,17 @@ from typing import Any, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
-from django.db.models import Sum
+from django.db.models import QuerySet, Sum
 
 from sentry import release_health, tagstore
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.release_details_types import Author, NonMappableUser, VersionInfo
+from sentry.api.serializers.release_details_types import (
+    Author,
+    HealthData,
+    NonMappableUser,
+    VersionInfo,
+)
+from sentry.api.serializers.release_details_types import Project as SerializedProject
 from sentry.api.serializers.types import (
     GroupEventReleaseSerializerResponse,
     ReleaseSerializerResponse,
@@ -20,9 +26,10 @@ from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
+from sentry.models.project import Project
 from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.release import Release, ReleaseStatus
-from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releaseprojectenvironment import AdoptionStage, ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.release_health.base import ReleaseHealthOverview
 from sentry.users.api.serializers.user import UserSerializerResponse
@@ -34,7 +41,7 @@ from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 
 
-def expose_version_info(info) -> VersionInfo | None:
+def expose_version_info(info: dict[str, Any] | None) -> VersionInfo | None:
     if info is None:
         return None
     version = {"raw": info["version_raw"]}
@@ -57,10 +64,10 @@ def expose_version_info(info) -> VersionInfo | None:
     }
 
 
-def _expose_health_data(data):
+def _expose_health_data(data: Mapping[str, Any] | None) -> HealthData | None:
     if not data:
         return None
-    return {
+    rv: HealthData = {
         "durationP50": data["duration_p50"],
         "durationP90": data["duration_p90"],
         "crashFreeUsers": data["crash_free_users"],
@@ -75,18 +82,19 @@ def _expose_health_data(data):
         "totalProjectSessions24h": data["total_project_sessions_24h"],
         "adoption": data["adoption"],
         "sessionsAdoption": data["sessions_adoption"],
-        "stats": data.get("stats"),
+        "stats": data.get("stats") or {},
         # XXX: legacy key, should be removed later.
         "hasHealthData": data["has_health_data"],
     }
+    return rv
 
 
-def _expose_project(project):
-    rv = {
+def _expose_project(project: _ProjectDict) -> SerializedProject:
+    rv: SerializedProject = {
         "id": project["id"],
         "slug": project["slug"],
         "name": project["name"],
-        "newGroups": project["new_groups"],
+        "newGroups": project["new_groups"] or 0,
         "platform": project["platform"],
         "platforms": project["platforms"],
         # XXX: Legacy should be removed
@@ -97,8 +105,8 @@ def _expose_project(project):
     return rv
 
 
-def _expose_current_project_meta(current_project_meta):
-    rv = {}
+def _expose_current_project_meta(current_project_meta: dict[str, Any]) -> dict[str, Any]:
+    rv: dict[str, Any] = {}
     if "sessions_lower_bound" in current_project_meta:
         rv["sessionsLowerBound"] = current_project_meta["sessions_lower_bound"]
     if "sessions_upper_bound" in current_project_meta:
@@ -413,7 +421,7 @@ def get_users_for_authors(
 
 class _ProjectDict(TypedDict):
     id: int
-    slug: str | None
+    slug: str
     name: str
     new_groups: int | None
     platform: str | None
@@ -424,7 +432,7 @@ class _ProjectDict(TypedDict):
 
 @register(Release)
 class ReleaseSerializer(Serializer):
-    def __get_project_id_list(self, item_list) -> list[int]:
+    def __get_project_id_list(self, item_list: Sequence[Release]) -> list[int]:
         project_ids = set()
         need_fallback = False
 
@@ -443,7 +451,14 @@ class ReleaseSerializer(Serializer):
             .distinct()
         )
 
-    def __get_release_data_no_environment(self, project, item_list, no_snuba_for_release_creation):
+    def __get_release_data_no_environment(
+        self,
+        project: Project | None,
+        item_list: Sequence[Release],
+        no_snuba_for_release_creation: bool | None,
+    ) -> tuple[
+        dict[str, datetime.datetime], dict[str, datetime.datetime], dict[int, dict[int, Any]]
+    ]:
         if project is not None:
             project_ids = [project.id]
             organization_id = project.organization_id
@@ -483,8 +498,10 @@ class ReleaseSerializer(Serializer):
 
         return first_seen, last_seen, group_counts_by_release
 
-    def _get_release_adoption_stages(self, release_project_envs):
-        adoption_stages: dict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
+    def _get_release_adoption_stages(
+        self, release_project_envs: QuerySet[ReleaseProjectEnvironment]
+    ) -> dict[str, dict[str, AdoptionStage]]:
+        adoption_stages: dict[str, dict[str, AdoptionStage]] = defaultdict(dict)
 
         for release_project_env in release_project_envs:
             adoption_stages[release_project_env.release.version].setdefault(
@@ -493,7 +510,11 @@ class ReleaseSerializer(Serializer):
 
         return adoption_stages
 
-    def __get_release_data_with_environments(self, release_project_envs):
+    def __get_release_data_with_environments(
+        self, release_project_envs: QuerySet[ReleaseProjectEnvironment]
+    ) -> tuple[
+        dict[str, datetime.datetime], dict[str, datetime.datetime], dict[int, dict[int, int]]
+    ]:
         first_seen: dict[str, datetime.datetime] = {}
         last_seen: dict[str, datetime.datetime] = {}
 
@@ -519,7 +540,12 @@ class ReleaseSerializer(Serializer):
 
         return first_seen, last_seen, group_counts_by_release
 
-    def _get_release_project_envs(self, item_list, environments, project):
+    def _get_release_project_envs(
+        self,
+        item_list: Sequence[Release],
+        environments: Sequence[str] | None,
+        project: Project | None,
+    ) -> QuerySet[ReleaseProjectEnvironment]:
         release_project_envs = (
             ReleaseProjectEnvironment.objects.filter(release__in=item_list)
             .select_related("release", "project")
@@ -532,7 +558,12 @@ class ReleaseSerializer(Serializer):
 
         return release_project_envs
 
-    def _get_release_project_envs_unordered(self, item_list, environments, project):
+    def _get_release_project_envs_unordered(
+        self,
+        item_list: Sequence[Release],
+        environments: Sequence[str] | None,
+        project: Project | None,
+    ) -> QuerySet[ReleaseProjectEnvironment]:
         release_project_envs = ReleaseProjectEnvironment.objects.filter(
             release__in=item_list
         ).select_related("release")
