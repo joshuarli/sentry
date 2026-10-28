@@ -501,7 +501,7 @@ class GroupSerializerBase(Serializer, ABC):
         return key in self.collapse
 
     def _get_status(
-        self, attrs, obj: Group
+        self, attrs: Mapping[str, Any], obj: Group
     ) -> tuple[GroupStatusDetailsResponseOptional, GroupStatusStr]:
         status = obj.status
         status_details: GroupStatusDetailsResponseOptional = {}

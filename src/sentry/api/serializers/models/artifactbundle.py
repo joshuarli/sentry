@@ -1,8 +1,8 @@
 import base64
 import uuid
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -105,16 +105,16 @@ class ArtifactBundlesSerializer(Serializer[ArtifactBundlesSerializerResponse]):
 
 
 class ArtifactBundleFilesSerializer(Serializer[ArtifactBundleFilesSerializerResponse]):
-    def __init__(self, archive: ArtifactBundleArchive, *args: Any, **kwargs: object) -> None:
+    def __init__(self, archive: ArtifactBundleArchive, *args, **kwargs: object) -> None:
         Serializer.__init__(self, *args, **kwargs)
         self.archive = archive
 
     def get_attrs(
-        self, item_list: Any, user: User | RpcUser | AnonymousUser, **kwargs: object
-    ) -> dict[Any, dict[str, object]]:
+        self, item_list, user: User | RpcUser | AnonymousUser, **kwargs: object
+    ):
         return {item: self._compute_attrs(item) for item in item_list}
 
-    def _compute_attrs(self, item: Any) -> dict[str, object]:
+    def _compute_attrs(self, item) -> dict[str, object]:
         file_path = item.file_path
         info = item.info
 
@@ -133,7 +133,7 @@ class ArtifactBundleFilesSerializer(Serializer[ArtifactBundleFilesSerializerResp
 
     def serialize(
         self,
-        obj: Any,
+        obj,
         attrs,
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
