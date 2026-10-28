@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from typing import Any, override
 
 import jsonschema
+from django.contrib.auth.models import AnonymousUser
 from django.db import router
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
@@ -19,6 +20,7 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.uptime import checker_api
 from sentry.uptime.models import (
     UptimeSubscription,
@@ -43,7 +45,9 @@ from sentry.uptime.subscriptions.subscriptions import (
     update_uptime_detector,
     update_uptime_subscription,
 )
-from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.types import CheckConfig, UptimeMonitorMode
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.db import atomic_transaction
 from sentry.utils.not_set import NOT_SET
@@ -152,8 +156,11 @@ def _validate_request_size(
 
 
 def _validate_check_config(
-    attrs, uptime_subscription: UptimeSubscription | None, organization, user
-):
+    attrs: dict[str, Any],
+    uptime_subscription: UptimeSubscription | None,
+    organization: Organization,
+    user: User | RpcUser | AnonymousUser | None,
+) -> None:
     validated_data = attrs
     if uptime_subscription is not None:
         validated_data = {}
@@ -213,7 +220,7 @@ class UptimeValidatorBase(CamelSnakeSerializer):
 
 @extend_schema_serializer()
 class UptimeCheckPreviewValidator(UptimeValidatorBase):
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         _validate_request_size(
             attrs.get("method", "GET"),
             attrs.get("url", ""),
@@ -233,7 +240,7 @@ class UptimeCheckPreviewValidator(UptimeValidatorBase):
     def validate_headers(self, headers: object) -> object:
         return _validate_headers(headers)
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> CheckConfig:
         region_config = get_region_config(get_active_regions()[0].slug)
         assert region_config is not None
         return checker_api.create_preview_check(validated_data, region_config)
@@ -291,7 +298,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
         help_text="Number of consecutive failed checks required to mark monitor as down.",
     )
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         # When creating a new uptime monitor, check if we would exceed the organization limit
         if not self.instance:
             organization = self.context["organization"]
