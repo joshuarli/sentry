@@ -116,6 +116,7 @@ Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compi
 - `937a75b069e` refactor(typing): type access request and codeowner serializer contracts (registry-backed nested responses; None-key guard; 2 files, 55+/9-; 54 tests green)
 - `f42813515fb` refactor(typing): type remaining paginator entry points (opaque/generic results; ChainPaginator split out on value-domain question; 1 file, 10+/3-; 51 tests green)
 - `9a4eff1d69b` refactor(typing): type project stats, options, and release helpers (get_stats split out on dataset overloads; 1 file, 6+/5-; 65 tests green serially)
+- `e2c5b412373` refactor(typing): type jira client and integration contracts (clean cherry-pick; ApiClient base split out; 2 files, 14+/11-; 80 tests green)
 - `aab5a2ddee9` refactor(typing): type group search view init kwargs (completes the file; 1 file, 1+/1-)
 - `bc351b54ad1` refactor(typing): type releasefile model lifecycle methods (save/update/guard-init; update returns base-helper row count; 1 file, 3+/3-; 10 tests green)
 - `1e9753fc67b` refactor(typing): type release index data and stream protocol details (nullable-yield guard; get_or_create assert; protocol match; 2 files, 18+/14-; 16 tests green)
@@ -484,6 +485,8 @@ No next source wave is selected. On resume, repair the Corrective checkpoint def
 2026-10-28 — Remaining paginator entry points typed: `f428135` (ChainPaginator split out on int-cursor validation question). Continuing with the next interface group.
 
 2026-10-28 — Project helpers typed: `9a4eff1` (get_stats split out on dataset overloads). Continuing with the next interface group.
+
+2026-10-28 — Parked jira lane repaired via clean cherry-pick: `e2c5b41` (client + integration contracts; ApiClient base stays split out). Continuing with the next interface group.
 
 2026-10-28 — Releasefile model methods typed: `bc351b5` (save/update/guard init; update resolves to the base-helper row count). Continuing with the next interface group.
 
