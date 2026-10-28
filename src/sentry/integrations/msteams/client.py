@@ -5,7 +5,7 @@ import time
 from abc import ABC
 from collections.abc import Mapping
 from datetime import datetime, timezone
-from typing import TypedDict
+from typing import Any, TypedDict
 from urllib.parse import urlencode
 
 from requests import PreparedRequest
@@ -38,11 +38,11 @@ class MsTeamsClientABC(ApiClient, ABC):
     CONVERSATION_URL = "/v3/conversations"
     MEMBER_URL = "/v3/conversations/%s/pagedmembers"
 
-    def get_channel_list(self, team_id: str):
+    def get_channel_list(self, team_id: str) -> Any:
         resp = self.get(self.CHANNEL_URL % team_id)
         return resp.get("conversations")
 
-    def get_member_list(self, team_id: str, continuation_token: str | None = None):
+    def get_member_list(self, team_id: str, continuation_token: str | None = None) -> Any:
         url = self.MEMBER_URL % team_id
         params: dict[str, int | str] = {"pageSize": 500}
         if continuation_token:
@@ -93,7 +93,7 @@ class MsTeamsClientABC(ApiClient, ABC):
 class MsTeamsPreInstallClient(MsTeamsClientABC):
     integration_name = IntegrationProviderSlug.MSTEAMS.value
 
-    def __init__(self, access_token: str, service_url: str):
+    def __init__(self, access_token: str, service_url: str) -> None:
         super().__init__()
         self.access_token = access_token
         self.base_url = service_url.rstrip("/")
@@ -116,7 +116,7 @@ class MsTeamsPreInstallClient(MsTeamsClientABC):
 class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
     integration_name = IntegrationProviderSlug.MSTEAMS.value
 
-    def request(self, *args, **kwargs):
+    def request(self, *args: Any, **kwargs: Any) -> Any:
         try:
             return super().request(*args, **kwargs)
         except ApiError as error:
@@ -125,7 +125,7 @@ class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
             translate_msteams_api_error(error)
             return None
 
-    def __init__(self, integration: Integration | RpcIntegration):
+    def __init__(self, integration: Integration | RpcIntegration) -> None:
         self.integration = integration
         self.metadata = self.integration.metadata
         self.base_url = self.metadata["service_url"].rstrip("/")
@@ -186,7 +186,7 @@ class OAuthMsTeamsClient(ApiClient):
         if tenant_id:
             self.base_url = f"https://login.microsoftonline.com/{tenant_id}"
 
-    def exchange_token(self):
+    def exchange_token(self) -> Any:
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         data = {
             "client_id": self.client_id,
@@ -242,5 +242,5 @@ class MsTeamsJwtClient(ApiClient):
     cache_time = 60 * 60 * 24
     OPEN_ID_CONFIG_URL = "https://login.botframework.com/v1/.well-known/openidconfiguration"
 
-    def get_open_id_config(self):
+    def get_open_id_config(self) -> Any:
         return self.get_cached(self.OPEN_ID_CONFIG_URL)
