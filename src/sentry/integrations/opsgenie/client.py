@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import Literal
+from typing import Any, Literal
 
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
@@ -53,10 +53,10 @@ class OpsgenieClient(ApiClient):
         super().__init__(integration_id=self.integration.id)
 
     @property
-    def metadata(self):
+    def metadata(self) -> Any:
         return self.integration.metadata
 
-    def _get_auth_headers(self):
+    def _get_auth_headers(self) -> dict[str, str]:
         return {"Authorization": f"GenieKey {self.integration_key}"}
 
     def get_alerts(self, limit: int | None = 1) -> object | None:
@@ -98,17 +98,17 @@ class OpsgenieClient(ApiClient):
 
     def build_issue_alert_payload(
         self,
-        data,
+        data: Event | GroupEvent,
         rules: Sequence[NotificationOrigin],
         event: Event | GroupEvent,
         group: Group | None,
         priority: OpsgeniePriority | None = "P3",
         notification_uuid: str | None = None,
-    ):
+    ) -> dict[str, Any]:
         feature_flags = format_feature_flags_detail(get_event_feature_flags(event))
         feature_flags_context = {"Feature Flags": feature_flags} if feature_flags else {}
 
-        payload = {
+        payload: dict[str, Any] = {
             "message": event.message or event.title,
             "source": "Sentry",
             "priority": priority,
@@ -148,7 +148,7 @@ class OpsgenieClient(ApiClient):
             }
         return payload
 
-    def send_notification(self, data):
+    def send_notification(self, data: dict[str, Any]) -> Any:
         headers = self._get_auth_headers()
         with record_event(OnCallInteractionType.CREATE).capture() as lifecycle:
             try:
@@ -158,7 +158,7 @@ class OpsgenieClient(ApiClient):
                 raise
 
     # TODO(iamrajjoshi): We need to delete this method during notification platform
-    def send_metric_alert_notification(self, data):
+    def send_metric_alert_notification(self, data: dict[str, Any]) -> Any:
         headers = self._get_auth_headers()
 
         # If closing an alert (when Sentry alert was resolved)
