@@ -654,7 +654,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             issue_id, group_note.data["external_id"], quoted_comment
         )
 
-    def search_issues(self, query: str | None, **kwargs):
+    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
         assert query is not None, "search_issues requires a query string"
         try:
             resp = self.get_client().search_issues(query)

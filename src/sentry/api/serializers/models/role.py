@@ -1,5 +1,5 @@
 from collections.abc import Collection, Mapping
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -63,7 +63,7 @@ class OrganizationRoleSerializer(Serializer[OrganizationRoleSerializerResponse])
         obj: OrganizationRole,
         attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
-        **kwargs,
+        **kwargs: Any,
     ) -> OrganizationRoleSerializerResponse:
         base = _serialize_base_role(
             obj, self.organization, allowed_roles=kwargs.get("allowed_roles", ())
