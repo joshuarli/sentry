@@ -348,7 +348,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         except Identity.DoesNotExist:
             raise IntegrationError("Identity not found.")
 
-    def get_organization_config(self):
+    def get_organization_config(self) -> list[_Config]:
         configuration: list[_Config] = [
             {
                 "name": self.outbound_status_key,
@@ -596,7 +596,7 @@ class JiraServerIntegration(IssueSyncIntegration):
     def get_persisted_user_default_config_fields(self) -> list[str]:
         return ["reporter"]
 
-    def get_persisted_ignored_fields(self):
+    def get_persisted_ignored_fields(self) -> list[str]:
         return self.org_integration.config.get(self.issues_ignored_fields_key, [])
 
     def get_group_description(
@@ -654,7 +654,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             issue_id, group_note.data["external_id"], quoted_comment
         )
 
-    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+    def search_issues(self, query: str | None, **kwargs: Any) -> dict[str, Any]:
         assert query is not None, "search_issues requires a query string"
         try:
             resp = self.get_client().search_issues(query)
@@ -775,7 +775,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         fkwargs["type"] = fieldtype
         return fkwargs
 
-    def get_projects(self, cached: bool = True):
+    def get_projects(self, cached: bool = True) -> list[dict[str, Any]]:
         client = self.get_client()
         no_projects_error_message = "Could not fetch project list from Jira Server. Ensure that Jira Server is available and your account is still active."
         try:
