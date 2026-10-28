@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any, NoReturn
 
 from django.urls import reverse
 
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import IntegrationIssueConfigField
 from sentry.integrations.utils.issue_url import get_issue_url_path
 from sentry.models.group import Group
@@ -54,7 +55,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User | RpcUser, **kwargs
+        self, group: Group | None, user: User | RpcUser, **kwargs: Any
     ) -> list[IntegrationIssueConfigField]:
         kwargs["link_referrer"] = "bitbucket_integration"
 
@@ -112,7 +113,9 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
             },
         ]
 
-    def get_link_issue_config(self, group: Group, **kwargs) -> list[dict[str, Any]]:
+    def get_link_issue_config(
+        self, group: Group, **kwargs: Any
+    ) -> list[dict[str, Any]]:
         params = kwargs.pop("params", {})
         default_repo, repo_choices = self.get_repository_choices(group, params)
 
@@ -156,7 +159,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
                 raise IntegrationConfigurationError(message)
         super().raise_error(exc, identity)
 
-    def create_issue(self, data, **kwargs):
+    def create_issue(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         client = self.get_client()
         if not data.get("repo"):
             raise IntegrationFormError({"repo": ["Repository is required"]})
@@ -183,7 +186,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
             raise IntegrationFormError({"externalIssue": "Invalid Bitbucket issue URL"})
         return {"repo": match[1], "externalIssue": match[2]}
 
-    def get_issue(self, issue_id, **kwargs):
+    def get_issue(self, issue_id: str, **kwargs: Any) -> dict[str, Any]:
         client = self.get_client()
         repo = kwargs["data"].get("repo")
         issue = client.get_issue(repo, issue_id)
@@ -194,10 +197,10 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
             "repo": repo,
         }
 
-    def make_external_key(self, data):
+    def make_external_key(self, data: Mapping[str, Any]) -> str:
         return "{}#{}".format(data["repo"], data["key"])
 
-    def after_link_issue(self, external_issue, **kwargs):
+    def after_link_issue(self, external_issue: ExternalIssue, **kwargs: Any) -> None:
         data = kwargs["data"]
         client = self.get_client()
 
