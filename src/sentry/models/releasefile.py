@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import logging
 import zipfile
+from collections.abc import Iterator
 from contextlib import contextmanager
 from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
 from types import TracebackType
-from typing import IO, ClassVar, Self
+from typing import IO, Any, ClassVar, Self
 from urllib.parse import urlunsplit
 
 from django.db import models, router
@@ -212,23 +213,23 @@ class ReleaseArchive:
 class _ArtifactIndexData:
     """Holds data of artifact index and keeps track of changes"""
 
-    def __init__(self, data: dict, fresh=False):
+    def __init__(self, data: dict[str, Any], fresh: bool = False) -> None:
         self._data = data
         self.changed = fresh
 
     @property
-    def data(self):
+    def data(self) -> dict[str, Any]:
         """Meant to be read-only"""
         return self._data
 
     @property
-    def num_files(self):
+    def num_files(self) -> int:
         return len(self._data.get("files", {}))
 
-    def get(self, filename: str):
+    def get(self, filename: str) -> Any:
         return self._data.get("files", {}).get(filename, None)
 
-    def update_files(self, files: dict):
+    def update_files(self, files: dict[str, Any]) -> None:
         if files:
             self._data.setdefault("files", {}).update(files)
             self.changed = True
@@ -265,7 +266,9 @@ class _ArtifactIndexGuard:
                 return json.load(fp)
 
     @contextmanager
-    def writable_data(self, create: bool, initial_artifact_count=None):
+    def writable_data(
+        self, create: bool, initial_artifact_count: int | None = None
+    ) -> Iterator[_ArtifactIndexData | None]:
         """Context manager for editable artifact index"""
         with atomic_transaction(
             using=(
@@ -400,6 +403,7 @@ def update_artifact_index(
 
     guard = _ArtifactIndexGuard(release, dist)
     with guard.writable_data(create=True, initial_artifact_count=len(files_out)) as index_data:
+        assert index_data is not None
         index_data.update_files(files_out)
 
     return releasefile

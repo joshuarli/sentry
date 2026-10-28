@@ -239,11 +239,11 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
 class _SeenStatsFunc(Protocol):
     def __call__(
         self,
-        item_list,
-        start=None,
-        end=None,
-        conditions=None,
-        environment_ids=None,
+        item_list: Sequence[Group],
+        start: datetime | None = None,
+        end: datetime | None = None,
+        conditions: Sequence[Sequence[Any]] | None = None,
+        environment_ids: list[int] | None = None,
     ) -> Mapping[str, Any]: ...
 
 
@@ -634,12 +634,12 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         return results
 
     def _seen_stats_error(
-        self, error_issue_list: Sequence[Group], user
+        self, error_issue_list: Sequence[Group], user: User | RpcUser | AnonymousUser
     ) -> Mapping[Group, SeenStats]:
         return self.__seen_stats_impl(error_issue_list, self._execute_error_seen_stats_query)
 
     def _seen_stats_generic(
-        self, generic_issue_list: Sequence[Group], user
+        self, generic_issue_list: Sequence[Group], user: User | RpcUser | AnonymousUser
     ) -> Mapping[Group, SeenStats]:
         return self.__seen_stats_impl(generic_issue_list, self._execute_generic_seen_stats_query)
 
