@@ -11,6 +11,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from sentry import features, release_health, tsdb
+from sentry.api.event_search import SearchFilter
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializerResponse
 from sentry.api.serializers.models.group import (
@@ -304,21 +305,26 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     matchingEventEnvironment: NotRequired[str | None]
 
 
+class StreamSeenStats(SeenStats):
+    filtered: SeenStats | None
+    lifetime: SeenStats | None
+
+
 class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
     def __init__(
         self,
         environment_ids: list[int] | None = None,
-        stats_period=None,
-        stats_period_start=None,
-        stats_period_end=None,
-        start=None,
-        end=None,
-        search_filters=None,
-        collapse=None,
-        expand=None,
-        organization_id=None,
-        project_ids=None,
-    ):
+        stats_period: str | None = None,
+        stats_period_start: datetime | None = None,
+        stats_period_end: datetime | None = None,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        search_filters: Sequence[SearchFilter] | None = None,
+        collapse: Sequence[str] | None = None,
+        expand: Sequence[str] | None = None,
+        organization_id: int | None = None,
+        project_ids: list[int] | None = None,
+    ) -> None:
         super().__init__(
             environment_ids,
             start,
@@ -634,7 +640,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self,
         error_issue_list: Sequence[Group],
         seen_stats_func: _SeenStatsFunc,
-    ) -> Mapping[Any, SeenStats]:
+    ) -> Mapping[Any, StreamSeenStats]:
         partial_execute_seen_stats_query = functools.partial(
             seen_stats_func,
             item_list=error_issue_list,
@@ -645,14 +651,14 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         time_range_result = self._parse_seen_stats_results(
             partial_execute_seen_stats_query(),
             error_issue_list,
-            self.start or self.end or self.conditions,
+            bool(self.start or self.end or self.conditions),
             self.environment_ids,
         )
         filtered_result = (
             self._parse_seen_stats_results(
                 partial_execute_seen_stats_query(conditions=self.conditions),
                 error_issue_list,
-                self.start or self.end or self.conditions,
+                bool(self.start or self.end or self.conditions),
                 self.environment_ids,
             )
             if self.conditions and not self._collapse("filtered")
@@ -673,14 +679,18 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             else None
         )
 
+        enriched_result: dict[Any, StreamSeenStats] = {}
         for item in error_issue_list:
-            time_range_result[item].update(
-                {
-                    "filtered": filtered_result.get(item) if filtered_result else None,
-                    "lifetime": lifetime_result.get(item) if lifetime_result else None,
-                }
+            stats = time_range_result[item]
+            enriched_result[item] = StreamSeenStats(
+                times_seen=stats["times_seen"],
+                first_seen=stats["first_seen"],
+                last_seen=stats["last_seen"],
+                user_count=stats["user_count"],
+                filtered=filtered_result.get(item) if filtered_result else None,
+                lifetime=lifetime_result.get(item) if lifetime_result else None,
             )
-        return time_range_result
+        return enriched_result
 
     def _build_session_cache_key(self, project_id):
         start_key_dt = end_key_dt = None
