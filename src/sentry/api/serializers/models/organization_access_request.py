@@ -1,5 +1,5 @@
 from collections.abc import Mapping, Sequence
-from typing import TypedDict
+from typing import TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -61,14 +61,14 @@ class OrganizationAccessRequestSerializer(Serializer[OrganizationAccessRequestSe
     def serialize(
         self,
         obj: OrganizationAccessRequest,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> OrganizationAccessRequestSerializerResponse:
         serialized_access_request: OrganizationAccessRequestSerializerResponse = {
             "id": str(obj.id),
-            "member": attrs["member"],
-            "team": attrs["team"],
-            "requester": attrs["requester"],
+            "member": cast(OrganizationMemberResponse | None, attrs["member"]),
+            "team": cast(TeamSerializerResponse | None, attrs["team"]),
+            "requester": cast(UserSerializerResponse | None, attrs["requester"]),
         }
         return serialized_access_request
