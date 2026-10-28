@@ -132,6 +132,7 @@ Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compi
 - `e7bd8840b7b` refactor(typing): type jira server config surface (matches base MutableMapping contract; 1 file, 4+/4-; 72 tests green)
 - `85474378cf5` refactor(typing): type jira server create entry points (1 file, 4+/2-; 72 tests green)
 - `8bbdad41dc9` refactor(typing): type jira server link and webhook flows (1 file, 6+/2-; 72 tests green)
+- `5f929d30fa1` refactor(typing): type jira server create entry points (-> dict[str, Any] return; 1 file, 2+/4-; 72 tests green)
 - `6466229dbcb` refactor(typing): finish jira server config surface (1 file, 4+/4-; 72 tests green)
 - `aab5a2ddee9` refactor(typing): type group search view init kwargs (completes the file; 1 file, 1+/1-)
 - `bc351b54ad1` refactor(typing): type releasefile model lifecycle methods (save/update/guard-init; update returns base-helper row count; 1 file, 3+/3-; 10 tests green)
