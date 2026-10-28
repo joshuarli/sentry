@@ -593,7 +593,7 @@ class JiraServerIntegration(IssueSyncIntegration):
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project", "issuetype", "priority", "labels"]
 
-    def get_persisted_user_default_config_fields(self):
+    def get_persisted_user_default_config_fields(self) -> list[str]:
         return ["reporter"]
 
     def get_persisted_ignored_fields(self):
@@ -775,7 +775,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         fkwargs["type"] = fieldtype
         return fkwargs
 
-    def get_projects(self, cached=True):
+    def get_projects(self, cached: bool = True):
         client = self.get_client()
         no_projects_error_message = "Could not fetch project list from Jira Server. Ensure that Jira Server is available and your account is still active."
         try:
