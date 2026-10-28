@@ -93,13 +93,13 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
         prepared_request.headers["Authorization"] = f"JWT {encoded_jwt}"
         return prepared_request
 
-    def get_issue(self, repo: str, issue_id: str) -> Any:
+    def get_issue(self, repo: str, issue_id: str):
         return self.get(BitbucketAPIPath.issue.format(repo=repo, issue_id=issue_id))
 
-    def get_workspace_hooks(self, workspace: str) -> Any:
+    def get_workspace_hooks(self, workspace: str):
         return self.get(BitbucketAPIPath.workspace_hooks.format(workspace=workspace))
 
-    def create_issue(self, repo: str, data: dict[str, Any]) -> Any:
+    def create_issue(self, repo: str, data):
         return self.post(path=BitbucketAPIPath.issues.format(repo=repo), data=data)
 
     def search_issues(self, repo: str, query: str) -> dict[str, Any]:
@@ -107,7 +107,7 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
         # https://developer.atlassian.com/bitbucket/api/2/reference/meta/filtering#supp-endpoints
         return self.get(path=BitbucketAPIPath.issues.format(repo=repo), params={"q": query})
 
-    def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> Any:
+    def create_comment(self, repo: str, issue_id: str, data):
         # Call the method as below:
         # client.create_comment('repo', '1', {"content": {"raw": "Whatever you're commenting."}})
         # https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/issues/%7Bissue_id%7D/comments#post
@@ -115,7 +115,7 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
             path=BitbucketAPIPath.issue_comments.format(repo=repo, issue_id=issue_id), data=data
         )
 
-    def get_repo(self, repo: str) -> Any:
+    def get_repo(self, repo: str):
         return self.get(BitbucketAPIPath.repository.format(repo=repo))
 
     def _get_all_from_paginated(
@@ -157,18 +157,18 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
             page_number_limit=page_number_limit,
         )
 
-    def search_repositories(self, username: str, query: str) -> Any:
+    def search_repositories(self, username: str, query: str):
         return self.get(
             path=BitbucketAPIPath.repositories.format(username=username), params={"q": query}
         )
 
-    def create_hook(self, repo: str, data: dict[str, Any]) -> Any:
+    def create_hook(self, repo: str, data):
         return self.post(path=BitbucketAPIPath.repository_hooks.format(repo=repo), data=data)
 
-    def get_hooks(self, repo: str) -> Any:
+    def get_hooks(self, repo: str):
         return self.get(path=BitbucketAPIPath.repository_hooks.format(repo=repo))
 
-    def delete_hook(self, repo: str, hook_id: str) -> Any:
+    def delete_hook(self, repo: str, hook_id: str):
         return self.delete(path=BitbucketAPIPath.repository_hook.format(repo=repo, uid=hook_id))
 
     def get_commit_filechanges(self, repo: str, sha: str) -> list[FileChange]:
@@ -177,21 +177,19 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
         )
         return patch_to_file_changes(resp.text)
 
-    def zip_commit_data(
-        self, repo: str, commit_list: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
+    def zip_commit_data(self, repo: str, commit_list):
         for commit in commit_list:
             commit.update({"patch_set": self.get_commit_filechanges(repo, commit["hash"])})
         return commit_list
 
-    def get_last_commits(self, repo: str, end_sha: str) -> list[dict[str, Any]]:
+    def get_last_commits(self, repo: str, end_sha: str):
         # return api request that fetches last ~30 commits
         # see https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/commits/%7Brevision%7D
         # using end_sha as parameter
         data = self.get(BitbucketAPIPath.repository_commits.format(repo=repo, revision=end_sha))
         return self.zip_commit_data(repo, data["values"])
 
-    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> list[dict[str, Any]]:
+    def compare_commits(self, repo: str, start_sha: str, end_sha: str):
         # where start_sha is oldest and end_sha is most recent
         # see
         # https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/commits/%7Brevision%7D
