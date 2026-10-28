@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 from sentry.integrations.services.repository.model import RpcRepository
@@ -29,7 +29,7 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
     name = "Bitbucket"
     repo_provider = IntegrationProviderSlug.BITBUCKET.value
 
-    def get_repository_data(self, organization: Organization, config):
+    def get_repository_data(self, organization, config):
         installation = self.get_installation(config.get("installation"), organization.id)
         client = installation.get_client()
         try:
@@ -133,7 +133,7 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
                 return
             raise
 
-    def _format_commits(self, repo: Repository, commit_list):
+    def _format_commits(self, repo, commit_list):
         return [
             {
                 "id": c["hash"],
@@ -149,7 +149,7 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
 
     def compare_commits(
         self, repo: Repository, start_sha: str | None, end_sha: str
-    ):
+    ) -> Sequence[Mapping[str, object]]:
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
         # use config name because that is kept in sync via webhooks
