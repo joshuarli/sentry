@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Collection, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Final, NotRequired, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Final, NotRequired, Protocol, TypedDict, cast
 
 import orjson
 from django.conf import settings
@@ -15,7 +15,6 @@ from sentry_sdk import traces
 
 from sentry import features, options, projectoptions, quotas, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.organization import OrganizationSerializerResponse
 from sentry.api.serializers.models.team import get_org_roles
 from sentry.app import env
 from sentry.auth.access import Access
@@ -666,10 +665,6 @@ class ProjectSerializer(Serializer):
         return context
 
 
-class ProjectWithOrganizationSerializerResponse(ProjectSerializerResponse):
-    organization: OrganizationSerializerResponse
-
-
 class ProjectWithOrganizationSerializer(ProjectSerializer):
     def get_attrs(
         self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: object
@@ -681,18 +676,9 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
             attrs[item]["organization"] = orgs[str(item.organization_id)]
         return attrs
 
-    def serialize(
-        self,
-        obj: Project,
-        attrs: Mapping[str, object],
-        user: User | RpcUser | AnonymousUser,
-        **kwargs: object,
-    ) -> ProjectWithOrganizationSerializerResponse:
+    def serialize(self, obj, attrs, user, **kwargs):
         base = super().serialize(obj, attrs, user)
-        return {
-            **base,
-            "organization": cast("OrganizationSerializerResponse", attrs["organization"]),
-        }
+        return {**base, "organization": attrs["organization"]}
 
 
 class TeamResponseDict(TypedDict):
@@ -973,6 +959,13 @@ def bulk_fetch_project_latest_releases(projects: Sequence[Project]) -> list[Rele
     )
 
 
+class _ReleaseWithActualProjectId(Protocol):
+    """Release row from bulk_fetch_project_latest_releases carrying the raw project id."""
+
+    version: str
+    actual_project_id: int
+
+
 def _get_project_to_release_version_mapping(
     item_list: Sequence[Project],
 ) -> dict[int, dict[str, str]]:
@@ -981,8 +974,10 @@ def _get_project_to_release_version_mapping(
     """
     return {
         # Raw SQL above selects project_id as actual_project_id.
-        cast(int, getattr(release, "actual_project_id")): {"version": release.version}
-        for release in bulk_fetch_project_latest_releases(item_list)
+        release.actual_project_id: {"version": release.version}
+        for release in cast(
+            list[_ReleaseWithActualProjectId], bulk_fetch_project_latest_releases(item_list)
+        )
     }
 
 

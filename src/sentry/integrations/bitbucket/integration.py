@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from itertools import chain
-from typing import Any
+from typing import Any, cast
 
 from django.http.request import HttpRequest
 from django.urls import reverse
@@ -153,16 +153,18 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
 
         seen: OrderedSet[str] = OrderedSet()
         repos: list[RepositoryInfo] = []
+        empty_values: list[Mapping[str, object]] = []
         for repo in chain(
-            exact_search_resp.get("values", []),
-            fuzzy_search_resp.get("values", []),
+            cast(list[Mapping[str, object]], exact_search_resp.get("values", empty_values)),
+            cast(list[Mapping[str, object]], fuzzy_search_resp.get("values", empty_values)),
         ):
-            if repo["full_name"] not in seen:
-                seen.add(repo["full_name"])
+            full_name = cast(str, repo["full_name"])
+            if full_name not in seen:
+                seen.add(full_name)
                 repos.append(
                     {
-                        "identifier": repo["full_name"],
-                        "name": repo["full_name"],
+                        "identifier": full_name,
+                        "name": full_name,
                         "external_id": self.get_repo_external_id(repo),
                     }
                 )
