@@ -4,7 +4,7 @@ import re
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
 
 import sentry_sdk
 import sqlparse
@@ -14,6 +14,7 @@ from sentry_sdk import traces
 
 from sentry import options
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.eventattachment import EventAttachmentSerializerResponse
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer
 from sentry.api.serializers.models.userreport import UserReportSerializerResponse
 from sentry.api.serializers.types import GroupEventReleaseSerializerResponse
@@ -83,7 +84,9 @@ def get_tags_with_meta(
     # from the raw event body as the indexes need to line up with the
     # metadata indexes. In other cases we can use event.tags
     if meta:
-        raw_tags = event.data.get("tags") or []
+        raw_tags: Sequence[Sequence[str]] = cast(
+            "Sequence[Sequence[str]]", event.data.get("tags") or []
+        )
     else:
         raw_tags = event.tags
 
@@ -273,7 +276,7 @@ class EventSerializer(Serializer):
             )
         except UserReport.DoesNotExist:
             user_report = None
-        return serialize(user_report, user)
+        return cast(UserReportSerializerResponse | None, serialize(user_report, user))
 
     def get_attrs(
         self,
@@ -285,7 +288,13 @@ class EventSerializer(Serializer):
         crash_files = get_crash_files(item_list)
         serialized_files = {
             file.event_id: serialized
-            for file, serialized in zip(crash_files, serialize(crash_files, user=user))
+            for file, serialized in zip(
+                crash_files,
+                cast(
+                    list[EventAttachmentSerializerResponse],
+                    serialize(crash_files, user=user),
+                ),
+            )
         }
         results: dict[Event | GroupEvent, dict[str, object]] = defaultdict(dict)
         for item in item_list:
@@ -347,7 +356,7 @@ class EventSerializer(Serializer):
         (context, context_meta) = self._get_attr_with_meta(obj, "extra", {})
         (packages, packages_meta) = self._get_attr_with_meta(obj, "modules", {})
 
-        received_data = obj.data.get("received")
+        received_data = cast("float | None", obj.data.get("received"))
         received: datetime | None = None
         if received_data:
             # Sentry at one point attempted to record invalid types here.
@@ -700,7 +709,13 @@ class SimpleEventSerializer(EventSerializer):
         crash_files = get_crash_files(item_list)
         serialized_files = {
             file.event_id: serialized
-            for file, serialized in zip(crash_files, serialize(crash_files, user=user))
+            for file, serialized in zip(
+                crash_files,
+                cast(
+                    list[EventAttachmentSerializerResponse],
+                    serialize(crash_files, user=user),
+                ),
+            )
         }
         return {event: {"crash_file": serialized_files.get(event.event_id)} for event in item_list}
 
@@ -764,7 +779,13 @@ class ExternalEventSerializer(EventSerializer):
     should be used for Integrations that need to include event data.
     """
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self,
+        obj: Event | GroupEvent,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ):
         from sentry.notifications.utils import get_notification_group_title
 
         tags: list[EventTag] = [

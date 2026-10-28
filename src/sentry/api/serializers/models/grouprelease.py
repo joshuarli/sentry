@@ -1,7 +1,6 @@
-from collections import namedtuple
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import TypedDict, cast
+from typing import NamedTuple, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
@@ -16,7 +15,10 @@ from sentry.tsdb.base import TSDBModel
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
-StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
+
+class StatsPeriod(NamedTuple):
+    segments: int
+    interval: timedelta
 
 
 class GroupReleaseSerializerResponse(TypedDict):
@@ -46,15 +48,9 @@ class GroupReleaseSerializer(Serializer[GroupReleaseSerializerResponse]):
             result[item] = {"release": releases.get(item.release_id)}
         return result
 
-    def serialize(
-        self,
-        obj: GroupRelease,
-        attrs: Mapping[str, object],
-        user: User | RpcUser | AnonymousUser,
-        **kwargs: object,
-    ) -> GroupReleaseSerializerResponse:
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
-            "release": cast(ReleaseSerializerResponse | None, attrs["release"]),
+            "release": attrs["release"],
             "environment": obj.environment,
             "firstSeen": obj.first_seen,
             "lastSeen": obj.last_seen,
@@ -121,15 +117,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
                 ]
         return attrs
 
-    def serialize(
-        self,
-        obj: GroupRelease,
-        attrs: Mapping[str, object],
-        user: User | RpcUser | AnonymousUser,
-        **kwargs: object,
-    ) -> GroupReleaseWithStatsSerializerResponse:
-        data: GroupReleaseWithStatsSerializerResponse = {
-            **super().serialize(obj, attrs, user),
-            "stats": cast(dict[str, list[tuple[float, float]]], attrs["stats"]),
-        }
-        return data
+    def serialize(self, obj, attrs, user, **kwargs):
+        result = super().serialize(obj, attrs, user)
+        result["stats"] = attrs["stats"]
+        return result
