@@ -127,7 +127,7 @@ class _AuthorList(TypedDict):
 
 
 def _get_authors_metadata(
-    item_list: list[Release], user: User | RpcUser | AnonymousUser
+    item_list: Sequence[Release], user: User | RpcUser | AnonymousUser
 ) -> dict[Release, _AuthorList]:
     """
     Returns a dictionary of release_id => authors metadata,
@@ -575,7 +575,12 @@ class ReleaseSerializer(Serializer):
 
         return release_project_envs
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[Release],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[Release, dict[str, Any]]:
         project = kwargs.get("project")
 
         # Some code paths pass an environment object, other pass a list of
@@ -597,7 +602,7 @@ class ReleaseSerializer(Serializer):
         if with_health_data and no_snuba_for_release_creation:
             raise TypeError("health data requires snuba")
 
-        adoption_stages = {}
+        adoption_stages: dict[str, dict[str, AdoptionStage]] = {}
         if self.with_adoption_stages:
             release_project_envs = self._get_release_project_envs(item_list, environments, project)
             adoption_stages = self._get_release_adoption_stages(release_project_envs)
@@ -616,7 +621,7 @@ class ReleaseSerializer(Serializer):
                 issue_counts_by_release,
             ) = self.__get_release_data_with_environments(release_project_envs)
 
-        owners = {}
+        owners: dict[str, Any] = {}
         owner_ids = [i.owner_id for i in item_list if i.owner_id]
         if owner_ids:
             owners = {
@@ -650,6 +655,7 @@ class ReleaseSerializer(Serializer):
             platforms_by_project[project_id].append(platform)
 
         # XXX: Legacy should be removed later
+        has_health_data: dict[tuple[int, str], bool] = {}
         if with_health_data:
             health_data = release_health.backend.get_release_health_data_overview(
                 [(pr["project__id"], pr["release__version"]) for pr in project_releases],
@@ -658,10 +664,8 @@ class ReleaseSerializer(Serializer):
                 environments=environments,
                 stat=health_stat,
             )
-            has_health_data = None
         else:
             health_data = None
-            has_health_data = {}
 
         for pr in project_releases:
             # Use environment-filtered new groups count if available, otherwise fall back to ReleaseProject data
@@ -695,7 +699,7 @@ class ReleaseSerializer(Serializer):
                 ) in has_health_data
             release_projects[pr["release_id"]].append(pr_rv)
 
-        result = {}
+        result: dict[Release, dict[str, Any]] = {}
         for item in item_list:
             single_release_projects = release_projects.get(item.id, [])
 
@@ -709,7 +713,7 @@ class ReleaseSerializer(Serializer):
             else:
                 release_new_groups = sum((issue_counts_by_release.get(item.id) or {}).values())
 
-            p = {
+            p: dict[str, Any] = {
                 "owner": owners[str(item.owner_id)] if item.owner_id else None,
                 "new_groups": release_new_groups,
                 "projects": single_release_projects,
@@ -730,7 +734,13 @@ class ReleaseSerializer(Serializer):
             result[item] = p
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs) -> ReleaseSerializerResponse:
+    def serialize(
+        self,
+        obj: Release,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> ReleaseSerializerResponse:
         d: ReleaseSerializerResponse = {
             "id": obj.id,
             "version": obj.version,
