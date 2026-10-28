@@ -296,7 +296,7 @@ class NotificationAction(AbstractNotificationAction):
         """
         return {"trigger": NotificationAction.get_trigger_text(self.trigger_type)}
 
-    def fire(self, *args: Any, **kwargs: Any) -> None:
+    def fire(self, *args: object, **kwargs: object) -> None:
         registration = NotificationAction.get_registration(
             self.trigger_type, self.service_type, self.target_type
         )

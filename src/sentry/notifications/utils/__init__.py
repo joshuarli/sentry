@@ -140,7 +140,7 @@ def process_serialized_committers(
     for committer in committers:
         for commit in committer["commits"]:
             if commit["id"] not in commits:
-                commit_data: dict[str, Any] = dict(commit)
+                commit_data = dict(commit)
                 commit_data["shortId"] = commit_data["id"][:7]
                 commit_data["author"] = committer["author"]
                 commit_data["subject"] = (

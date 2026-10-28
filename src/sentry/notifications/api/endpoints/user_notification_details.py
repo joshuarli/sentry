@@ -1,6 +1,5 @@
 from collections import defaultdict
 from collections.abc import Sequence
-from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers, status
@@ -34,8 +33,8 @@ class UserNotificationsSerializer(Serializer):
         self,
         item_list: Sequence[User],
         user: User | RpcUser | AnonymousUser,
-        *args: Any,
-        **kwargs: Any,
+        *args: object,
+        **kwargs: object,
     ) -> dict[User, list[UserOption]]:
         user_options = UserOption.objects.filter(
             user__in=item_list, organization_id=None, project_id=None
@@ -50,10 +49,10 @@ class UserNotificationsSerializer(Serializer):
     def serialize(
         self,
         obj: User,
-        attrs: Any,
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        *args: Any,
-        **kwargs: Any,
+        *args: object,
+        **kwargs: object,
     ) -> dict[str, bool]:
         raw_data = {option.key: option.value for option in attrs}
 

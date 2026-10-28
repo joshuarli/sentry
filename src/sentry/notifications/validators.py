@@ -1,4 +1,4 @@
-from typing import Any
+from typing import TypedDict
 
 from rest_framework import serializers
 
@@ -11,6 +11,14 @@ from sentry.notifications.api.parsers.notifications import (
     validate_value,
 )
 from sentry.notifications.types import NOTIFICATION_SETTING_CHOICES, NotificationScopeEnum
+
+
+class UserNotificationSettingData(TypedDict, total=False):
+    type: str
+    scope_type: str
+    scope_identifier: str
+    value: str
+    providers: list[str]
 
 
 class UserNotificationSettingsOptionsDetailsSerializer(CamelSnakeSerializer):
@@ -43,7 +51,7 @@ class UserNotificationSettingOptionWithValueSerializer(
             raise serializers.ValidationError("Invalid value")
         return value
 
-    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
+    def validate(self, data: UserNotificationSettingData) -> UserNotificationSettingData:
         try:
             enum_type = validate_type(data["type"])
             validate_value(enum_type, data["value"])
