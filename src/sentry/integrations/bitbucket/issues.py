@@ -7,7 +7,6 @@ from typing import Any, NoReturn
 from django.urls import reverse
 
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
-from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import IntegrationIssueConfigField
 from sentry.integrations.utils.issue_url import get_issue_url_path
 from sentry.models.group import Group
@@ -186,7 +185,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
             raise IntegrationFormError({"externalIssue": "Invalid Bitbucket issue URL"})
         return {"repo": match[1], "externalIssue": match[2]}
 
-    def get_issue(self, issue_id: str, **kwargs):
+    def get_issue(self, issue_id, **kwargs):
         client = self.get_client()
         repo = kwargs["data"].get("repo")
         issue = client.get_issue(repo, issue_id)
@@ -200,7 +199,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
     def make_external_key(self, data: Mapping[str, str]) -> str:
         return "{}#{}".format(data["repo"], data["key"])
 
-    def after_link_issue(self, external_issue: ExternalIssue, **kwargs) -> None:
+    def after_link_issue(self, external_issue, **kwargs):
         data = kwargs["data"]
         client = self.get_client()
 

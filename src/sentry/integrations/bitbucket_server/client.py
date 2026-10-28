@@ -16,6 +16,7 @@ from sentry.integrations.source_code_management.repository import RepositoryClie
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.response import MappingApiResponse, SequenceApiResponse
 
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
 
@@ -47,15 +48,7 @@ class BitbucketServerSetupClient(ApiClient):
     authorize_url = "{}/plugins/servlet/oauth/authorize?oauth_token={}"
     integration_name = "bitbucket_server_setup"
 
-    def __init__(
-        self,
-        base_url: str,
-        consumer_key: str,
-        private_key: str,
-        verify_ssl: bool = True,
-        *args,
-        **kwargs,
-    ) -> None:
+    def __init__(self, base_url, consumer_key, private_key, verify_ssl=True, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.base_url = base_url
         self.consumer_key = consumer_key
@@ -160,17 +153,19 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
         prepared_request.prepare_auth(auth=auth_scheme)
         return prepared_request
 
-    def get_repos(self):
-        return self.get(
+    def get_repos(self) -> MappingApiResponse:
+        response: MappingApiResponse = self.get(
             BitbucketServerAPIPath.repositories,
             params={"limit": 250, "permission": "REPO_ADMIN"},
         )
+        return response
 
-    def search_repositories(self, query_string: str):
-        return self.get(
+    def search_repositories(self, query_string: str) -> MappingApiResponse:
+        response: MappingApiResponse = self.get(
             BitbucketServerAPIPath.repositories,
             params={"limit": 250, "permission": "REPO_ADMIN", "name": query_string},
         )
+        return response
 
     def get_repo(self, project: str, repo: str) -> dict[str, Any]:
         return self.get(
@@ -215,7 +210,7 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
             ),
         )
 
-    def get_commits(self, project: str, repo: str, from_hash: str, to_hash: str, limit: int = 1000):
+    def get_commits(self, project: str, repo: str, from_hash: str, to_hash: str, limit: int = 1000) -> SequenceApiResponse:
         logger.info(
             "load.commits",
             extra={
@@ -231,13 +226,13 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
             {"limit": limit, "since": from_hash, "until": to_hash, "merges": "exclude"},
         )
 
-    def get_last_commits(self, project: str, repo: str, limit: int = 10):
+    def get_last_commits(self, project: str, repo: str, limit: int = 10) -> SequenceApiResponse:
         return self.get(
             BitbucketServerAPIPath.repository_commits.format(project=project, repo=repo),
             params={"merges": "exclude", "limit": limit},
         )["values"]
 
-    def get_commit_filechanges(self, project: str, repo: str, commit: str, limit: int = 1000):
+    def get_commit_filechanges(self, project: str, repo: str, commit: str, limit: int = 1000) -> SequenceApiResponse:
         logger.info(
             "load.filechanges",
             extra={
@@ -252,7 +247,7 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
             {"limit": limit},
         )
 
-    def _get_values(self, uri: str, params, max_pages: int = 1000000):
+    def _get_values(self, uri, params, max_pages=1000000):
         values = []
         start = 0
 
