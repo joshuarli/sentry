@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import zipfile
-from collections.abc import Iterator
 from contextlib import contextmanager
 from hashlib import sha1
 from io import BytesIO
@@ -261,14 +260,12 @@ class _ArtifactIndexGuard:
         except IndexError:
             return None
         else:
-            fp = cast(IO[bytes], releasefile.file.getfile())
+            fp = releasefile.file.getfile()
             with fp:
-                return cast(dict[str, object], json.load(fp))
+                return json.load(fp)
 
     @contextmanager
-    def writable_data(
-        self, create: bool, initial_artifact_count: int | None = None
-    ) -> Iterator[_ArtifactIndexData | None]:
+    def writable_data(self, create: bool, initial_artifact_count=None):
         """Context manager for editable artifact index"""
         with atomic_transaction(
             using=(
@@ -290,21 +287,20 @@ class _ArtifactIndexGuard:
                     releasefile = None
 
             if releasefile is None:
-                yield None
-                return
-
-            if created:
-                index_data = _ArtifactIndexData(cast(dict[str, object], {}), fresh=True)
+                index_data = None
             else:
-                source_file = releasefile.file
-                if source_file.type != ARTIFACT_INDEX_TYPE:
-                    raise RuntimeError("Unexpected file type for artifact index")
-                raw_data = cast(dict[str, object], json.load(cast(IO[bytes], source_file.getfile())))
-                index_data = _ArtifactIndexData(raw_data)
+                if created:
+                    index_data = _ArtifactIndexData({}, fresh=True)
+                else:
+                    source_file = releasefile.file
+                    if source_file.type != ARTIFACT_INDEX_TYPE:
+                        raise RuntimeError("Unexpected file type for artifact index")
+                    raw_data = json.load(source_file.getfile())
+                    index_data = _ArtifactIndexData(raw_data)
 
-            yield index_data
+            yield index_data  # editable reference to index
 
-            if index_data.changed:
+            if index_data is not None and index_data.changed:
                 if created:
                     target_file = releasefile.file
                 else:
@@ -312,7 +308,7 @@ class _ArtifactIndexGuard:
                         name=ARTIFACT_INDEX_FILENAME, type=ARTIFACT_INDEX_TYPE
                     )
 
-                target_file.putfile(BytesIO(json.dumps(cast(dict[str, object], index_data.data)).encode()))
+                target_file.putfile(BytesIO(json.dumps(index_data.data).encode()))
 
                 artifact_count = index_data.num_files
                 if not created:
@@ -321,9 +317,7 @@ class _ArtifactIndexGuard:
                     releasefile.update(file=target_file, artifact_count=artifact_count)
                     old_file.delete()
 
-    def _get_or_create_releasefile(
-        self, initial_artifact_count: int | None
-    ) -> tuple[ReleaseFile, bool]:
+    def _get_or_create_releasefile(self, initial_artifact_count):
         """Make sure that the release file exists"""
         return ReleaseFile.objects.select_for_update().get_or_create(
             **self._key_fields(),
@@ -336,7 +330,7 @@ class _ArtifactIndexGuard:
             },
         )
 
-    def _releasefile_qs(self) -> QuerySet[ReleaseFile]:
+    def _releasefile_qs(self):
         """QuerySet for selecting artifact index"""
         return ReleaseFile.objects.filter(**self._key_fields(), **self._filter_args)
 
@@ -368,8 +362,8 @@ def update_artifact_index(
     release: Release,
     dist: Distribution | None,
     archive_file: File,
-    temp_file: IO[bytes] | None = None,
-) -> ReleaseFile | None:
+    temp_file: IO | None = None,
+):
     """Add information from release archive to artifact index
 
     :returns: The created ReleaseFile instance
@@ -383,17 +377,17 @@ def update_artifact_index(
         artifact_count=0,  # Artifacts will be counted with artifact index
     )
 
-    files_out: dict[str, dict[str, object]] = {}
-    with ReleaseArchive(temp_file or cast(IO[bytes], archive_file.getfile())) as archive:
-        manifest = cast(dict[str, object], archive.manifest)
+    files_out = {}
+    with ReleaseArchive(temp_file or archive_file.getfile()) as archive:
+        manifest = archive.manifest
 
-        files: dict[str, object] = cast(dict[str, object], manifest.get("files", {}))
+        files = manifest.get("files", {})
         if not files:
-            return None
+            return
 
-        for filename, info_obj in files.items():
-            info = cast(dict[str, object], info_obj).copy()
-            url = cast(str, info.pop("url"))
+        for filename, info in files.items():
+            info = info.copy()
+            url = info.pop("url")
             info["filename"] = filename
             info["archive_ident"] = releasefile.ident
             info["date_created"] = archive_file.timestamp
@@ -403,7 +397,6 @@ def update_artifact_index(
 
     guard = _ArtifactIndexGuard(release, dist)
     with guard.writable_data(create=True, initial_artifact_count=len(files_out)) as index_data:
-        assert index_data is not None
         index_data.update_files(files_out)
 
     return releasefile

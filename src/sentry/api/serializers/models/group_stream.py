@@ -95,12 +95,10 @@ class GroupStatsMixin:
     def get_stats(
         self,
         item_list: Sequence[Group],
-        user: User | RpcUser | AnonymousUser | None,
+        user,
         stats_query_args: GroupStatsQueryArgs,
-        environment_ids: list[int] | None = None,
-        conditions: Sequence[Sequence[object]] | None = None,
-        **kwargs: object,
-    ) -> dict[int, list[tuple[int, int]]] | None:
+        **kwargs,
+    ):
         if stats_query_args and stats_query_args.stats_period:
             # we need to compute stats at 1d (1h resolution), and 14d or a custom given period
             if stats_query_args.stats_period == "auto":
@@ -143,17 +141,12 @@ class GroupStatsMixin:
                     "rollup": int(interval.total_seconds()),
                 }
 
-            return cast(
-                "dict[int, list[tuple[int, int]]]",
-                self.query_tsdb(
-                    item_list,
-                    query_params,
-                    conditions=conditions,
-                    environment_ids=environment_ids,
-                    user=user,
-                ),
+            return self.query_tsdb(
+                item_list,
+                query_params,
+                user=user,
+                **kwargs,
             )
-        return None
 
 
 class _MaybeStats(TypedDict, total=False):
@@ -321,11 +314,6 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     matchingEventEnvironment: NotRequired[str | None]
 
 
-class StreamSeenStats(SeenStats):
-    filtered: SeenStats | None
-    lifetime: SeenStats | None
-
-
 class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
     def __init__(
         self,
@@ -399,7 +387,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 environment_ids=self.environment_ids,
             )
             stats = partial_get_stats()
-            assert stats is not None
             filtered_stats = (
                 partial_get_stats(conditions=self.conditions)
                 if self.conditions and not self._collapse("filtered")
@@ -411,12 +398,12 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 attrs[item]["stats"] = stats[item.id]
 
             if self._expand("sessions"):
-                uniq_project_ids = list({cast(int, item.project_id) for item in item_list})
+                uniq_project_ids = list({item.project_id for item in item_list})
                 cache_keys = {pid: self._build_session_cache_key(pid) for pid in uniq_project_ids}
                 cache_data = cache.get_many(cache_keys.values())
                 missed_items = []
                 for item in item_list:
-                    num_sessions = cache_data.get(cache_keys[cast(int, item.project_id)])
+                    num_sessions = cache_data.get(cache_keys[item.project_id])
                     if num_sessions is None:
                         found = "miss"
                         missed_items.append(item)
@@ -544,9 +531,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if not self._collapse("stats"):
             if self.stats_period:
-                result["stats"] = {
-                    self.stats_period: cast("list[tuple[int, int]]", attrs["stats"])
-                }
+                result["stats"] = {self.stats_period: attrs["stats"]}
 
             if not self._collapse("lifetime"):
                 seen_stats = self._convert_seen_stats(attrs["lifetime"])
@@ -570,11 +555,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                         "lastSeen": seen_stats["lastSeen"],
                     }
                     if self.stats_period:
-                        filtered["stats"] = {
-                            self.stats_period: cast(
-                                "list[tuple[int, int]]", attrs["filtered_stats"]
-                            )
-                        }
+                        filtered["stats"] = {self.stats_period: attrs["filtered_stats"]}
                     result["filtered"] = filtered
                 else:
                     result["filtered"] = None
@@ -604,21 +585,20 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         groups: Sequence[Group],
         query_params,
         conditions=None,
-        environment_ids: list[int] | None = None,
-        user: User | RpcUser | AnonymousUser | None = None,
+        environment_ids=None,
+        user=None,
         aggregation_override: str | None = None,
         **kwargs,
     ):
         if not groups:
-            return None
+            return
 
-        error_issue_ids: list[int] = []
-        generic_issue_ids: list[int] = []
+        error_issue_ids, generic_issue_ids = [], []
         for group in groups:
             if GroupCategory.ERROR == group.issue_category:
-                error_issue_ids.append(cast(int, group.id))
+                error_issue_ids.append(group.id)
             else:
-                generic_issue_ids.append(cast(int, group.id))
+                generic_issue_ids.append(group.id)
 
         error_conditions = resolve_conditions(conditions, resolve_column(Dataset.Discover))
         issue_conditions = resolve_conditions(
@@ -626,40 +606,26 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             functools.partial(get_snuba_column_name, dataset=Dataset.IssuePlatform),
         )
 
-        results: dict[int, list[tuple[int, int]]] = {}
+        get_range = functools.partial(
+            snuba_tsdb.get_range,
+            environment_ids=environment_ids,
+            tenant_ids={"organization_id": self.organization_id},
+            project_ids=self.project_ids,
+            **query_params,
+        )
+
+        results = {}
 
         if error_issue_ids:
             results.update(
-                cast(
-                    "dict[int, list[tuple[int, int]]]",
-                    snuba_tsdb.get_range(
-                        model=TSDBModel.group,
-                        keys=error_issue_ids,
-                        conditions=error_conditions,
-                        environment_ids=environment_ids,
-                        tenant_ids={"organization_id": self.organization_id}
-                        if self.organization_id is not None
-                        else None,
-                        project_ids=self.project_ids,
-                        **query_params,
-                    ),
-                )
+                get_range(model=TSDBModel.group, keys=error_issue_ids, conditions=error_conditions)
             )
         if generic_issue_ids:
             results.update(
-                cast(
-                    "dict[int, list[tuple[int, int]]]",
-                    snuba_tsdb.get_range(
-                        model=TSDBModel.group_generic,
-                        keys=generic_issue_ids,
-                        conditions=issue_conditions,
-                        environment_ids=environment_ids,
-                        tenant_ids={"organization_id": self.organization_id}
-                        if self.organization_id is not None
-                        else None,
-                        project_ids=self.project_ids,
-                        **query_params,
-                    ),
+                get_range(
+                    model=TSDBModel.group_generic,
+                    keys=generic_issue_ids,
+                    conditions=issue_conditions,
                 )
             )
         return results
@@ -678,7 +644,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self,
         error_issue_list: Sequence[Group],
         seen_stats_func: _SeenStatsFunc,
-    ) -> Mapping[Group, StreamSeenStats]:
+    ) -> Mapping[Any, SeenStats]:
         partial_execute_seen_stats_query = functools.partial(
             seen_stats_func,
             item_list=error_issue_list,
@@ -689,14 +655,14 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         time_range_result = self._parse_seen_stats_results(
             partial_execute_seen_stats_query(),
             error_issue_list,
-            bool(self.start or self.end or self.conditions),
+            self.start or self.end or self.conditions,
             self.environment_ids,
         )
         filtered_result = (
             self._parse_seen_stats_results(
                 partial_execute_seen_stats_query(conditions=self.conditions),
                 error_issue_list,
-                bool(self.start or self.end or self.conditions),
+                self.start or self.end or self.conditions,
                 self.environment_ids,
             )
             if self.conditions and not self._collapse("filtered")
@@ -717,18 +683,14 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             else None
         )
 
-        enriched_result: dict[Group, StreamSeenStats] = {}
         for item in error_issue_list:
-            stats = time_range_result[item]
-            enriched_result[item] = StreamSeenStats(
-                times_seen=stats["times_seen"],
-                first_seen=stats["first_seen"],
-                last_seen=stats["last_seen"],
-                user_count=stats["user_count"],
-                filtered=filtered_result.get(item) if filtered_result else None,
-                lifetime=lifetime_result.get(item) if lifetime_result else None,
+            time_range_result[item].update(
+                {
+                    "filtered": filtered_result.get(item) if filtered_result else None,
+                    "lifetime": lifetime_result.get(item) if lifetime_result else None,
+                }
             )
-        return enriched_result
+        return time_range_result
 
     def _build_session_cache_key(self, project_id: int) -> str:
         start_key_dt = end_key_dt = None
