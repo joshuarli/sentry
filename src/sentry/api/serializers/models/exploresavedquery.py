@@ -1,7 +1,7 @@
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Literal, TypedDict, cast
+from typing import Any, Literal, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -15,7 +15,8 @@ from sentry.explore.models import (
 )
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
-from sentry.users.services.user import RpcUser
+from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
@@ -119,23 +120,38 @@ class ExploreSavedQueryAttrs(ExploreSavedQueryAttrsOptional):
 
 @register(ExploreSavedQuery)
 class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
-    def get_attrs(self, item_list, user, **kwargs):
-        result: defaultdict[str, dict] = defaultdict(lambda: {"created_by": {}})
-
-        starred_queries = dict(
-            ExploreSavedQueryStarred.objects.filter(
-                explore_saved_query__in=item_list,
-                user_id=user.id,
-                organization=item_list[0].organization if item_list else None,
-                starred=True,
-            ).values_list("explore_saved_query_id", "position")
+    def get_attrs(
+        self,
+        item_list: Sequence[ExploreSavedQuery],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[ExploreSavedQuery, dict[str, Any]]:
+        result: defaultdict[ExploreSavedQuery, dict[str, Any]] = defaultdict(
+            lambda: {"created_by": {}}
         )
-        user_last_visited = dict(
-            ExploreSavedQueryLastVisited.objects.filter(
-                explore_saved_query__in=item_list,
-                user_id=user.id,
-                organization=item_list[0].organization if item_list else None,
-            ).values_list("explore_saved_query_id", "last_visited")
+
+        starred_queries: dict[int, int | None] = (
+            dict(
+                ExploreSavedQueryStarred.objects.filter(
+                    explore_saved_query__in=item_list,
+                    user_id=user.id,
+                    organization=item_list[0].organization if item_list else None,
+                    starred=True,
+                ).values_list("explore_saved_query_id", "position")
+            )
+            if not isinstance(user, AnonymousUser)
+            else {}
+        )
+        user_last_visited: dict[int, datetime] = (
+            dict(
+                ExploreSavedQueryLastVisited.objects.filter(
+                    explore_saved_query__in=item_list,
+                    user_id=user.id,
+                    organization=item_list[0].organization if item_list else None,
+                ).values_list("explore_saved_query_id", "last_visited")
+            )
+            if not isinstance(user, AnonymousUser)
+            else {}
         )
 
         service_serialized = user_service.serialize_many(
@@ -146,7 +162,7 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
                     if explore_saved_query.created_by_id
                 ]
             },
-            as_user=user if user.id else None,
+            as_user=serialize_generic_user(user),
         )
         serialized_users = {user["id"]: user for user in service_serialized}
 
