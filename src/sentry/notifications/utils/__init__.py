@@ -320,7 +320,7 @@ def get_performance_issue_alert_subtitle(event: GroupEvent) -> str:
 
 
 def get_notification_group_title(
-    group: Group, event: Event | GroupEvent, max_length: int = 255, **kwargs: str
+    group: Group | None, event: Event | GroupEvent, max_length: int = 255, **kwargs: str
 ) -> str:
     if isinstance(event, GroupEvent) and event.occurrence is not None:
         issue_title = event.occurrence.issue_title
