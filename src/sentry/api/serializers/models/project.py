@@ -15,6 +15,7 @@ from sentry_sdk import traces
 
 from sentry import features, options, projectoptions, quotas, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.organization import OrganizationSerializerResponse
 from sentry.api.serializers.models.team import get_org_roles
 from sentry.app import env
 from sentry.auth.access import Access
@@ -666,6 +667,10 @@ class ProjectSerializer(Serializer):
         return context
 
 
+class ProjectWithOrganizationSerializerResponse(ProjectSerializerResponse):
+    organization: OrganizationSerializerResponse
+
+
 class ProjectWithOrganizationSerializer(ProjectSerializer):
     def get_attrs(
         self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: Any
@@ -677,7 +682,13 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
             attrs[item]["organization"] = orgs[str(item.organization_id)]
         return attrs
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self,
+        obj: Project,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> ProjectWithOrganizationSerializerResponse:
         base = super().serialize(obj, attrs, user)
         return {**base, "organization": attrs["organization"]}
 
