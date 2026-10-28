@@ -63,7 +63,7 @@ def get_users_for_commits(
 
 
 @register(Commit)
-class CommitSerializer(Serializer):
+class CommitSerializer(Serializer[CommitSerializerResponse]):
     def __init__(
         self,
         exclude: Collection[str] | None = None,
