@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
@@ -64,7 +64,7 @@ def expose_version_info(info) -> VersionInfo | None:
     }
 
 
-def _expose_health_data(data) -> HealthData | None:
+def _expose_health_data(data: ReleaseHealthOverview | None) -> HealthData | None:
     if not data:
         return None
     rv: HealthData = {
@@ -82,7 +82,7 @@ def _expose_health_data(data) -> HealthData | None:
         "totalProjectSessions24h": data["total_project_sessions_24h"],
         "adoption": data["adoption"],
         "sessionsAdoption": data["sessions_adoption"],
-        "stats": data.get("stats") or {},
+        "stats": cast("dict[str, object]", data.get("stats") or {}),
         # XXX: legacy key, should be removed later.
         "hasHealthData": data["has_health_data"],
     }
@@ -451,12 +451,7 @@ class ReleaseSerializer(Serializer):
             .distinct()
         )
 
-    def __get_release_data_no_environment(
-        self,
-        project: Project | None,
-        item_list: Sequence[Release],
-        no_snuba_for_release_creation: bool | None,
-    ):
+    def __get_release_data_no_environment(self, project, item_list, no_snuba_for_release_creation):
         if project is not None:
             project_ids = [project.id]
             organization_id = project.organization_id
@@ -573,12 +568,7 @@ class ReleaseSerializer(Serializer):
 
         return release_project_envs
 
-    def get_attrs(
-        self,
-        item_list: Sequence[Release],
-        user: User | RpcUser | AnonymousUser,
-        **kwargs,
-    ) -> dict[Release, dict[str, object]]:
+    def get_attrs(self, item_list, user, **kwargs):
         project = kwargs.get("project")
 
         # Some code paths pass an environment object, other pass a list of
