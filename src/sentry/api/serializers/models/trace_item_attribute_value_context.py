@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -31,9 +31,9 @@ class TraceItemAttributeValueContextSerializer(Serializer):
     def serialize(
         self,
         obj: TraceItemAttributeValueContext,
-        attrs: Mapping[str, Any],
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> TraceItemAttributeValueContextResponse:
         return {
             "id": str(obj.id),

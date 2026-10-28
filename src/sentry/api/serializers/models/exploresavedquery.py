@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Literal, TypedDict, cast
 
@@ -183,7 +183,7 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
     def serialize(
         self,
         obj: ExploreSavedQuery,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> ExploreSavedQueryResponse:

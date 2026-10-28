@@ -1,7 +1,6 @@
 from base64 import urlsafe_b64decode, urlsafe_b64encode
-from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 

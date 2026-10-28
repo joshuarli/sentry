@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
