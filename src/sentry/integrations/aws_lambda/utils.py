@@ -160,7 +160,7 @@ def get_latest_layer_for_function(function):
     return f"arn:aws:lambda:{region}:{get_option_value(function, OPTION_ACCOUNT_NUMBER)}:layer:{get_option_value(function, OPTION_LAYER_NAME)}:{get_option_value(function, OPTION_VERSION)}"
 
 
-def get_latest_layer_version(function) -> int:
+def get_latest_layer_version(function):
     return int(get_option_value(function, OPTION_VERSION))
 
 
@@ -195,7 +195,7 @@ def get_supported_functions(lambda_client):
     )
 
 
-def get_dsn_for_project(organization_id: int, project_id: int):
+def get_dsn_for_project(organization_id, project_id):
     enabled_dsn = project_key_service.get_project_key(
         organization_id=organization_id, project_id=project_id, role=ProjectKeyRole.store
     )
