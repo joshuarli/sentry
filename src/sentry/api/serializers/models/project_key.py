@@ -2,6 +2,8 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
+
 from sentry.api.serializers import Serializer, register
 from sentry.auth.superuser import is_active_superuser
 from sentry.loader.browsersdkversion import (
@@ -10,6 +12,8 @@ from sentry.loader.browsersdkversion import (
 )
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynamic_sdk_loader_option
 from sentry.models.projectkey import ProjectKey
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class RateLimit(TypedDict):
@@ -69,7 +73,11 @@ class ProjectKeySerializerResponse(TypedDict):
 @register(ProjectKey)
 class ProjectKeySerializer(Serializer[ProjectKeySerializerResponse]):
     def serialize(
-        self, obj: ProjectKey, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+        self,
+        obj: ProjectKey,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> ProjectKeySerializerResponse:
         # obj.public_key should always be set but it isn't required in the ProjectKey model.
         # Because of this mypy complains that ProjectKeySerializerResponse attrs id, name, and label
