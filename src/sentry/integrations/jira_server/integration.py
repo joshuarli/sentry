@@ -599,7 +599,9 @@ class JiraServerIntegration(IssueSyncIntegration):
     def get_persisted_ignored_fields(self):
         return self.org_integration.config.get(self.issues_ignored_fields_key, [])
 
-    def get_group_description(self, group, event, **kwargs):
+    def get_group_description(
+        self, group: Group, event: Any, **kwargs: Any
+    ) -> str:
         output = [
             "Sentry Issue: [{}|{}]".format(
                 group.qualified_short_id,
@@ -619,7 +621,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             raise IntegrationFormError({"externalIssue": "Invalid Jira issue URL"})
         return {"externalIssue": key.upper()}
 
-    def get_issue(self, issue_id, **kwargs):
+    def get_issue(self, issue_id: str, **kwargs: Any) -> dict[str, Any]:
         """
         Jira installation's implementation of IssueSyncIntegration's `get_issue`.
         """
@@ -634,7 +636,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             "metadata": {PROVIDER_ISSUE_ID_KEY: issue.get("id")},
         }
 
-    def create_comment(self, issue_id, user_id, group_note):
+    def create_comment(self, issue_id: str, user_id: int, group_note: Any) -> Any:
         # https://jira.atlassian.com/secure/WikiRendererHelpAction.jspa?section=texteffects
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
@@ -646,7 +648,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         attribution = f"{user.name} wrote:\n\n"
         return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
-    def update_comment(self, issue_id, user_id, group_note):
+    def update_comment(self, issue_id: str, user_id: int, group_note: Any) -> Any:
         quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
         return self.get_client().update_comment(
             issue_id, group_note.data["external_id"], quoted_comment
