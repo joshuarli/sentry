@@ -588,7 +588,7 @@ class ProjectSerializer(Serializer):
 
         return ret
 
-    def get_options(self, projects):
+    def get_options(self, projects: Sequence[Project]) -> dict[int, dict[str, Any]]:
         # no options specified
         option_list: list[str] = []
 
@@ -775,7 +775,7 @@ class _DeployDict(TypedDict):
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
-    def __init__(self, access: Access | None = None, **kwargs):
+    def __init__(self, access: Access | None = None, **kwargs: Any) -> None:
         self.access = access
         super().__init__(**kwargs)
 
@@ -920,7 +920,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         return context
 
 
-def bulk_fetch_project_latest_releases(projects: Sequence[Project]):
+def bulk_fetch_project_latest_releases(projects: Sequence[Project]) -> list[Release]:
     """
     Fetches the latest release for each of the passed projects
     :param projects:
@@ -977,7 +977,8 @@ def _get_project_to_release_version_mapping(
     Return mapping of project_ID -> release version for the latest release in each project
     """
     return {
-        release.actual_project_id: {"version": release.version}
+        # Raw SQL above selects project_id as actual_project_id.
+        release.actual_project_id: {"version": release.version}  # type: ignore[attr-defined]
         for release in bulk_fetch_project_latest_releases(item_list)
     }
 
@@ -1331,7 +1332,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             ),
         }
 
-    def get_value_with_default(self, attrs, key):
+    def get_value_with_default(self, attrs: Mapping[str, Any], key: str) -> Any:
         value = attrs["options"].get(key)
         if value is not None:
             return value
