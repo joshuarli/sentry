@@ -98,6 +98,7 @@ Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compi
 - `325d1a00c86` refactor(typing): narrow remaining serializer user and attrs params (onboarding/chunk/trace; unused in bodies; 3 files, 20+/3-; 52 tests green)
 - `f02c781cf0a` refactor(typing): narrow trace attribute value serializer params (sibling contract; 1 file, 10+/1-; 29 tests green serially)
 - `1718d596fd0` refactor(typing): type group release serializer contracts (registry dispatch deterministic; fixes in-body key annotation; 1 file, 55+/12-; 21 tests green)
+- `e942d522a34` refactor(typing): type uptime validator entry contracts (repairs parked lane on current tree; monitor create/update split out; 1 file, 13+/6-; 33 tests green)
 - `c96ef218b7e` refactor(typing): narrow event user serializer user and attrs (obj split out: 7 nullable producer fields vs non-null response; 1 file, 13+/2-; 8 tests green, apidocs fixture missing on base)
 - `e4d63a28860` refactor(typing): type artifact bundle serializer contracts (row-tuple shape; archive typed; endpoint-local entry shape split out; 1 file, 69+/12-; 13 tests green)
 - `9332b77f002` refactor(typing): type data export serializer contracts (params mirror base; response holds vs model evidence; 1 file, 18+/2-; 61 tests green)
@@ -431,6 +432,8 @@ No next source wave is selected. On resume, repair the Corrective checkpoint def
 2026-10-28 — Trace attribute value sibling: `f02c781` (same unused-params pattern). Continuing with the next interface group.
 
 2026-10-28 — Group release serializers typed: `1718d59` (single-consumer contracts; deterministic registry dispatch). Continuing with the next interface group.
+
+2026-10-28 — Parked uptime lane repaired: `e942d52` (entry contracts on current tree; monitor create/update split out). Continuing with the next interface group.
 
 2026-10-28 — Event user serializer narrowed: `c96ef21` (obj split out with 7-field nullability evidence for the response-contract follow-up). Continuing with the next interface group.
 
