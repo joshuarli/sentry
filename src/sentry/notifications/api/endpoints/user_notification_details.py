@@ -1,5 +1,6 @@
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from typing import cast
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers, status
@@ -49,16 +50,17 @@ class UserNotificationsSerializer(Serializer):
     def serialize(
         self,
         obj: User,
-        attrs,
+        attrs: Sequence[UserOption] | Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         *args: object,
         **kwargs: object,
     ) -> dict[str, bool]:
-        raw_data = {option.key: option.value for option in attrs}
+        options: Sequence[UserOption] = attrs if isinstance(attrs, Sequence) else []
+        raw_data = {option.key: option.value for option in options}
 
         data = {}
         for key, uo in USER_OPTION_SETTINGS.items():
-            val = raw_data.get(uo["key"], uo["default"])
+            val = cast(str, raw_data.get(uo["key"], uo["default"]))
             data[key.value] = bool(int(val))  # '1' is true, '0' is false
 
         return data

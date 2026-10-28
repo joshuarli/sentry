@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import TypedDict
+from typing import TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -46,7 +46,7 @@ class GroupTombstoneSerializer(Serializer[GroupTombstoneSerializerResponse]):
     def serialize(
         self,
         obj: GroupTombstone,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> GroupTombstoneSerializerResponse:
@@ -57,7 +57,7 @@ class GroupTombstoneSerializer(Serializer[GroupTombstoneSerializerResponse]):
             "culprit": obj.culprit,
             "type": obj.get_event_type(),
             "metadata": obj.get_event_metadata(),
-            "actor": attrs["user"],
+            "actor": cast(dict[str, object], attrs["user"]),
             "timesSeen": obj.times_seen,
             "lastSeen": obj.last_seen,
             "dateAdded": obj.date_added,
