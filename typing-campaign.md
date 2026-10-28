@@ -99,6 +99,7 @@ Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compi
 - `f02c781cf0a` refactor(typing): narrow trace attribute value serializer params (sibling contract; 1 file, 10+/1-; 29 tests green serially)
 - `1718d596fd0` refactor(typing): type group release serializer contracts (registry dispatch deterministic; fixes in-body key annotation; 1 file, 55+/12-; 21 tests green)
 - `c96ef218b7e` refactor(typing): narrow event user serializer user and attrs (obj split out: 7 nullable producer fields vs non-null response; 1 file, 13+/2-; 8 tests green, apidocs fixture missing on base)
+- `e4d63a28860` refactor(typing): type artifact bundle serializer contracts (row-tuple shape; archive typed; endpoint-local entry shape split out; 1 file, 69+/12-; 13 tests green)
 - `9332b77f002` refactor(typing): type data export serializer contracts (params mirror base; response holds vs model evidence; 1 file, 18+/2-; 61 tests green)
 - `9de1067c2eb` refactor(typing): type audit log entry serializer contracts (response vs typed event registry; private helpers stay untyped; 1 file, 33+/3-; 38 tests green)
 - `dbf118c2c1e` fix(tests): pin admin broadcast creator email contract (previously untested Admin path; 1 file, 11+/0-)
@@ -430,6 +431,8 @@ No next source wave is selected. On resume, repair the Corrective checkpoint def
 2026-10-28 — Group release serializers typed: `1718d59` (single-consumer contracts; deterministic registry dispatch). Continuing with the next interface group.
 
 2026-10-28 — Event user serializer narrowed: `c96ef21` (obj split out with 7-field nullability evidence for the response-contract follow-up). Continuing with the next interface group.
+
+2026-10-28 — Artifact bundle serializers typed: `e4d63a2` (row-tuple producer shape; endpoint-local entry split out to avoid layer inversion). Continuing with the next interface group.
 
 2026-10-28 — Data export serializer typed: `9332b77` (params + apidocs-documented response). Continuing with the next interface group.
 
