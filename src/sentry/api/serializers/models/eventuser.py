@@ -1,7 +1,12 @@
+from collections.abc import Mapping
 from datetime import datetime
-from typing import TypedDict
+from typing import Any, TypedDict
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.eventuser import EventUser
 
@@ -22,7 +27,13 @@ class EventUserSerializerResponse(TypedDict):
 
 @register(EventUser)
 class EventUserSerializer(Serializer[EventUserSerializerResponse]):
-    def serialize(self, obj, attrs, user, **kwargs) -> EventUserSerializerResponse:
+    def serialize(
+        self,
+        obj: Any,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> EventUserSerializerResponse:
         return {
             "id": str(obj.id) if obj.id is not None else obj.id,
             "tagValue": obj.tag_value,
