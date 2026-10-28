@@ -342,7 +342,7 @@ class JiraServerIntegration(IssueSyncIntegration):
     issues_ignored_fields_key = "issues_ignored_fields"
     resolution_strategy_key = "resolution_strategy"
 
-    def get_client(self):
+    def get_client(self) -> JiraServerClient:
         try:
             return JiraServerClient(integration=self.model, identity=self.default_identity)
         except Identity.DoesNotExist:
@@ -653,6 +653,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         )
 
     def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+        assert query is not None, "search_issues requires a query string"
         try:
             resp = self.get_client().search_issues(query)
             assert isinstance(resp, dict)
@@ -1293,7 +1294,8 @@ class JiraServerIntegration(IssueSyncIntegration):
                 raise IntegrationSyncTargetNotFound("No matching Jira Server user found")
         try:
             id_field = client.user_id_field()
-            client.assign_issue(external_issue.key, jira_user and jira_user.get(id_field))
+            assignee = jira_user.get(id_field) if jira_user is not None else None
+            client.assign_issue(external_issue.key, assignee)
         except ApiUnauthorized as e:
             logger.info(
                 "jira_server.user-assignment-unauthorized",
@@ -1362,7 +1364,7 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         client.transition_issue(external_issue.key, transition["id"])
 
-    def _get_done_statuses(self):
+    def _get_done_statuses(self) -> set[str]:
         client = self.get_client()
         statuses = client.get_valid_statuses()
         return {s["id"] for s in statuses if s["statusCategory"]["key"] == "done"}
