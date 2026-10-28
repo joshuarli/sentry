@@ -99,6 +99,7 @@ class GroupStatsMixin:
         stats_query_args: GroupStatsQueryArgs,
         environment_ids: list[int] | None = None,
         conditions: Sequence[Sequence[object]] | None = None,
+        **kwargs: object,
     ) -> dict[int, list[tuple[int, int]]] | None:
         if stats_query_args and stats_query_args.stats_period:
             # we need to compute stats at 1d (1h resolution), and 14d or a custom given period
