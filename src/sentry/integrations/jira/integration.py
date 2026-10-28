@@ -870,7 +870,7 @@ class JiraIntegration(IssueSyncIntegration):
             raise IntegrationFormError({"externalIssue": "Invalid Jira issue URL"})
         return {"externalIssue": key.upper()}
 
-    def get_issue(self, issue_id, **kwargs):
+    def get_issue(self, issue_id: str, **kwargs: Any) -> dict[str, Any]:
         """
         Jira installation's implementation of IssueSyncIntegration's `get_issue`.
         """
@@ -889,7 +889,7 @@ class JiraIntegration(IssueSyncIntegration):
             "metadata": {PROVIDER_ISSUE_ID_KEY: issue.get("id")},
         }
 
-    def create_comment(self, issue_id, user_id, group_note):
+    def create_comment(self, issue_id: str, user_id: int, group_note: Any) -> Any:
         # https://jira.atlassian.com/secure/WikiRendererHelpAction.jspa?section=texteffects
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
@@ -904,14 +904,14 @@ class JiraIntegration(IssueSyncIntegration):
                 "There was an error creating a comment on the Jira issue."
             ) from e
 
-    def create_comment_attribution(self, user_id, comment_text):
+    def create_comment_attribution(self, user_id: int, comment_text: str) -> str:
         user = user_service.get_user(user_id=user_id)
         username = "Unknown User" if user is None else user.name
 
         attribution = f"{username} wrote:\n\n"
         return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
-    def update_comment(self, issue_id, user_id, group_note):
+    def update_comment(self, issue_id: str, user_id: int, group_note: Any) -> Any:
         quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
         try:
             return self.get_client().update_comment(
@@ -935,7 +935,9 @@ class JiraIntegration(IssueSyncIntegration):
         except ApiError as e:
             self.raise_error(e)
 
-    def make_choices(self, values):
+    def make_choices(
+        self, values: Sequence[Mapping[str, Any]] | None
+    ) -> list[tuple[Any, Any]]:
         if not values:
             return []
         results = []
@@ -956,17 +958,18 @@ class JiraIntegration(IssueSyncIntegration):
             results.append((key, value))
         return results
 
-    def error_message_from_json(self, data):
+    def error_message_from_json(self, data: Mapping[str, Any]) -> str:
         message = ""
         if data.get("errorMessages"):
             message = " ".join(data["errorMessages"])
-        if data.get("errors"):
+        errors = data.get("errors")
+        if errors:
             if message:
                 message += " "
-            message += " ".join(f"{k}: {v}" for k, v in data.get("errors").items())
+            message += " ".join(f"{k}: {v}" for k, v in errors.items())
         return message
 
-    def error_fields_from_json(self, data):
+    def error_fields_from_json(self, data: Mapping[str, Any]) -> dict[str, list[Any]] | None:
         errors = data.get("errors")
         error_messages = data.get("errorMessages")
 
@@ -983,7 +986,7 @@ class JiraIntegration(IssueSyncIntegration):
                         error_data[key] = [message]
 
         if errors:
-            for key, error in data.get("errors").items():
+            for key, error in errors.items():
                 error_data[key] = [error]
 
         if not error_data:
@@ -991,7 +994,7 @@ class JiraIntegration(IssueSyncIntegration):
 
         return error_data
 
-    def search_url(self, org_slug):
+    def search_url(self, org_slug: str) -> str:
         """
         Hook method that varies in Jira Server
         """
