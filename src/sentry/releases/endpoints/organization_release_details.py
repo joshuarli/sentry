@@ -378,7 +378,7 @@ class OrganizationReleaseDetailsEndpoint(
         examples=OrganizationExamples.RELEASE_DETAILS,
     )
     def get(
-        self, request: Request, organization, version
+        self, request: Request, organization: Organization, version: str
     ) -> Response[ReleaseSerializerResponse] | Response[DetailResponse]:
         """
 
@@ -512,7 +512,7 @@ class OrganizationReleaseDetailsEndpoint(
         examples=OrganizationExamples.RELEASE_DETAILS,
     )
     def put(
-        self, request: Request, organization: Organization, version
+        self, request: Request, organization: Organization, version: str
     ) -> Response[ReleaseSerializerResponse] | Response[ValidationErrorResponse]:
         """
 
@@ -645,7 +645,7 @@ class OrganizationReleaseDetailsEndpoint(
         },
     )
     def delete(
-        self, request: Request, organization, version
+        self, request: Request, organization: Organization, version: str
     ) -> Response[None] | Response[DetailResponse]:
         """
 
