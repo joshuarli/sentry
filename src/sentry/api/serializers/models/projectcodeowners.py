@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
@@ -81,8 +81,8 @@ DEFAULT_CODEOWNERS_EXPAND = ("errors", "hasTargetingContext")
 class ProjectCodeOwnersSerializer(Serializer[ProjectCodeOwnersResponse]):
     def __init__(
         self,
-        expand=None,
-    ):
+        expand: Collection[str] | None = None,
+    ) -> None:
         self.expand = expand or []
 
     def get_attrs(
