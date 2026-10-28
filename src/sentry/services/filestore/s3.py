@@ -67,7 +67,7 @@ else:
     _S3Boto3StorageFileBase = File
 
 
-def _get_thread_local_session():
+def _get_thread_local_session() -> Session:
     try:
         return _thread_local_connection.session
     except AttributeError:
@@ -75,7 +75,8 @@ def _get_thread_local_session():
         return rv
 
 
-def resource(*args, **kwargs):
+def resource(*args: Any, **kwargs: Any) -> Any:
+    # boto3 ships no stubs; the resource handle stays opaque.
     return _get_thread_local_session().resource(*args, **kwargs)
 
 
@@ -171,8 +172,8 @@ class S3Boto3StorageFile(_S3Boto3StorageFileBase):
     def size(self) -> int:
         return self.obj.content_length
 
-    @property
-    def file(self):
+    @property  # type: ignore[override]  # buffered in-memory file replaces the base plain attribute
+    def file(self) -> BytesIO | GzipFile | None:
         if self._file is None:
             with metrics.timer("filestore.read", instance="s3"):
                 self._file = BytesIO()
@@ -185,15 +186,15 @@ class S3Boto3StorageFile(_S3Boto3StorageFileBase):
         return self._file
 
     @file.setter
-    def file(self, value):
+    def file(self, value: BytesIO | GzipFile | None) -> None:
         self._file = value
 
-    def read(self, *args, **kwargs):
+    def read(self, *args: Any, **kwargs: Any) -> bytes:
         if "r" not in self._mode:
             raise AttributeError("File was not opened in read mode.")
         return super().read(*args, **kwargs)
 
-    def write(self, content):
+    def write(self, content: bytes | str) -> int:  # type: ignore[override]  # accepts str via force_bytes coercion
         if "w" not in self._mode:
             raise AttributeError("File was not opened in write mode.")
         self._is_dirty = True
@@ -214,10 +215,12 @@ class S3Boto3StorageFile(_S3Boto3StorageFileBase):
 
     @property
     def _buffer_file_size(self) -> int:
-        pos = self.file.tell()
-        self.file.seek(0, os.SEEK_END)
-        length = self.file.tell()
-        self.file.seek(pos)
+        buf = self.file
+        assert buf is not None
+        pos = buf.tell()
+        buf.seek(0, os.SEEK_END)
+        length = buf.tell()
+        buf.seek(pos)
         return length
 
     def _flush_write_buffer(self) -> None:
@@ -226,10 +229,12 @@ class S3Boto3StorageFile(_S3Boto3StorageFileBase):
         """
         if self._buffer_file_size:
             self._write_counter += 1
-            self.file.seek(0)
+            buf = self.file
+            assert buf is not None
+            buf.seek(0)
             assert self._multipart is not None
             part = self._multipart.Part(self._write_counter)
-            part.upload(Body=self.file.read())
+            part.upload(Body=buf.read())
 
     def close(self) -> None:
         if self._is_dirty:
@@ -344,7 +349,8 @@ class S3Boto3Storage(Storage):
             )
 
     @property
-    def connection(self):
+    def connection(self) -> Any:
+        # boto3 ships no stubs; the connection handle stays opaque.
         # TODO: Support host, port like in s3boto
         # Note that proxies are handled by environment variables that the underlying
         # urllib/requests libraries read. See https://github.com/boto/boto3/issues/338
@@ -369,7 +375,8 @@ class S3Boto3Storage(Storage):
         return self._connection
 
     @property
-    def bucket(self):
+    def bucket(self) -> Any:
+        # boto3 ships no stubs; the Bucket handle stays opaque.
         """
         Get the current bucket. If there is no current bucket object
         create it.
@@ -379,7 +386,7 @@ class S3Boto3Storage(Storage):
         return self._bucket
 
     @property
-    def entries(self):
+    def entries(self) -> dict[str, Any]:
         """
         Get the locally cached files for the bucket.
         """
@@ -408,7 +415,8 @@ class S3Boto3Storage(Storage):
         secret_key = self.secret_key or lookup_env(self.secret_key_names)
         return access_key, secret_key
 
-    def _get_or_create_bucket(self, name):
+    def _get_or_create_bucket(self, name: str | None) -> Any:
+        # boto3 ships no stubs; the Bucket handle stays opaque.
         """
         Retrieves a bucket if it exists, otherwise creates it.
         """
@@ -518,7 +526,10 @@ class S3Boto3Storage(Storage):
             # the next time it is accessed; no need to specifically reload it.
         return cleaned_name
 
-    def _save_content(self, obj, content, parameters):
+    def _save_content(
+        self, obj: Any, content: File[bytes] | BytesIO, parameters: dict[str, Any] | None
+    ) -> None:
+        # obj is a boto3 S3 Object; boto3 ships no stubs so it stays opaque.
         # only pass backwards incompatible arguments if they vary from the default
         put_parameters = parameters.copy() if parameters else {}
         if self.encryption:
