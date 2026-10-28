@@ -1,7 +1,7 @@
 from collections import namedtuple
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any, TypedDict
+from typing import TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
@@ -36,12 +36,12 @@ class GroupReleaseSerializer(Serializer[GroupReleaseSerializerResponse]):
         self,
         item_list: Sequence[GroupRelease],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> dict[GroupRelease, dict[str, Any]]:
+        **kwargs: object,
+    ) -> dict[GroupRelease, dict[str, object]]:
         release_list = list(Release.objects.filter(id__in=[i.release_id for i in item_list]))
         releases = {r.id: d for r, d in zip(release_list, serialize(release_list, user))}
 
-        result: dict[GroupRelease, dict[str, Any]] = {}
+        result: dict[GroupRelease, dict[str, object]] = {}
         for item in item_list:
             result[item] = {"release": releases.get(item.release_id)}
         return result
@@ -49,9 +49,9 @@ class GroupReleaseSerializer(Serializer[GroupReleaseSerializerResponse]):
     def serialize(
         self,
         obj: GroupRelease,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> GroupReleaseSerializerResponse:
         return {
             "release": attrs["release"],
@@ -77,8 +77,8 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
         self,
         item_list: Sequence[GroupRelease],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> dict[GroupRelease, dict[str, Any]]:
+        **kwargs: object,
+    ) -> dict[GroupRelease, dict[str, object]]:
         attrs = super().get_attrs(item_list, user)
 
         tenant_ids = (
@@ -115,7 +115,8 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
                 stats = {}
 
             for item in item_list:
-                attrs[item]["stats"][key] = [
+                item_stats = cast(dict[str, object], attrs[item]["stats"])
+                item_stats[key] = [
                     (k, v[item.id]) for k, v in stats.get(item.group_id, {})
                 ]
         return attrs
@@ -123,9 +124,9 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
     def serialize(
         self,
         obj: GroupRelease,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> GroupReleaseWithStatsSerializerResponse:
         data: GroupReleaseWithStatsSerializerResponse = {
             **super().serialize(obj, attrs, user),

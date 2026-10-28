@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, NotRequired, TypedDict
+from typing import NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -31,7 +31,7 @@ class ApiTokenSerializer(Serializer[ApiTokenSerializerResponse]):
         self,
         item_list: Sequence[ApiToken],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> dict[ApiToken, dict[str, object]]:
         apps = {
             d["id"]: d
@@ -48,9 +48,9 @@ class ApiTokenSerializer(Serializer[ApiTokenSerializerResponse]):
     def serialize(
         self,
         obj: ApiToken,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> ApiTokenSerializerResponse:
         data: ApiTokenSerializerResponse = {
             "id": str(obj.id),

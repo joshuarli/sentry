@@ -1,7 +1,7 @@
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, Literal, TypedDict, cast
+from typing import Literal, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -124,9 +124,9 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
         self,
         item_list: Sequence[ExploreSavedQuery],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> dict[ExploreSavedQuery, dict[str, Any]]:
-        result: defaultdict[ExploreSavedQuery, dict[str, Any]] = defaultdict(
+        **kwargs: object,
+    ) -> dict[ExploreSavedQuery, dict[str, object]]:
+        result: defaultdict[ExploreSavedQuery, dict[str, object]] = defaultdict(
             lambda: {"created_by": {}}
         )
 
@@ -186,7 +186,7 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
     def serialize(
         self,
         obj: ExploreSavedQuery,
-        attrs: Mapping[str, object],
+        attrs,
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> ExploreSavedQueryResponse:

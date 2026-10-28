@@ -133,9 +133,9 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
         self,
         item_list: Sequence[DashboardWidget],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> dict[DashboardWidget, dict[str, list[Any]]]:
-        result: dict[DashboardWidget, dict[str, list[Any]]] = {}
+        **kwargs: object,
+    ) -> dict[DashboardWidget, dict[str, list[object]]]:
+        result: dict[DashboardWidget, dict[str, list[object]]] = {}
         data_sources = serialize(
             list(
                 DashboardWidgetQuery.objects.filter(widget_id__in=[i.id for i in item_list])
@@ -151,7 +151,7 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
         return result
 
     def get_explore_urls(
-        self, obj: DashboardWidget, attrs: Mapping[str, Any]
+        self, obj: DashboardWidget, attrs
     ) -> list[str]:
         from sentry.explore.translation.dashboards_translation import (
             translate_dashboard_widget_queries,
@@ -324,9 +324,9 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
     def serialize(
         self,
         obj: DashboardWidget,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> DashboardWidgetResponse:
         # Text widgets don't have a widget_type
         if obj.display_type == DashboardWidgetDisplayTypes.TEXT:
@@ -399,9 +399,9 @@ class DashboardWidgetQueryOnDemandSerializer(Serializer[OnDemandResponse]):
     def serialize(
         self,
         obj: DashboardWidgetQueryOnDemand,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> OnDemandResponse:
         return {
             "enabled": obj.extraction_enabled(),
@@ -416,8 +416,8 @@ class DashboardWidgetQuerySerializer(Serializer[DashboardWidgetQueryResponse]):
         self,
         item_list: Sequence[DashboardWidgetQuery],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> dict[DashboardWidgetQuery, dict[str, list[Any]]]:
+        **kwargs: object,
+    ) -> dict[DashboardWidgetQuery, dict[str, list[object]]]:
         result = {}
 
         stateful_extraction_version = (
@@ -453,9 +453,9 @@ class DashboardWidgetQuerySerializer(Serializer[DashboardWidgetQueryResponse]):
     def serialize(
         self,
         obj: DashboardWidgetQuery,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> DashboardWidgetQueryResponse:
         return {
             "id": str(obj.id),
@@ -479,9 +479,9 @@ class DashboardPermissionsSerializer(Serializer[DashboardPermissionsResponse]):
     def serialize(
         self,
         obj: DashboardPermissions,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> DashboardPermissionsResponse:
         return {
             "isEditableByEveryone": obj.is_editable_by_everyone,
@@ -493,7 +493,7 @@ class DashboardListResponse(TypedDict):
     id: str
     title: str
     dateCreated: datetime
-    createdBy: dict[str, Any] | None
+    createdBy: dict[str, object] | None
     environment: list[str]
     filters: DashboardFilters
     lastVisited: datetime | None
@@ -513,8 +513,8 @@ class _WidgetPreview(TypedDict):
 class _Widget(TypedDict):
     widget_display: list[str]
     widget_preview: list[_WidgetPreview]
-    created_by: dict[str, Any] | None
-    permissions: NotRequired[dict[str, Any]]
+    created_by: dict[str, object] | None
+    permissions: NotRequired[dict[str, object]]
     is_favorited: NotRequired[bool]
     projects: list[int]
     environment: list[str]
@@ -575,7 +575,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
         self,
         item_list: Sequence[Dashboard],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs,
     ) -> dict[Dashboard, _Widget]:
         item_dict = {i.id: i for i in item_list}
         prefetch_related_objects(item_list, "projects__organization")
@@ -675,9 +675,9 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
     def serialize(
         self,
         obj: Dashboard,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> DashboardListResponse:
         return {
             "id": str(obj.id),
@@ -699,7 +699,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
 class DashboardFilters(TypedDict, total=False):
     release: list[str]
     releaseId: list[str]
-    globalFilter: list[dict[str, Any]]
+    globalFilter: list[dict[str, object]]
 
 
 class DashboardDetailsResponseOptional(TypedDict, total=False):
@@ -715,7 +715,7 @@ class DashboardDetailsResponse(DashboardDetailsResponseOptional):
     id: str
     title: str
     dateCreated: datetime
-    createdBy: dict[str, Any] | None
+    createdBy: dict[str, object] | None
     widgets: list[DashboardWidgetResponse]
     projects: list[int]
     filters: DashboardFilters
@@ -730,7 +730,7 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
         self,
         item_list: Sequence[Dashboard],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> dict[Dashboard, dict[str, object]]:
         result = {}
 
@@ -763,9 +763,9 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
     def serialize(
         self,
         obj: Dashboard,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> DashboardDetailsResponse:
         page_filters, tag_filters = self.get_filters(obj)
 
@@ -791,7 +791,7 @@ class DashboardRevisionResponse(TypedDict):
     id: str
     title: str
     dateCreated: datetime
-    createdBy: dict[str, Any] | None
+    createdBy: dict[str, object] | None
     source: str
 
 
@@ -801,7 +801,7 @@ class DashboardRevisionSerializer(Serializer[DashboardRevisionResponse]):
         self,
         item_list: Sequence[DashboardRevision],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> dict[DashboardRevision, dict[str, object]]:
         user_ids = [r.created_by_id for r in item_list if r.created_by_id is not None]
         users_by_id = {
@@ -815,9 +815,9 @@ class DashboardRevisionSerializer(Serializer[DashboardRevisionResponse]):
     def serialize(
         self,
         obj: DashboardRevision,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> DashboardRevisionResponse:
         created_by = attrs.get("created_by") or {}
         avatar = created_by.get("avatar") or {}

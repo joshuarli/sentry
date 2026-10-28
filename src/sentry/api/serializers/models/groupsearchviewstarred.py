@@ -1,6 +1,6 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -30,7 +30,7 @@ class GroupSearchViewStarredSerializerResponse(TypedDict):
 
 @register(GroupSearchViewStarred)
 class GroupSearchViewStarredSerializer(Serializer[GroupSearchViewStarredSerializerResponse]):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         self.organization = kwargs.pop("organization", None)
         super().__init__(*args, **kwargs)
 
@@ -38,7 +38,7 @@ class GroupSearchViewStarredSerializer(Serializer[GroupSearchViewStarredSerializ
         self,
         item_list: Sequence[GroupSearchViewStarred],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> dict[GroupSearchViewStarred, GroupSearchViewSerializerResponse]:
         views = [item.group_search_view for item in item_list]
         serialized_views = serialize(
@@ -51,9 +51,9 @@ class GroupSearchViewStarredSerializer(Serializer[GroupSearchViewStarredSerializ
     def serialize(
         self,
         obj: GroupSearchViewStarred,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> GroupSearchViewStarredSerializerResponse:
         return {
             "id": attrs["id"],

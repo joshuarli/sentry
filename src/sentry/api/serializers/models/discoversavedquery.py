@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -108,9 +108,9 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
         self,
         item_list: Sequence[DiscoverSavedQuery],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> dict[DiscoverSavedQuery, dict[str, Any]]:
-        result: defaultdict[DiscoverSavedQuery, dict[str, Any]] = defaultdict(
+        **kwargs: object,
+    ):
+        result: defaultdict[DiscoverSavedQuery, dict[str, object]] = defaultdict(
             lambda: {"created_by": {}, "explore_query": None}
         )
 
@@ -187,9 +187,9 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
     def serialize(
         self,
         obj: DiscoverSavedQuery,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> DiscoverSavedQueryResponse:
         query_keys = [
             "environment",

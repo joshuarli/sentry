@@ -1,6 +1,5 @@
-from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -30,9 +29,9 @@ class EventUserSerializer(Serializer[EventUserSerializerResponse]):
     def serialize(
         self,
         obj: EventUser,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> EventUserSerializerResponse:
         return {
             "id": str(obj.id) if obj.id is not None else obj.id,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -31,7 +31,7 @@ class CommitFileChangeSerializer(Serializer[CommitFileChangeSerializerResponse])
         self,
         item_list: Sequence[CommitFileChange],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> dict[CommitFileChange, dict[str, object]]:
         commits = list(
             Commit.objects.filter(id__in=[f.commit_id for f in item_list]).select_related("author")
@@ -59,9 +59,9 @@ class CommitFileChangeSerializer(Serializer[CommitFileChangeSerializerResponse])
     def serialize(
         self,
         obj: CommitFileChange,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> CommitFileChangeSerializerResponse:
         data: CommitFileChangeSerializerResponse = {
             "id": str(obj.id),

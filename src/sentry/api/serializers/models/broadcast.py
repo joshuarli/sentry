@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count
@@ -37,8 +37,8 @@ class BroadcastSerializer(Serializer[BroadcastSerializerResponse]):
         self,
         item_list: Sequence[Broadcast],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> dict[Broadcast, dict[str, Any]]:
+        **kwargs: object,
+    ) -> dict[Broadcast, dict[str, object]]:
         if isinstance(user, AnonymousUser) or not user.is_authenticated:
             seen = set()
         else:
@@ -53,9 +53,9 @@ class BroadcastSerializer(Serializer[BroadcastSerializerResponse]):
     def serialize(
         self,
         obj: Broadcast,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> BroadcastSerializerResponse:
         return {
             "id": str(obj.id),
@@ -76,8 +76,8 @@ class AdminBroadcastSerializer(BroadcastSerializer):
         self,
         item_list: Sequence[Broadcast],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> dict[Broadcast, dict[str, Any]]:
+        **kwargs: object,
+    ) -> dict[Broadcast, dict[str, object]]:
         attrs = super().get_attrs(item_list, user)
         counts = dict(
             BroadcastSeen.objects.filter(broadcast__in=item_list)
@@ -94,9 +94,9 @@ class AdminBroadcastSerializer(BroadcastSerializer):
     def serialize(
         self,
         obj: Broadcast,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> AdminBroadcastSerializerResponse:
         context: AdminBroadcastSerializerResponse = {
             **super().serialize(obj, attrs, user),

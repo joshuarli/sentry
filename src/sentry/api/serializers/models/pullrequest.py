@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, Literal, TypedDict
+from typing import Literal, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Prefetch, prefetch_related_objects
@@ -102,7 +102,7 @@ class PullRequestSerializer(Serializer[PullRequestSerializerResponse]):
         self,
         item_list: Sequence[PullRequest],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> dict[PullRequest, dict[str, object]]:
         users_by_author = get_users_for_pull_requests(item_list, user)
         repositories = list(Repository.objects.filter(id__in=[c.repository_id for c in item_list]))
@@ -126,9 +126,9 @@ class PullRequestSerializer(Serializer[PullRequestSerializerResponse]):
     def serialize(
         self,
         obj: PullRequest,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> PullRequestSerializerResponse:
         return {
             "id": obj.key,
@@ -188,7 +188,7 @@ class LinkedPullRequestSerializer(PullRequestSerializer):
         self,
         item_list: Sequence[PullRequest],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> dict[PullRequest, dict[str, object]]:
         attrs = super().get_attrs(item_list, user)
         prefetch_related_objects(
@@ -208,9 +208,9 @@ class LinkedPullRequestSerializer(PullRequestSerializer):
     def serialize(
         self,
         obj: PullRequest,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> LinkedPullRequestResponse:
         checks_and_review = self.checks_and_review_by_pr_id.get(obj.id, PullRequestStatusResult())
         return {

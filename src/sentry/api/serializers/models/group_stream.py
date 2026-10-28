@@ -84,12 +84,12 @@ class GroupStatsMixin:
     def query_tsdb(
         self,
         groups: Sequence[Group],
-        query_params: Mapping[str, Any],
-        conditions: Sequence[Sequence[Any]] | None = None,
+        query_params,
+        conditions=None,
         environment_ids: list[int] | None = None,
         user: User | RpcUser | AnonymousUser | None = None,
-        **kwargs: Any,
-    ) -> dict[Any, Any] | None:
+        **kwargs,
+    ):
         pass
 
     def get_stats(
@@ -97,8 +97,8 @@ class GroupStatsMixin:
         item_list: Sequence[Group],
         user: User | RpcUser | AnonymousUser | None,
         stats_query_args: GroupStatsQueryArgs,
-        **kwargs: Any,
-    ) -> dict[Any, Any] | None:
+        **kwargs,
+    ):
         if stats_query_args and stats_query_args.stats_period:
             # we need to compute stats at 1d (1h resolution), and 14d or a custom given period
             if stats_query_args.stats_period == "auto":
@@ -213,12 +213,12 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
     def query_tsdb(
         self,
         groups: Sequence[Group],
-        query_params: Mapping[str, Any],
-        conditions: Sequence[Sequence[Any]] | None = None,
+        query_params,
+        conditions=None,
         environment_ids: list[int] | None = None,
         user: User | RpcUser | AnonymousUser | None = None,
-        **kwargs: Any,
-    ) -> dict[Any, Any] | None:
+        **kwargs,
+    ):
         try:
             environment = self.environment_func()
         except Environment.DoesNotExist:
@@ -242,7 +242,7 @@ class _SeenStatsFunc(Protocol):
         item_list: Sequence[Group],
         start: datetime | None = None,
         end: datetime | None = None,
-        conditions: Sequence[Sequence[Any]] | None = None,
+        conditions=None,
         environment_ids: list[int] | None = None,
     ) -> Mapping[str, Any]: ...
 
@@ -586,13 +586,13 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
     def query_tsdb(
         self,
         groups: Sequence[Group],
-        query_params: Mapping[str, Any],
-        conditions: Sequence[Sequence[Any]] | None = None,
+        query_params,
+        conditions=None,
         environment_ids: list[int] | None = None,
         user: User | RpcUser | AnonymousUser | None = None,
         aggregation_override: str | None = None,
-        **kwargs: Any,
-    ) -> dict[Any, Any] | None:
+        **kwargs,
+    ):
         if not groups:
             return None
 
@@ -649,7 +649,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self,
         error_issue_list: Sequence[Group],
         seen_stats_func: _SeenStatsFunc,
-    ) -> Mapping[Any, StreamSeenStats]:
+    ) -> Mapping[Group, StreamSeenStats]:
         partial_execute_seen_stats_query = functools.partial(
             seen_stats_func,
             item_list=error_issue_list,
@@ -688,7 +688,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             else None
         )
 
-        enriched_result: dict[Any, StreamSeenStats] = {}
+        enriched_result: dict[Group, StreamSeenStats] = {}
         for item in error_issue_list:
             stats = time_range_result[item]
             enriched_result[item] = StreamSeenStats(

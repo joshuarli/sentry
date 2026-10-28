@@ -1,6 +1,6 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, TypedDict, cast
+from typing import TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
@@ -42,7 +42,7 @@ class GroupSearchViewSerializerResponse(TypedDict):
 
 @register(GroupSearchView)
 class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         self.organization = kwargs.pop("organization", None)
         super().__init__(*args, **kwargs)
 
@@ -50,10 +50,10 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
         self,
         item_list: Sequence[GroupSearchView],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> dict[GroupSearchView, dict[str, Any]]:
+        **kwargs: object,
+    ) -> dict[GroupSearchView, dict[str, object]]:
         prefetch_related_objects(item_list, "projects")
-        attrs: dict[GroupSearchView, dict[str, Any]] = {}
+        attrs: dict[GroupSearchView, dict[str, object]] = {}
 
         last_visited_views = (
             GroupSearchViewLastVisited.objects.filter(
@@ -98,9 +98,9 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
     def serialize(
         self,
         obj: GroupSearchView,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> GroupSearchViewSerializerResponse:
         projects = [-1] if obj.is_all_projects else [p.id for p in obj.projects.all()]
 

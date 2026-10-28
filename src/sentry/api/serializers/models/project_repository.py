@@ -1,5 +1,5 @@
 from collections.abc import Mapping, Sequence
-from typing import Any, NotRequired, TypedDict
+from typing import NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
@@ -32,17 +32,17 @@ class ProjectRepositorySerializer(Serializer[ProjectRepositorySerializerResponse
         self,
         item_list: Sequence[ProjectRepository],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> dict[ProjectRepository, dict[str, Any]]:
+        **kwargs: object,
+    ) -> dict[ProjectRepository, dict[str, object]]:
         prefetch_related_objects(item_list, "repository")
         return {item: {} for item in item_list}
 
     def serialize(
         self,
         obj: ProjectRepository,
-        attrs: Mapping[str, Any],
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> ProjectRepositorySerializerResponse:
         repository = obj.repository
         provider = repository.provider
