@@ -722,7 +722,11 @@ class SimpleEventSerializer(EventSerializer):
         return {event: {"crash_file": serialized_files.get(event.event_id)} for event in item_list}
 
     def serialize(  # type: ignore[override]  # intentionally different shape
-        self, obj: Event | GroupEvent, attrs, user, **kwargs
+        self,
+        obj: Event | GroupEvent,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> SimpleEventSerializerResponse:
         tags: list[EventTag] = [
             {"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags
