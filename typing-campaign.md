@@ -107,6 +107,7 @@ Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compi
 - `5e75f33ae11` refactor(typing): type discover saved query serializer contracts (user union + adapter; nullable corrections per structural producers; 1 file, 41+/22-; 79 tests green)
 - `7fa86705728` refactor(typing): type SimpleEventSerializer serialize params (completes event family bar transaction floats; 1 file, 5+/1-; 62 tests green serially)
 - `9de1067c2eb` refactor(typing): type audit log entry serializer contracts (response vs typed event registry; private helpers stay untyped; 1 file, 33+/3-; 38 tests green)
+- `f9111b8b94e` refactor(typing): type ProjectWithOrganization serialize contract (response extends base; cycle-free import; completes project.py; 1 file, 12+/1-; -n3 flake reproduces on base)
 - `dbf118c2c1e` fix(tests): pin admin broadcast creator email contract (previously untested Admin path; 1 file, 11+/0-)
 - `4ade7ff1e9f` refactor(typing): type broadcast serializer contracts (response TypedDicts; user unions; relation-named created_by_id stands; 1 file, 62+/11-; 25 tests green)
 
@@ -454,6 +455,10 @@ No next source wave is selected. On resume, repair the Corrective checkpoint def
 2026-10-28 — Transaction float payload question resolved by experiment, no code change: Relay rejects transactions without start_timestamp (`invalid transaction event: start_timestamp hard-required`), so the float response contract is enforced upstream and the `.get()` None case is unreachable on the transaction path. `__serialize_transaction_attrs` stays as-is deliberately; coercing a default would be dead code for the checker. Continuing with the next interface group.
 
 2026-10-28 — Audit log entry serializer typed: `9de1067` (response vs typed registry; helpers stay file-private). Continuing with the next interface group.
+
+2026-10-28 — Project serializers completed: `f9111b8` (WithOrganization contract; completes project.py). Continuing with the next interface group.
+
+2026-10-28 — Project serializers completed: `f9111b8` (WithOrganization contract; completes project.py). Continuing with the next interface group.
 
 2026-10-28 — Broadcast serializers typed: `4ade7ff` (suspected created_by_id defect disproven by relation-name evidence + repro test `dbf118c`; response contracts; user unions). Continuing with the next interface group.
 
