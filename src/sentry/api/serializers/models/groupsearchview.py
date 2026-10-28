@@ -1,6 +1,7 @@
-from collections.abc import MutableMapping
+from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
@@ -9,6 +10,9 @@ from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.savedsearch import SORT_LITERALS
 from sentry.users.api.serializers.user import UserSerializerResponse
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 
 
@@ -41,20 +45,33 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
         self.organization = kwargs.pop("organization", None)
         super().__init__(*args, **kwargs)
 
-    def get_attrs(self, item_list, user, **kwargs) -> MutableMapping[Any, Any]:
+    def get_attrs(
+        self,
+        item_list: Sequence[GroupSearchView],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[GroupSearchView, dict[str, Any]]:
         prefetch_related_objects(item_list, "projects")
-        attrs: MutableMapping[Any, Any] = {}
+        attrs: dict[GroupSearchView, dict[str, Any]] = {}
 
-        last_visited_views = GroupSearchViewLastVisited.objects.filter(
-            organization=self.organization,
-            user_id=user.id,
-            group_search_view_id__in=[item.id for item in item_list],
-        )
-        user_starred_view_ids = set(
-            GroupSearchViewStarred.objects.filter(
+        last_visited_views = (
+            GroupSearchViewLastVisited.objects.filter(
                 organization=self.organization,
                 user_id=user.id,
-            ).values_list("group_search_view_id", flat=True)
+                group_search_view_id__in=[item.id for item in item_list],
+            )
+            if not isinstance(user, AnonymousUser)
+            else []
+        )
+        user_starred_view_ids = (
+            set(
+                GroupSearchViewStarred.objects.filter(
+                    organization=self.organization,
+                    user_id=user.id,
+                ).values_list("group_search_view_id", flat=True)
+            )
+            if not isinstance(user, AnonymousUser)
+            else set()
         )
         last_visited_map = {lv.group_search_view_id: lv for lv in last_visited_views}
 
@@ -62,7 +79,7 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
             user["id"]: user
             for user in user_service.serialize_many(
                 filter={"user_ids": [view.user_id for view in item_list if view.user_id]},
-                as_user=user,
+                as_user=serialize_generic_user(user),
             )
             if user is not None
         }
@@ -77,7 +94,13 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
             attrs[item]["created_by"] = serialized_users.get(str(item.user_id))
         return attrs
 
-    def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewSerializerResponse:
+    def serialize(
+        self,
+        obj: Any,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> GroupSearchViewSerializerResponse:
         projects = [-1] if obj.is_all_projects else [p.id for p in obj.projects.all()]
 
         return {
