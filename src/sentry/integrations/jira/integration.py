@@ -927,6 +927,7 @@ class JiraIntegration(IssueSyncIntegration):
             ) from e
 
     def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+        assert query is not None, "search_issues requires a query string"
         try:
             resp = self.get_client().search_issues(query)
             assert isinstance(resp, dict)
@@ -1115,7 +1116,7 @@ class JiraIntegration(IssueSyncIntegration):
             "Ensure that your project permissions are correct."
         )
 
-    def fetch_issue_create_meta(self, client, project_id):
+    def fetch_issue_create_meta(self, client: JiraCloudClient, project_id: str):
         try:
             meta = client.get_create_meta_for_project(project_id)
         except ApiUnauthorized:
@@ -1311,7 +1312,7 @@ class JiraIntegration(IssueSyncIntegration):
         )
         return transformed_data
 
-    def create_issue(self, data, **kwargs):
+    def create_issue(self, data: dict[str, Any], **kwargs: Any):
         client = self.get_client()
         # protect against mis-configured integration submitting a form without an
         # issuetype assigned.
@@ -1504,7 +1505,7 @@ class JiraIntegration(IssueSyncIntegration):
         except ApiInvalidRequestError as e:
             self.raise_error(e)
 
-    def _get_done_statuses(self):
+    def _get_done_statuses(self) -> set[str]:
         client = self.get_client()
         statuses = client.get_valid_statuses()
         return {s["id"] for s in statuses if s["statusCategory"]["key"] == "done"}
@@ -1518,7 +1519,7 @@ class JiraIntegration(IssueSyncIntegration):
             should_unresolve=c_from in done_statuses and c_to not in done_statuses,
         )
 
-    def migrate_issues(self):
+    def migrate_issues(self) -> None:
         migrate_issues.apply_async(
             kwargs={
                 "integration_id": self.model.id,
