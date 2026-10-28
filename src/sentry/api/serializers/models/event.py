@@ -605,7 +605,13 @@ class SharedEventSerializer(EventSerializer):
     ) -> dict[Event | GroupEvent, dict[str, Any]]:
         return super().get_attrs(item_list, user, is_public=True, **kwargs)
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(  # type: ignore[override]  # return value is a subset
+        self,
+        obj: Event | GroupEvent,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
         base = super().serialize(obj, attrs, user)
         result: dict[str, Any] = {
             k: v
