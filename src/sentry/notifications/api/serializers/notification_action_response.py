@@ -1,5 +1,5 @@
-from collections.abc import Mapping, Sequence
-from typing import Any, TypedDict
+from collections.abc import Sequence
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -29,6 +29,11 @@ class OutgoingNotificationActionResponse(TypedDict):
     targetDisplay: str | None
 
 
+class NotificationActionAttrs(TypedDict):
+    trigger_type: str
+    projects: list[int]
+
+
 @register(NotificationAction)
 class OutgoingNotificationActionSerializer(Serializer[OutgoingNotificationActionResponse]):
     """
@@ -39,8 +44,8 @@ class OutgoingNotificationActionSerializer(Serializer[OutgoingNotificationAction
         self,
         item_list: Sequence[NotificationAction],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> dict[NotificationAction, dict[str, Any]]:
+        **kwargs: object,
+    ) -> dict[NotificationAction, NotificationActionAttrs]:
         action_ids = {i.id for i in item_list}
         projects_by_action_id = manytoone_to_dict(
             NotificationActionProject.objects.filter(action_id__in=action_ids),
@@ -58,9 +63,9 @@ class OutgoingNotificationActionSerializer(Serializer[OutgoingNotificationAction
     def serialize(
         self,
         obj: NotificationAction,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> OutgoingNotificationActionResponse:
         return {
             "id": obj.id,
@@ -76,7 +81,7 @@ class OutgoingNotificationActionSerializer(Serializer[OutgoingNotificationAction
         }
 
     @classmethod
-    def get_example(cls, **action_kwargs: Any) -> OutgoingNotificationActionResponse:
+    def get_example(cls, **action_kwargs: object) -> OutgoingNotificationActionResponse:
         """
         Create example serialized response for documentation.
         Any kwargs will be applied to the NotificationAction.
