@@ -131,6 +131,7 @@ Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compi
 - `c3706e14d5d` refactor(typing): finish jira server persisted fields and projects flag (1 file, 2+/2-; 72 tests green; 44-file combined mypy clean)
 - `e7bd8840b7b` refactor(typing): type jira server config surface (matches base MutableMapping contract; 1 file, 4+/4-; 72 tests green)
 - `85474378cf5` refactor(typing): type jira server create entry points (1 file, 4+/2-; 72 tests green)
+- `6466229dbcb` refactor(typing): finish jira server config surface (1 file, 4+/4-; 72 tests green)
 - `aab5a2ddee9` refactor(typing): type group search view init kwargs (completes the file; 1 file, 1+/1-)
 - `bc351b54ad1` refactor(typing): type releasefile model lifecycle methods (save/update/guard-init; update returns base-helper row count; 1 file, 3+/3-; 10 tests green)
 - `1e9753fc67b` refactor(typing): type release index data and stream protocol details (nullable-yield guard; get_or_create assert; protocol match; 2 files, 18+/14-; 16 tests green)
@@ -525,6 +526,8 @@ No next source wave is selected. On resume, repair the Corrective checkpoint def
 2026-10-28 — Jira server config surface typed: `e7bd884` (matches base MutableMapping contract). Continuing with the next interface group.
 
 2026-10-28 — Jira server create entry points typed: `8547437`. Continuing with the next interface group.
+
+2026-10-28 — Jira server config surface finished: `6466229`. Continuing with the next interface group.
 
 2026-10-28 — Releasefile model methods typed: `bc351b5` (save/update/guard init; update resolves to the base-helper row count). Continuing with the next interface group.
 
