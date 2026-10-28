@@ -223,7 +223,7 @@ class JiraCloudClient(ApiClient):
         data = {"type": "badge", "value": {"label": badge_num}}
         return self.put(self.PROPERTIES_URL % (issue_key, properties_key), data=data)
 
-    def get_email(self, account_id: str) -> str | None:
+    def get_email(self, account_id: str | None) -> str | None:
         user = self.get_cached(self.EMAIL_URL, params={"accountId": account_id})
         return user.get("email")
 
