@@ -779,13 +779,7 @@ class ExternalEventSerializer(EventSerializer):
     should be used for Integrations that need to include event data.
     """
 
-    def serialize(
-        self,
-        obj: Event | GroupEvent,
-        attrs: Mapping[str, object],
-        user: User | RpcUser | AnonymousUser,
-        **kwargs: object,
-    ):
+    def serialize(self, obj, attrs, user, **kwargs):
         from sentry.notifications.utils import get_notification_group_title
 
         tags: list[EventTag] = [
