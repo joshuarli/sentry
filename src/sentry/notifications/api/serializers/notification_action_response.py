@@ -1,5 +1,5 @@
-from collections.abc import Sequence
-from typing import TypedDict
+from collections.abc import Mapping, Sequence
+from typing import Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -11,6 +11,8 @@ from sentry.notifications.models.notificationaction import (
     NotificationAction,
     NotificationActionProject,
 )
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.serializers import manytoone_to_dict
 
 
@@ -33,7 +35,12 @@ class OutgoingNotificationActionSerializer(Serializer[OutgoingNotificationAction
     Model serializer for outgoing NotificationAction API payloads
     """
 
-    def get_attrs(self, item_list: Sequence[NotificationAction], user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[NotificationAction],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[NotificationAction, dict[str, Any]]:
         action_ids = {i.id for i in item_list}
         projects_by_action_id = manytoone_to_dict(
             NotificationActionProject.objects.filter(action_id__in=action_ids),
@@ -49,7 +56,11 @@ class OutgoingNotificationActionSerializer(Serializer[OutgoingNotificationAction
         }
 
     def serialize(
-        self, obj: NotificationAction, attrs, user, **kwargs
+        self,
+        obj: NotificationAction,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> OutgoingNotificationActionResponse:
         return {
             "id": obj.id,
@@ -65,7 +76,7 @@ class OutgoingNotificationActionSerializer(Serializer[OutgoingNotificationAction
         }
 
     @classmethod
-    def get_example(cls, **action_kwargs):
+    def get_example(cls, **action_kwargs: Any) -> OutgoingNotificationActionResponse:
         """
         Create example serialized response for documentation.
         Any kwargs will be applied to the NotificationAction.
