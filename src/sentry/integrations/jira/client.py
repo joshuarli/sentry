@@ -62,7 +62,7 @@ class JiraCloudClient(ApiClient):
         integration: RpcIntegration | Integration,
         verify_ssl: bool,
         logging_context: Any | None = None,
-    ):
+    ) -> None:
         self.base_url = integration.metadata["base_url"]
         self.shared_secret = integration.metadata["shared_secret"]
         super().__init__(
@@ -113,10 +113,10 @@ class JiraCloudClient(ApiClient):
         """
         return "query"
 
-    def get_issue(self, issue_id: str):
+    def get_issue(self, issue_id: str) -> Any:
         return self.get(self.ISSUE_URL % (issue_id,))
 
-    def search_issues(self, query: str):
+    def search_issues(self, query: str) -> Any:
         issue_key = parse_jira_issue_key(query, self.base_url)
         if issue_key is not None:
             # the key pattern cannot contain a quote, so it needs no escaping
@@ -126,17 +126,17 @@ class JiraCloudClient(ApiClient):
             jql = f'text ~ "{q}"'
         return self.get(self.SEARCH_URL, params={"jql": jql, "fields": "*all"})
 
-    def create_comment(self, issue_key: str, comment: str):
+    def create_comment(self, issue_key: str, comment: str) -> Any:
         return self.post(self.COMMENTS_URL % issue_key, data={"body": comment})
 
-    def update_comment(self, issue_key: str, comment_id: str, comment: str):
+    def update_comment(self, issue_key: str, comment_id: str, comment: str) -> Any:
         return self.put(self.COMMENT_URL % (issue_key, comment_id), data={"body": comment})
 
-    def get_projects_paginated(self, params: dict[str, Any] | None = None):
+    def get_projects_paginated(self, params: dict[str, Any] | None = None) -> Any:
         response = self.get(self.PROJECTS_PAGINATED_URL, params=params)
         return response
 
-    def get_projects_list(self):
+    def get_projects_list(self) -> Any:
         """deprecated - please use paginated projects endpoint"""
         return self.get_cached(self.PROJECT_URL)
 
@@ -149,7 +149,7 @@ class JiraCloudClient(ApiClient):
                 return project["key"]
         return ""
 
-    def get_create_meta_for_project(self, project: str):
+    def get_create_meta_for_project(self, project: str) -> Any:
         params = {"expand": "projects.issuetypes.fields", "projectIds": project}
         metas = self.get_cached(self.META_URL, params=params)
         # We saw an empty JSON response come back from the API :(
@@ -173,51 +173,51 @@ class JiraCloudClient(ApiClient):
             )
             return None
 
-    def get_versions(self, project: str):
+    def get_versions(self, project: str) -> Any:
         return self.get_cached(self.VERSIONS_URL % project)
 
-    def get_priorities(self):
+    def get_priorities(self) -> Any:
         return self.get_cached(self.PRIORITIES_URL)
 
-    def search_users_for_project(self, project: str, username: str):
+    def search_users_for_project(self, project: str, username: str) -> Any:
         # Jira Server wants a project key, while cloud is indifferent.
         project_key = self.get_project_key_for_id(project)
         return self.get_cached(
             self.USERS_URL, params={"project": project_key, self.user_query_param(): username}
         )
 
-    def search_users_for_issue(self, issue_key: str, email: str):
+    def search_users_for_issue(self, issue_key: str, email: str) -> Any:
         return self.get_cached(
             self.USERS_URL, params={"issueKey": issue_key, self.user_query_param(): email}
         )
 
-    def get_user(self, user_id: str):
+    def get_user(self, user_id: str) -> Any:
         user_id_get_param = self.user_id_get_param()
         return self.get_cached(self.USER_URL, params={user_id_get_param: user_id})
 
-    def create_issue(self, raw_form_data: dict[str, Any]):
+    def create_issue(self, raw_form_data: dict[str, Any]) -> Any:
         data = {"fields": raw_form_data}
         return self.post(self.CREATE_URL, data=data)
 
-    def get_server_info(self):
+    def get_server_info(self) -> Any:
         return self.get(self.SERVER_INFO_URL)
 
-    def get_valid_statuses(self):
+    def get_valid_statuses(self) -> Any:
         return self.get_cached(self.STATUS_URL)
 
-    def get_transitions(self, issue_key: str):
+    def get_transitions(self, issue_key: str) -> Any:
         return self.get_cached(self.TRANSITION_URL % issue_key)["transitions"]
 
-    def transition_issue(self, issue_key: str, transition_id: str):
+    def transition_issue(self, issue_key: str, transition_id: str) -> Any:
         return self.post(
             self.TRANSITION_URL % issue_key, data={"transition": {"id": transition_id}}
         )
 
-    def assign_issue(self, key: str, name_or_account_id: str | None):
+    def assign_issue(self, key: str, name_or_account_id: str | None) -> Any:
         user_id_field = self.user_id_field()
         return self.put(self.ASSIGN_URL % key, data={user_id_field: name_or_account_id})
 
-    def set_issue_property(self, issue_key: str, badge_num: int):
+    def set_issue_property(self, issue_key: str, badge_num: int) -> Any:
         module_key = "sentry-issues-glance"
         properties_key = f"com.atlassian.jira.issue:{JIRA_KEY}:{module_key}:status"
         data = {"type": "badge", "value": {"label": badge_num}}
@@ -227,7 +227,7 @@ class JiraCloudClient(ApiClient):
         user = self.get_cached(self.EMAIL_URL, params={"accountId": account_id})
         return user.get("email")
 
-    def get_field_autocomplete(self, name: str, value: str):
+    def get_field_autocomplete(self, name: str, value: str) -> Any:
         if name.startswith(CUSTOMFIELD_PREFIX):
             # Transform `customfield_0123` into `cf[0123]`
             cf_id = name[len(CUSTOMFIELD_PREFIX) :]
