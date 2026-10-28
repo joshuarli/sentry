@@ -662,7 +662,9 @@ class JiraServerIntegration(IssueSyncIntegration):
         except ApiError as e:
             self.raise_error(e)
 
-    def make_choices(self, values):
+    def make_choices(
+        self, values: Sequence[Mapping[str, Any]] | None
+    ) -> list[tuple[Any, Any]]:
         if not values:
             return []
         results = []
@@ -683,24 +685,25 @@ class JiraServerIntegration(IssueSyncIntegration):
             results.append((key, value))
         return results
 
-    def error_message_from_json(self, data):
+    def error_message_from_json(self, data: Mapping[str, Any]) -> str:
         message = ""
         if data.get("errorMessages"):
             message = " ".join(data["errorMessages"])
-        if data.get("errors"):
+        errors = data.get("errors")
+        if errors:
             if message:
                 message += " "
-            message += " ".join(f"{k}: {v}" for k, v in data.get("errors").items())
+            message += " ".join(f"{k}: {v}" for k, v in errors.items())
         return message
 
-    def error_fields_from_json(self, data):
+    def error_fields_from_json(self, data: Mapping[str, Any]) -> dict[str, list[Any]] | None:
         errors = data.get("errors")
         if not errors:
             return None
 
-        return {key: [error] for key, error in data.get("errors").items()}
+        return {key: [error] for key, error in errors.items()}
 
-    def search_url(self, org_slug):
+    def search_url(self, org_slug: str) -> str:
         return reverse("sentry-extensions-jiraserver-search", args=[org_slug, self.model.id])
 
     def build_dynamic_field(self, field_meta, group=None):
