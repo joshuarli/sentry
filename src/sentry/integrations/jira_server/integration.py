@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, NotRequired, TypedDict
 from urllib.parse import urlparse
 
@@ -463,7 +463,7 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         return configuration
 
-    def update_organization_config(self, data):
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
         """
         Update the configuration field for an organization integration.
         """
@@ -513,7 +513,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         if org_integration is not None:
             self.org_integration = org_integration
 
-    def get_config_data(self):
+    def get_config_data(self) -> dict[str, Any]:
         config = self.org_integration.config
         project_mappings = integration_service.get_integration_external_projects(
             organization_id=self.org_integration.organization_id,
@@ -555,7 +555,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             metadata=self.model.metadata,
         )
 
-    def get_link_issue_config(self, group, **kwargs):
+    def get_link_issue_config(self, group: Group, **kwargs: Any) -> list[dict[str, Any]]:
         fields = super().get_link_issue_config(group, **kwargs)
         org = group.organization
         autocomplete_url = reverse(
