@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 import sys
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from operator import attrgetter
 from typing import Any, NamedTuple, NoReturn, TypedDict, cast
 
@@ -246,7 +246,7 @@ class JiraIntegration(IssueSyncIntegration):
     comment_key = "sync_comments"
 
     @classproperty
-    def use_email_scope(cls):
+    def use_email_scope(cls) -> bool:
         return settings.JIRA_USE_EMAIL_SCOPE
 
     def get_organization_config(self) -> list[dict[str, Any]]:
@@ -489,7 +489,9 @@ class JiraIntegration(IssueSyncIntegration):
             },
         ]
 
-    def update_organization_config(self, data):
+    def update_organization_config(
+        self, data: MutableMapping[str, Any]
+    ) -> dict[str, Any] | None:
         """
         Update the configuration field for an organization integration.
 
@@ -707,7 +709,7 @@ class JiraIntegration(IssueSyncIntegration):
 
         return _MappingReconcileResult(audit=audit_data, remaining_count=remaining_count)
 
-    def get_config_data(self):
+    def get_config_data(self) -> dict[str, Any]:
         # Copied because the mapping dict assembled below is only for the response; the stored
         # value of this key is a bool.
         config = dict(self.org_integration.config)
@@ -740,7 +742,7 @@ class JiraIntegration(IssueSyncIntegration):
         )
         return config
 
-    def sync_metadata(self):
+    def sync_metadata(self) -> None:
         client = self.get_client()
 
         server_info = {}
@@ -765,7 +767,7 @@ class JiraIntegration(IssueSyncIntegration):
             integration_id=self.model.id, name=name, metadata=metadata
         )
 
-    def get_link_issue_config(self, group, **kwargs):
+    def get_link_issue_config(self, group: Group, **kwargs: Any) -> list[dict[str, Any]]:
         fields = super().get_link_issue_config(group, **kwargs)
         org = group.organization
         autocomplete_url = reverse("sentry-extensions-jira-search", args=[org.slug, self.model.id])
@@ -784,7 +786,7 @@ class JiraIntegration(IssueSyncIntegration):
     def get_persisted_user_default_config_fields(self) -> list[str]:
         return ["reporter"]
 
-    def get_persisted_ignored_fields(self):
+    def get_persisted_ignored_fields(self) -> list[str]:
         return self.org_integration.config.get(self.issues_ignored_fields_key, [])
 
     def get_feedback_issue_body(self, occurrence: IssueOccurrence) -> str:
@@ -805,17 +807,19 @@ class JiraIntegration(IssueSyncIntegration):
 
         return body.rstrip("\n")  # remove the last new line
 
-    def get_generic_issue_body(self, event):
+    def get_generic_issue_body(self, event: GroupEvent) -> str:
+        occurrence = event.occurrence
+        assert occurrence is not None
         body = ""
-        important = event.occurrence.important_evidence_display
+        important = occurrence.important_evidence_display
         if important:
             body = f"| *{important.name}* | {truncatechars(important.value, MAX_CHAR)} |\n"
-        for evidence in event.occurrence.evidence_display:
+        for evidence in occurrence.evidence_display:
             if evidence.important is False:
                 body += f"| *{evidence.name}* | {truncatechars(evidence.value, MAX_CHAR)} |\n"
         return body[:-2]  # chop off final newline
 
-    def get_group_description(self, group, event, **kwargs):
+    def get_group_description(self, group: Group, event: Any, **kwargs: Any) -> str:
         output = []
         if group.issue_category == GroupCategory.FEEDBACK:
             output = [
@@ -1065,7 +1069,7 @@ class JiraIntegration(IssueSyncIntegration):
         fkwargs["type"] = fieldtype
         return fkwargs
 
-    def get_issue_type_meta(self, issue_type, meta):
+    def get_issue_type_meta(self, issue_type: str | None, meta: dict[str, Any]) -> Any:
         self.parse_jira_issue_metadata(meta)
         issue_types = meta["issuetypes"]
         issue_type_meta = None
@@ -1079,7 +1083,12 @@ class JiraIntegration(IssueSyncIntegration):
 
         return issue_type_meta
 
-    def get_issue_create_meta(self, client, project_id, jira_projects):
+    def get_issue_create_meta(
+        self,
+        client: JiraCloudClient,
+        project_id: str | None,
+        jira_projects: Sequence[Mapping[str, Any]],
+    ) -> Any:
         meta = None
         if project_id:
             meta = self.fetch_issue_create_meta(client, project_id)
@@ -1120,7 +1129,7 @@ class JiraIntegration(IssueSyncIntegration):
             "Ensure that your project permissions are correct."
         )
 
-    def fetch_issue_create_meta(self, client: JiraCloudClient, project_id: str):
+    def fetch_issue_create_meta(self, client: JiraCloudClient, project_id: str) -> Any:
         try:
             meta = client.get_create_meta_for_project(project_id)
         except ApiUnauthorized:
@@ -1148,7 +1157,9 @@ class JiraIntegration(IssueSyncIntegration):
         return meta
 
     @all_silo_function
-    def get_create_issue_config(self, group: Group | None, user: RpcUser | User, **kwargs):
+    def get_create_issue_config(
+        self, group: Group | None, user: RpcUser | User, **kwargs: Any
+    ) -> list[IntegrationIssueConfigField]:
         """
         We use the `group` to get three things: organization_slug, project
         defaults, and default title and description. In the case where we're
@@ -1319,7 +1330,7 @@ class JiraIntegration(IssueSyncIntegration):
         )
         return transformed_data
 
-    def create_issue(self, data: dict[str, Any], **kwargs: Any):
+    def create_issue(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         client = self.get_client()
         # protect against mis-configured integration submitting a form without an
         # issuetype assigned.
