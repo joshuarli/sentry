@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
 from urllib.parse import urlparse
 
 from cryptography.hazmat.backends import default_backend
@@ -707,7 +707,9 @@ class JiraServerIntegration(IssueSyncIntegration):
     def search_url(self, org_slug: str) -> str:
         return reverse("sentry-extensions-jiraserver-search", args=[org_slug, self.model.id])
 
-    def build_dynamic_field(self, field_meta, group=None):
+    def build_dynamic_field(
+        self, field_meta: Mapping[str, Any], group: Group | None = None
+    ) -> dict[str, Any] | None:
         """
         Builds a field based on Jira's meta field information
         """
@@ -952,7 +954,10 @@ class JiraServerIntegration(IssueSyncIntegration):
                     if mb_field["label"] in params.get("ignored", []):
                         continue
                     mb_field["name"] = field
-                    fields.append(mb_field)
+                    # Builder keys (label/required/type + optional
+                    # choices/url/multiple/default) plus the caller-set name
+                    # exactly match IntegrationIssueConfigField.
+                    fields.append(cast(IntegrationIssueConfigField, mb_field))
 
         for field in fields:
             if field["name"] == "priority":
