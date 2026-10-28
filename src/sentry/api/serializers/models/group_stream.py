@@ -612,7 +612,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         get_range = functools.partial(
             snuba_tsdb.get_range,
             environment_ids=environment_ids,
-            tenant_ids={"organization_id": self.organization_id},
+            tenant_ids={"organization_id": self.organization_id}
+            if self.organization_id is not None
+            else None,
             project_ids=self.project_ids,
             **query_params,
         )
