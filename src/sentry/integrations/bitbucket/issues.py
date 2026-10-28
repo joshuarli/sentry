@@ -220,7 +220,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
             except ApiError as e:
                 self.raise_error(e)
 
-    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+    def search_issues(self, query: str | None, **kwargs: Any) -> dict[str, Any]:
         client = self.get_client()
         repo = kwargs["repo"]
         resp = client.search_issues(repo, query)
