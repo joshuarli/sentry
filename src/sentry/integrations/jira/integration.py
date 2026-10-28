@@ -768,7 +768,9 @@ class JiraIntegration(IssueSyncIntegration):
     def get_link_issue_config(
         self, group: Group, **kwargs: object
     ) -> list[IntegrationIssueConfigField]:
-        fields = super().get_link_issue_config(group, **kwargs)
+        fields = cast(
+            list[IntegrationIssueConfigField], super().get_link_issue_config(group, **kwargs)
+        )
         org = group.organization
         autocomplete_url = reverse("sentry-extensions-jira-search", args=[org.slug, self.model.id])
         for field in fields:
@@ -849,7 +851,7 @@ class JiraIntegration(IssueSyncIntegration):
                 output.extend(["", "{code}", body, "{code}"])
         return "\n".join(output)
 
-    def get_client(self) -> JiraCloudClient:
+    def get_client(self):
         logging_context = {"org_id": self.organization_id}
 
         if self.organization_id is not None:
@@ -963,11 +965,10 @@ class JiraIntegration(IssueSyncIntegration):
         message = ""
         if data.get("errorMessages"):
             message = " ".join(data["errorMessages"])
-        errors = data.get("errors")
-        if errors:
+        if data.get("errors"):
             if message:
                 message += " "
-            message += " ".join(f"{k}: {v}" for k, v in errors.items())
+            message += " ".join(f"{k}: {v}" for k, v in data.get("errors").items())
         return message
 
     def error_fields_from_json(self, data):
@@ -987,7 +988,7 @@ class JiraIntegration(IssueSyncIntegration):
                         error_data[key] = [message]
 
         if errors:
-            for key, error in errors.items():
+            for key, error in data.get("errors").items():
                 error_data[key] = [error]
 
         if not error_data:
