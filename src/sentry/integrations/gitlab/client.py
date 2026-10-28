@@ -308,14 +308,14 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
 
     def search_projects(
         self, group: str | int | None = None, query: str | None = None, simple: bool = True
-    ) -> list[Any]:
+    ):
         """Get projects
 
         See https://docs.gitlab.com/ee/api/groups.html#list-a-group-s-projects
         and https://docs.gitlab.com/ee/api/projects.html#list-all-projects
         """
 
-        def gen_params(page_number: int, page_size: int) -> dict[str, Any]:
+        def gen_params(page_number: int, page_size: int):
             # Simple param returns limited fields for the project.
             # Really useful, because we often don't need most of the project information
             params = {
@@ -333,7 +333,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             params.update(extra_params)
             return params
 
-        def get_results(resp: Any) -> Any:
+        def get_results(resp):
             return resp
 
         if group:

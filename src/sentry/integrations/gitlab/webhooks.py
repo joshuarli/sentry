@@ -75,7 +75,7 @@ class WebhookProcessor(Protocol):
     ) -> None: ...
 
 
-def _extract_payload_repo_info(request: HttpRequest) -> dict[str, Any]:
+def _extract_payload_repo_info(request: HttpRequest) -> dict[str, str | int]:
     """
     Best-effort identifiers pulled from the webhook body.
 
@@ -106,7 +106,7 @@ def _extract_payload_repo_info(request: HttpRequest) -> dict[str, Any]:
 
 
 def get_gitlab_external_id(
-    request: HttpRequest, extra: dict[str, Any]
+    request: HttpRequest, extra
 ) -> tuple[str, str] | HttpResponse:
     token = "<unknown>"
     try:
@@ -209,7 +209,7 @@ class GitlabWebhook(SCMWebhook, ABC):
         return "{}:{}".format(integration.metadata["instance"], project_id)
 
     def get_repo(
-        self, integration: RpcIntegration, organization: RpcOrganization, event: Mapping[str, Any]
+        self, integration: RpcIntegration, organization: RpcOrganization, event
     ) -> Repository | None:
         """
         Given a webhook payload, get the associated Repository record.
@@ -226,7 +226,7 @@ class GitlabWebhook(SCMWebhook, ABC):
             return None
         return repo
 
-    def update_repo_data(self, repo: Repository, event: Mapping[str, Any]) -> None:
+    def update_repo_data(self, repo: Repository, event) -> None:
         """
         Given a webhook payload, update stored repo data if needed.
 
@@ -255,7 +255,7 @@ class IssuesEventWebhook(GitlabWebhook):
 
     EVENT_TYPE = IntegrationWebhookEventType.INBOUND_SYNC
 
-    def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
+    def __call__(self, event, **kwargs) -> None:
         if not (
             (organization := kwargs.get("organization"))
             and (integration := kwargs.get("integration"))
@@ -468,7 +468,7 @@ class MergeEventWebhook(GitlabWebhook):
         handle_merge_request_event,
     )
 
-    def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
+    def __call__(self, event, **kwargs) -> None:
         if not (
             (organization := kwargs.get("organization"))
             and (integration := kwargs.get("integration"))
@@ -622,7 +622,7 @@ class NoteEventWebhook(GitlabWebhook):
     EVENT_TYPE = IntegrationWebhookEventType.ISSUE_COMMENT
     WEBHOOK_EVENT_PROCESSORS = (handle_merge_request_note_event,)
 
-    def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
+    def __call__(self, event, **kwargs) -> None:
         if not (
             (organization := kwargs.get("organization"))
             and (integration := kwargs.get("integration"))
@@ -679,7 +679,7 @@ class PushEventWebhook(GitlabWebhook):
 
     EVENT_TYPE = IntegrationWebhookEventType.PUSH
 
-    def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
+    def __call__(self, event, **kwargs) -> None:
         if not (
             (organization := kwargs.get("organization"))
             and (integration := kwargs.get("integration"))
@@ -777,7 +777,7 @@ class GitlabWebhookEndpoint(Endpoint):
     }
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405, reason="HTTP method not supported.")
 

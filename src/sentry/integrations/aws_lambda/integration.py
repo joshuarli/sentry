@@ -79,7 +79,7 @@ metadata = IntegrationMetadata(
 
 
 class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._client = None
 
@@ -88,7 +88,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         return self.metadata["region"]
 
     @property
-    def client(self) -> Any:
+    def client(self):
         if not self._client:
             region = self.metadata["region"]
             account_number = self.metadata["account_number"]
@@ -104,15 +104,15 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
     def get_client(self) -> Any:
         return self.client
 
-    def get_one_lambda_function(self, name: str) -> Any:
+    def get_one_lambda_function(self, name: str):
         # https://boto3.amazonaws.com/v1/documentation/api/1.22.12/reference/services/lambda.html
         return self.client.get_function(FunctionName=name)["Configuration"]
 
-    def get_serialized_lambda_function(self, name: str) -> dict[str, Any]:
+    def get_serialized_lambda_function(self, name: str):
         function = self.get_one_lambda_function(name)
         return self.serialize_lambda_function(function)
 
-    def serialize_lambda_function(self, function: dict[str, Any]) -> dict[str, Any]:
+    def serialize_lambda_function(self, function):
         layers = get_function_layer_arns(function)
         layer_arn = get_latest_layer_for_function(function)
         function_runtime = function["Runtime"]
@@ -148,7 +148,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         }
 
     # ServerlessMixin interface
-    def get_serverless_functions(self) -> list[dict[str, Any]]:
+    def get_serverless_functions(self):
         """
         Returns a list of serverless functions
         """
@@ -158,7 +158,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         return [self.serialize_lambda_function(function) for function in functions]
 
     @wrap_lambda_updater()
-    def enable_function(self, target: str) -> dict[str, Any]:
+    def enable_function(self, target: str):
         function = self.get_one_lambda_function(target)
         config_data = self.get_config_data()
         project_id = config_data["default_project_id"]
@@ -170,7 +170,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         return self.get_serialized_lambda_function(target)
 
     @wrap_lambda_updater()
-    def disable_function(self, target: str) -> dict[str, Any]:
+    def disable_function(self, target: str):
         function = self.get_one_lambda_function(target)
         layer_arn = get_latest_layer_for_function(function)
 
@@ -179,7 +179,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         return self.get_serialized_lambda_function(target)
 
     @wrap_lambda_updater()
-    def update_function_to_latest_version(self, target: str) -> dict[str, Any]:
+    def update_function_to_latest_version(self, target: str):
         function = self.get_one_lambda_function(target)
         layer_arn = get_latest_layer_for_function(function)
 
@@ -343,9 +343,7 @@ class InstrumentationApiStep:
             fn for fn in lambda_functions if enabled_lambdas.get(fn["FunctionName"])
         ]
 
-        def _enable_lambda(
-            function: dict[str, Any],
-        ) -> tuple[bool, dict[str, Any], Exception | None]:
+        def _enable_lambda(function):
             try:
                 enable_single_lambda(lambda_client, function, sentry_project_dsn)
                 return (True, function, None)

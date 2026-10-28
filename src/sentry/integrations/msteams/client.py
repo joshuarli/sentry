@@ -5,7 +5,7 @@ import time
 from abc import ABC
 from collections.abc import Mapping
 from datetime import datetime, timezone
-from typing import Any, TypedDict
+from typing import TypedDict
 from urllib.parse import urlencode
 
 from requests import PreparedRequest
@@ -38,11 +38,11 @@ class MsTeamsClientABC(ApiClient, ABC):
     CONVERSATION_URL = "/v3/conversations"
     MEMBER_URL = "/v3/conversations/%s/pagedmembers"
 
-    def get_channel_list(self, team_id: str) -> Any:
+    def get_channel_list(self, team_id: str):
         resp = self.get(self.CHANNEL_URL % team_id)
         return resp.get("conversations")
 
-    def get_member_list(self, team_id: str, continuation_token: str | None = None) -> Any:
+    def get_member_list(self, team_id: str, continuation_token: str | None = None):
         url = self.MEMBER_URL % team_id
         params: dict[str, int | str] = {"pageSize": 500}
         if continuation_token:
@@ -116,7 +116,7 @@ class MsTeamsPreInstallClient(MsTeamsClientABC):
 class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
     integration_name = IntegrationProviderSlug.MSTEAMS.value
 
-    def request(self, *args: Any, **kwargs: Any) -> Any:
+    def request(self, *args, **kwargs):
         try:
             return super().request(*args, **kwargs)
         except ApiError as error:
@@ -186,7 +186,7 @@ class OAuthMsTeamsClient(ApiClient):
         if tenant_id:
             self.base_url = f"https://login.microsoftonline.com/{tenant_id}"
 
-    def exchange_token(self) -> Any:
+    def exchange_token(self):
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         data = {
             "client_id": self.client_id,
@@ -242,5 +242,5 @@ class MsTeamsJwtClient(ApiClient):
     cache_time = 60 * 60 * 24
     OPEN_ID_CONFIG_URL = "https://login.botframework.com/v1/.well-known/openidconfiguration"
 
-    def get_open_id_config(self) -> Any:
+    def get_open_id_config(self):
         return self.get_cached(self.OPEN_ID_CONFIG_URL)

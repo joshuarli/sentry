@@ -1,7 +1,5 @@
 import re
-from collections.abc import Callable
 from functools import wraps
-from typing import Any
 
 import sentry_sdk
 from django.conf import settings
@@ -89,7 +87,7 @@ def parse_arn(arn: str) -> dict[str, str | None]:
     }
 
 
-def get_option_value(function: dict[str, Any], option: str) -> Any:
+def get_option_value(function, option):
     region = parse_arn(function["FunctionArn"])["region"]
     runtime = function["Runtime"]
 
@@ -145,24 +143,24 @@ def get_version_of_arn(arn: str) -> int:
     return int(arn.split(":")[-1])
 
 
-def _get_arn_from_layer(layer: str | dict[str, Any]) -> str:
+def _get_arn_from_layer(layer):
     # layer could be a string or dict
     if isinstance(layer, dict):
         return layer["Arn"]
     return layer
 
 
-def get_function_layer_arns(function: dict[str, Any]) -> list[str]:
+def get_function_layer_arns(function):
     layers = function.get("Layers", [])
     return [_get_arn_from_layer(layer) for layer in layers]
 
 
-def get_latest_layer_for_function(function: dict[str, Any]) -> str:
+def get_latest_layer_for_function(function):
     region = parse_arn(function["FunctionArn"])["region"]
     return f"arn:aws:lambda:{region}:{get_option_value(function, OPTION_ACCOUNT_NUMBER)}:layer:{get_option_value(function, OPTION_LAYER_NAME)}:{get_option_value(function, OPTION_VERSION)}"
 
 
-def get_latest_layer_version(function: dict[str, Any]) -> int:
+def get_latest_layer_version(function) -> int:
     return int(get_option_value(function, OPTION_VERSION))
 
 
@@ -182,7 +180,7 @@ def get_index_of_sentry_layer(layers: list[str], arn_to_match: str) -> int:
     return -1
 
 
-def get_supported_functions(lambda_client: Any) -> list[dict[str, Any]]:
+def get_supported_functions(lambda_client):
     paginator = lambda_client.get_paginator("list_functions")
     response_iterator = paginator.paginate()
     functions = []
@@ -197,7 +195,7 @@ def get_supported_functions(lambda_client: Any) -> list[dict[str, Any]]:
     )
 
 
-def get_dsn_for_project(organization_id: int, project_id: int) -> str:
+def get_dsn_for_project(organization_id: int, project_id: int):
     enabled_dsn = project_key_service.get_project_key(
         organization_id=organization_id, project_id=project_id, role=ProjectKeyRole.store
     )
@@ -253,9 +251,7 @@ def get_node_options_for_layer(layer_name: str | None, layer_version: int | None
     return "--import @sentry/aws-serverless/awslambda-auto"
 
 
-def enable_single_lambda(
-    lambda_client: Any, function: dict[str, Any], sentry_project_dsn: str, retries_left: int = 3
-) -> Any:
+def enable_single_lambda(lambda_client, function, sentry_project_dsn, retries_left=3):
     # find the latest layer for this function
     layer_arn = get_latest_layer_for_function(function)
 
@@ -321,7 +317,7 @@ def enable_single_lambda(
     return update_lambda_with_retries(lambda_client, **lambda_kwargs)
 
 
-def disable_single_lambda(lambda_client: Any, function: dict[str, Any], layer_arn: str) -> Any:
+def disable_single_lambda(lambda_client, function, layer_arn):
     name = function["FunctionName"]
     runtime = function["Runtime"]
     layers = get_function_layer_arns(function)
@@ -357,7 +353,7 @@ def disable_single_lambda(lambda_client: Any, function: dict[str, Any], layer_ar
     return update_lambda_with_retries(lambda_client, **lambda_kwargs)
 
 
-def update_lambda_with_retries(lambda_client: Any, **kwargs: Any) -> Any:
+def update_lambda_with_retries(lambda_client, **kwargs):
     num_retries = DEFAULT_NUM_RETRIES
     if "num_retries" in kwargs:
         num_retries = kwargs.pop("num_retries")
@@ -445,15 +441,15 @@ def get_sentry_err_message(err_message: str) -> tuple[bool, str]:
     return False, err_message
 
 
-def wrap_lambda_updater() -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+def wrap_lambda_updater():
     """
     Wraps any function that updates a layer
     Throws an IntegrationError for specific known errors
     """
 
-    def inner(func: Callable[..., Any]) -> Callable[..., Any]:
+    def inner(func):
         @wraps(func)
-        def wrapped(*args: Any, **kwargs: Any) -> Any:
+        def wrapped(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
             except Exception as e:
