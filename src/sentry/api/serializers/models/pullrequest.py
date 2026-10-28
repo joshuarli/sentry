@@ -82,9 +82,7 @@ class LinkedPullRequestResponse(PullRequestSerializerResponse):
     reviewStatus: AggregateReviewStatus | None
 
 
-def get_users_for_pull_requests(
-    item_list: Sequence[PullRequest], user: User | RpcUser | AnonymousUser | None = None
-) -> Mapping[str, Author]:
+def get_users_for_pull_requests(item_list, user=None):
     authors = list(
         CommitAuthor.objects.filter(id__in=[i.author_id for i in item_list if i.author_id])
     )
@@ -98,12 +96,7 @@ def get_users_for_pull_requests(
 
 @register(PullRequest)
 class PullRequestSerializer(Serializer[PullRequestSerializerResponse]):
-    def get_attrs(
-        self,
-        item_list: Sequence[PullRequest],
-        user: User | RpcUser | AnonymousUser,
-        **kwargs: object,
-    ) -> dict[PullRequest, dict[str, object]]:
+    def get_attrs(self, item_list, user, **kwargs):
         users_by_author = get_users_for_pull_requests(item_list, user)
         repositories = list(Repository.objects.filter(id__in=[c.repository_id for c in item_list]))
         repository_map = {repository.id: repository for repository in repositories}
@@ -112,7 +105,7 @@ class PullRequestSerializer(Serializer[PullRequestSerializerResponse]):
         result = {}
         for item in item_list:
             repository_id = str(item.repository_id)
-            external_url: str | None = ""
+            external_url = ""
             if item.repository_id in repository_map:
                 external_url = item.get_external_url()
             result[item] = {
@@ -184,12 +177,7 @@ class LinkedPullRequestSerializer(PullRequestSerializer):
         self.status_by_pr_id = status_by_pr_id
         self.checks_and_review_by_pr_id = checks_and_review_by_pr_id
 
-    def get_attrs(
-        self,
-        item_list: Sequence[PullRequest],
-        user: User | RpcUser | AnonymousUser,
-        **kwargs: object,
-    ) -> dict[PullRequest, dict[str, object]]:
+    def get_attrs(self, item_list, user, **kwargs):
         attrs = super().get_attrs(item_list, user)
         prefetch_related_objects(
             item_list,
@@ -200,9 +188,7 @@ class LinkedPullRequestSerializer(PullRequestSerializer):
             ),
         )
         for item in item_list:
-            attrs[item]["attribution"] = _serialize_attribution(
-                getattr(item, "valid_attributions")
-            )
+            attrs[item]["attribution"] = _serialize_attribution(item.valid_attributions)
         return attrs
 
     def serialize(

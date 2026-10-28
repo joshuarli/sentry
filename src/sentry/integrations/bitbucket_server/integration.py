@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from cryptography.hazmat.backends import default_backend
@@ -282,6 +282,18 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
 
     # RepositoryIntegration methods
 
+    def _format_repo_info(self, repo: Mapping[str, object]) -> RepositoryInfo:
+        project = cast(Mapping[str, object], repo["project"])
+        project_key = cast(str, project["key"])
+        slug = cast(str, repo["slug"])
+        return {
+            "identifier": project_key + "/" + slug,
+            "external_id": self.get_repo_external_id(repo),
+            "project": project_key,
+            "repo": slug,
+            "name": cast(str, project["name"]) + "/" + cast(str, repo["name"]),
+        }
+
     def get_repositories(
         self,
         query: str | None = None,
@@ -291,32 +303,15 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
         raise_on_page_limit: bool = False,
         parallel: bool = False,
     ) -> list[RepositoryInfo]:
+        empty_values: list[Mapping[str, object]] = []
         if not query:
             resp = self.get_client().get_repos()
-
-            return [
-                {
-                    "identifier": repo["project"]["key"] + "/" + repo["slug"],
-                    "external_id": self.get_repo_external_id(repo),
-                    "project": repo["project"]["key"],
-                    "repo": repo["slug"],
-                    "name": repo["project"]["name"] + "/" + repo["name"],
-                }
-                for repo in resp.get("values", [])
-            ]
+            values = cast(list[Mapping[str, object]], resp.get("values", empty_values))
+            return [self._format_repo_info(repo) for repo in values]
 
         resp = self.get_client().search_repositories(query)
-
-        return [
-            {
-                "identifier": repo["project"]["key"] + "/" + repo["slug"],
-                "external_id": self.get_repo_external_id(repo),
-                "project": repo["project"]["key"],
-                "repo": repo["slug"],
-                "name": repo["project"]["name"] + "/" + repo["name"],
-            }
-            for repo in resp.get("values", [])
-        ]
+        values = cast(list[Mapping[str, object]], resp.get("values", empty_values))
+        return [self._format_repo_info(repo) for repo in values]
 
     def has_repo_access(self, repo: RpcRepository) -> bool:
         """
