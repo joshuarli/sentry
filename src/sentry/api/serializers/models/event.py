@@ -74,7 +74,9 @@ def get_crash_files(events: Sequence[Event | GroupEvent]) -> list[EventAttachmen
     return []
 
 
-def get_tags_with_meta(event) -> tuple[list[EventTag], dict[str, Any] | None]:
+def get_tags_with_meta(
+    event: Event | GroupEvent,
+) -> tuple[list[EventTag], dict[str, Any] | None]:
     meta = get_path(event.data, "_meta", "tags") or {}
 
     # If we have meta, we need to get the tags in their original order
@@ -120,7 +122,11 @@ def get_tags_with_meta(event) -> tuple[list[EventTag], dict[str, Any] | None]:
     return tags, meta_with_chunks(tags, tags_meta)
 
 
-def get_entries(event: Event | GroupEvent, user: User, is_public: bool = False):
+def get_entries(
+    event: Event | GroupEvent,
+    user: User | RpcUser | AnonymousUser,
+    is_public: bool = False,
+) -> tuple[list[dict[str, Any]], dict[int, dict[str, Any]]]:
     # XXX(dcramer): These are called entries for future-proofing
     platform = event.platform
     meta = event.data.get("_meta") or {}
@@ -219,7 +225,9 @@ class GroupEventDetailsResponse(IssueEventSerializerResponse):
 @register(GroupEvent)
 @register(Event)
 class EventSerializer(Serializer):
-    def _get_interface_with_meta(self, event, name, is_public=False):
+    def _get_interface_with_meta(
+        self, event: Event | GroupEvent, name: str, is_public: bool = False
+    ) -> tuple[Any, Any]:
         interface = event.get_interface(name)
         if not interface:
             return (None, None)
@@ -237,12 +245,16 @@ class EventSerializer(Serializer):
 
         return (data, meta_with_chunks(data, api_meta))
 
-    def _get_attr_with_meta(self, event, attr, default=None):
+    def _get_attr_with_meta(
+        self, event: Event | GroupEvent, attr: str, default: Any = None
+    ) -> tuple[Any, Any]:
         value = event.data.get(attr, default)
         meta = get_path(event.data, "_meta", attr)
         return (value, meta_with_chunks(value, meta))
 
-    def _get_legacy_message_with_meta(self, event):
+    def _get_legacy_message_with_meta(
+        self, event: Event | GroupEvent
+    ) -> tuple[str | None, Any]:
         meta = event.data.get("_meta")
 
         message: str | None = get_path(event.data, "logentry", "formatted")
@@ -307,7 +319,7 @@ class EventSerializer(Serializer):
             }
         return results
 
-    def should_display_error(self, error):
+    def should_display_error(self, error: Mapping[str, Any]) -> bool:
         name = error.get("name")
         if not isinstance(name, str):
             return True
@@ -418,7 +430,9 @@ class EventSerializer(Serializer):
 
         return transaction_attrs
 
-    def __serialize_error_attrs(self, attrs, obj) -> ErrorEventFields:
+    def __serialize_error_attrs(
+        self, attrs: Mapping[str, Any], obj: Event | GroupEvent
+    ) -> ErrorEventFields:
         """
         Add attributes that are present on error and default event types
         """
