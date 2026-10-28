@@ -1,6 +1,6 @@
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Sequence
 from datetime import datetime
-from typing import Any, TypeAlias, TypedDict
+from typing import TypeAlias, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
