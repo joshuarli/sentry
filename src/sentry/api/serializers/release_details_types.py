@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, TypeAlias, TypedDict
 
 from sentry.users.api.serializers.user import UserSerializerResponse
 
@@ -31,7 +31,7 @@ class NonMappableUser(TypedDict):
     email: str
 
 
-Author = UserSerializerResponse | NonMappableUser
+Author: TypeAlias = UserSerializerResponse | NonMappableUser
 
 
 class HealthDataOptional(TypedDict, total=False):
