@@ -804,7 +804,9 @@ class JiraServerIntegration(IssueSyncIntegration):
         return jira_projects
 
     @all_silo_function
-    def get_create_issue_config(self, group: Group | None, user: User | RpcUser, **kwargs: Any):
+    def get_create_issue_config(
+        self, group: Group | None, user: User | RpcUser, **kwargs: Any
+    ) -> list[IntegrationIssueConfigField]:
         """
         We use the `group` to get three things: organization_slug, project
         defaults, and default title and description. In the case where we're
@@ -878,7 +880,7 @@ class JiraServerIntegration(IssueSyncIntegration):
                     "type": "blank",
                     "help": "Could not fetch issue creation metadata from Jira Server. Ensure that"
                     " the integration user has access to the requested project.",
-                },
+                },  # type: ignore[typeddict-item]  # error-display field deliberately carries no label
             ]
 
         issue_type_choices_formatted = [

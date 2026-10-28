@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping
-from typing import Union
+from typing import Any, Union
 
 from django.db.models import Q
 
@@ -156,7 +156,7 @@ class NotificationController:
 
     def _filter_options(
         self,
-        **kwargs,
+        **kwargs: Any,
     ) -> list[NotificationSettingOption]:
         return [
             setting
@@ -166,7 +166,7 @@ class NotificationController:
 
     def _filter_providers(
         self,
-        **kwargs,
+        **kwargs: Any,
     ) -> list[NotificationSettingProvider]:
         return [
             setting
@@ -177,7 +177,7 @@ class NotificationController:
     def _get_layered_setting_options(
         self,
         project_id: int | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> MutableMapping[
         Recipient, MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]
     ]:
@@ -234,7 +234,7 @@ class NotificationController:
     def _get_layered_setting_providers(
         self,
         project_id: int | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> MutableMapping[
         Recipient,
         MutableMapping[
