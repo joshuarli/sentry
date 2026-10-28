@@ -98,7 +98,7 @@ class ReleaseFile(Model):
         app_label = "sentry"
         db_table = "sentry_releasefile"
 
-    def save(self, *args, **kwargs) -> None:
+    def save(self, *args, **kwargs):
         from sentry.models.distribution import Distribution
 
         if not self.ident and self.name:
@@ -108,7 +108,7 @@ class ReleaseFile(Model):
             self.ident = type(self).get_ident(self.name, dist)
         return super().save(*args, **kwargs)
 
-    def update(self, *args, **kwargs) -> int:
+    def update(self, *args, **kwargs):
         # If our name is changing, we must also change the ident
         if "name" in kwargs and "ident" not in kwargs:
             dist_name = None

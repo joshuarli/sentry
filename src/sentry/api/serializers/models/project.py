@@ -685,12 +685,15 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
     def serialize(
         self,
         obj: Project,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> ProjectWithOrganizationSerializerResponse:
         base = super().serialize(obj, attrs, user)
-        return {**base, "organization": attrs["organization"]}
+        return {
+            **base,
+            "organization": cast("OrganizationSerializerResponse", attrs["organization"]),
+        }
 
 
 class TeamResponseDict(TypedDict):
@@ -1337,7 +1340,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             ),
         }
 
-    def get_value_with_default(self, attrs, key: str):
+    def get_value_with_default(self, attrs, key):
         value = attrs["options"].get(key)
         if value is not None:
             return value
@@ -1350,7 +1353,7 @@ class SharedProjectSerializer(Serializer):
     def serialize(
         self,
         obj: Project,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser | None,
         **kwargs: object,
     ) -> dict[str, object]:
