@@ -102,6 +102,7 @@ Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compi
 - `234eca0c89f` refactor(typing): type uptime monitor create and update (validated-data contracts; status fallback made explicit; 1 file, 3+/3-; 42 tests green)
 - `3398be4e89f` refactor(typing): finish uptime validator contracts (DataSource validate/bind; Detector return correction; 1 file, 4+/3-; 42 tests green)
 - `c96ef218b7e` refactor(typing): narrow event user serializer user and attrs (obj split out: 7 nullable producer fields vs non-null response; 1 file, 13+/2-; 8 tests green, apidocs fixture missing on base)
+- `081ea3d0203` refactor(typing): type group search view user contract (dashboard pattern; obj split out pending shared date audit; 1 file, 36+/13-; 58 tests green)
 - `e4d63a28860` refactor(typing): type artifact bundle serializer contracts (row-tuple shape; archive typed; endpoint-local entry shape split out; 1 file, 69+/12-; 13 tests green)
 - `9332b77f002` refactor(typing): type data export serializer contracts (params mirror base; response holds vs model evidence; 1 file, 18+/2-; 61 tests green)
 - `5e75f33ae11` refactor(typing): type discover saved query serializer contracts (user union + adapter; nullable corrections per structural producers; 1 file, 41+/22-; 79 tests green)
@@ -449,6 +450,8 @@ No next source wave is selected. On resume, repair the Corrective checkpoint def
 2026-10-28 — Uptime validator file completed: `3398be4` (DataSource contracts; return correction). Continuing with the next interface group.
 
 2026-10-28 — Event user serializer narrowed: `c96ef21` (obj split out with 7-field nullability evidence for the response-contract follow-up). Continuing with the next interface group.
+
+2026-10-28 — Group search view user contract typed: `081ea3d` (dashboard pattern; obj split out with discover for the shared date audit). Continuing with the next interface group.
 
 2026-10-28 — Artifact bundle serializers typed: `e4d63a2` (row-tuple producer shape; endpoint-local entry split out to avoid layer inversion). Continuing with the next interface group.
 
