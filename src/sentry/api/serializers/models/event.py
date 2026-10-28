@@ -84,9 +84,7 @@ def get_tags_with_meta(
     # from the raw event body as the indexes need to line up with the
     # metadata indexes. In other cases we can use event.tags
     if meta:
-        raw_tags: Sequence[Sequence[str]] = cast(
-            "Sequence[Sequence[str]]", event.data.get("tags") or []
-        )
+        raw_tags = event.data.get("tags") or []
     else:
         raw_tags = event.tags
 
@@ -284,19 +282,13 @@ class EventSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> dict[Event | GroupEvent, dict[str, object]]:
-        is_public = bool(kwargs.pop("is_public", False))
+        is_public = cast(bool, kwargs.pop("is_public", False))
         crash_files = get_crash_files(item_list)
         serialized_files = {
             file.event_id: serialized
-            for file, serialized in zip(
-                crash_files,
-                cast(
-                    list[EventAttachmentSerializerResponse],
-                    serialize(crash_files, user=user),
-                ),
-            )
+            for file, serialized in zip(crash_files, serialize(crash_files, user=user))
         }
-        results: dict[Event | GroupEvent, dict[str, object]] = defaultdict(dict)
+        results: dict[Event | GroupEvent, dict[str, Any]] = defaultdict(dict)
         for item in item_list:
             # TODO(dcramer): convert to get_api_context
             (user_data, user_meta) = self._get_interface_with_meta(item, "user", is_public)
@@ -356,7 +348,7 @@ class EventSerializer(Serializer):
         (context, context_meta) = self._get_attr_with_meta(obj, "extra", {})
         (packages, packages_meta) = self._get_attr_with_meta(obj, "modules", {})
 
-        received_data = cast("float | None", obj.data.get("received"))
+        received_data = obj.data.get("received")
         received: datetime | None = None
         if received_data:
             # Sentry at one point attempted to record invalid types here.
@@ -673,7 +665,7 @@ SimpleEventSerializerResponse = TypedDict(
         "platform": str | None,
         "dateCreated": datetime,
         "crashFile": str | None,
-        "metadata": dict[str, object],
+        "metadata": dict[str, Any],
     },
 )
 
@@ -782,16 +774,14 @@ class ExternalEventSerializer(EventSerializer):
     def serialize(self, obj, attrs, user, **kwargs):
         from sentry.notifications.utils import get_notification_group_title
 
-        tags: list[EventTag] = [
-            {"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags
-        ]
+        tags = [{"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags]
         for tag in tags:
             query = convert_user_tag_to_query(tag["key"], tag["value"])
             if query:
                 tag["query"] = query
-        map_device_class_tags(tags)
+        map_device_class_tags(cast(list[EventTag], tags))
 
-        minimal_user = obj.get_minimal_user()
+        user = obj.get_minimal_user()
 
         return {
             "groupID": str(obj.group_id) if obj.group_id else None,
@@ -803,7 +793,7 @@ class ExternalEventSerializer(EventSerializer):
             "title": get_notification_group_title(obj.group, obj, 1024),
             "location": obj.location,
             "culprit": obj.culprit,
-            "user": minimal_user.get_api_context() if minimal_user is not None else None,
+            "user": user and user.get_api_context(),
             "tags": tags,
             "platform": obj.platform,
             "datetime": obj.datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
