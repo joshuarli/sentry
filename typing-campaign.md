@@ -94,6 +94,7 @@ Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compi
 - `ddf020afc49` refactor(typing): type group stats mixin query contracts (abstract/concrete query_tsdb, get_stats, Stream constructors; 2 call-site asserts; 1 file, 32+/25-; 76 tests green)
 - `e4df89e19f2` refactor(typing): narrow base EventSerializer get_attrs user to union (matches Serializer base; all overrides already union; 1 file, 1+/1-; 37 tests green serially)
 - `20e11008076` refactor(typing): narrow project key and repository serializer users (both unused in body; 2 files, 17+/3-; 21 tests green)
+- `6cf8bfd761a` refactor(typing): narrow seer serializer users to union (passthrough only; 2 files, 20+/5-; 85 tests green)
 
 Deferred with named dependencies (not dropped): GroupSeenSerializer stays untyped (no callers; endpoint builds the payload manually); release.py GroupEvent slice parked (pre-existing Author-alias valid-type errors plus unreachable-code findings in-file; needs shared-alias repair with repo-wide verification); CommitSerializer class-level parameterization (explicit-serializer call sites unaudited); Dashboard list get_attrs user narrowing and event get_entries user contract (need service-backed tests proving anonymous-equivalence); map_device_class_tags precision (heterogeneous tag-dict shapes need a shared mapping protocol); SimpleEventSerializer get_attrs (bind_nodes demands Sequence[Event] while the serializer contract accepts GroupEvent; needs eventstore contract audit first).
 
@@ -411,5 +412,7 @@ No next source wave is selected. On resume, repair the Corrective checkpoint def
 2026-10-28 — Base get_attrs user narrowed: `e4df89e` (exact Serializer-base match; overrides already union). Continuing with the next interface group.
 
 2026-10-28 — Project serializers user narrowing: `20e1100` (both params unused; union matches callers). Continuing with the next interface group.
+
+2026-10-28 — Seer serializers user narrowing: `6cf8bfd` (passthrough-only params). Continuing with the next interface group.
 
 2026-10-28 — Snuba unblocked on public machine without getsentry: cloned `snuba`, `sentry-shared-kafka`, `relay`, `objectstore` anonymously into the devservices cache, pre-pulled ghcr images, `devservices up --mode default --offline` healthy (snuba 1218, clickhouse, kafka, relay, spotlight, objectstore alongside postgres/redis). Behavioral verification, all green: pagerduty/event/group/activity 63 passed; committers+release 74 passed (resolves the 8 + 21 snuba-blocked); dashboards/userreport/team 341 passed 2 skipped. Every provisional wave since the rebase now has DB-backed test evidence; combined targeted mypy clean over all 14 changed+consumer files. Exact global `evaluate` still pending (adapter is single-process full-tree mypy; timed out at 10 min previously), so waves stay provisional per the campaign rule, but no longer for lack of services.
