@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping, Sequence
-from typing import Any, NoReturn
+from typing import Any, NoReturn, cast
 
 from django.urls import reverse
 
@@ -81,7 +81,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
         if title_field:
             title_field["maxLength"] = BITBUCKET_MAX_TITLE_LENGTH
             title_field["default"] = truncatechars(
-                title_field["default"], BITBUCKET_MAX_TITLE_LENGTH
+                cast(str, title_field["default"]), BITBUCKET_MAX_TITLE_LENGTH
             )
 
         return [
