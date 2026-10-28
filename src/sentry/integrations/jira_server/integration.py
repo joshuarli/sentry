@@ -345,7 +345,7 @@ class JiraServerIntegration(IssueSyncIntegration):
     issues_ignored_fields_key = "issues_ignored_fields"
     resolution_strategy_key = "resolution_strategy"
 
-    def get_client(self) -> JiraServerClient:
+    def get_client(self):
         try:
             return JiraServerClient(integration=self.model, identity=self.default_identity)
         except Identity.DoesNotExist:
@@ -561,7 +561,9 @@ class JiraServerIntegration(IssueSyncIntegration):
     def get_link_issue_config(
         self, group: Group, **kwargs: object
     ) -> list[IntegrationIssueConfigField]:
-        fields = super().get_link_issue_config(group, **kwargs)
+        fields = cast(
+            list[IntegrationIssueConfigField], super().get_link_issue_config(group, **kwargs)
+        )
         org = group.organization
         autocomplete_url = reverse(
             "sentry-extensions-jiraserver-search", args=[org.slug, self.model.id]
@@ -647,7 +649,9 @@ class JiraServerIntegration(IssueSyncIntegration):
         # https://jira.atlassian.com/secure/WikiRendererHelpAction.jspa?section=texteffects
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
-        return self.get_client().create_comment(issue_id, quoted_comment)
+        return cast(
+            dict[str, object], self.get_client().create_comment(issue_id, quoted_comment)
+        )
 
     def create_comment_attribution(self, user_id: int, comment_text: str) -> str:
         user = user_service.get_user(user_id=user_id)
@@ -659,8 +663,11 @@ class JiraServerIntegration(IssueSyncIntegration):
         self, issue_id: int | str, user_id: int, group_note: Activity
     ) -> dict[str, object]:
         quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
-        return self.get_client().update_comment(
-            issue_id, group_note.data["external_id"], quoted_comment
+        return cast(
+            dict[str, object],
+            self.get_client().update_comment(
+                issue_id, group_note.data["external_id"], quoted_comment
+            ),
         )
 
     def search_issues(self, query: str | None, **kwargs: object) -> dict[str, Any]:
@@ -697,11 +704,10 @@ class JiraServerIntegration(IssueSyncIntegration):
         message = ""
         if data.get("errorMessages"):
             message = " ".join(data["errorMessages"])
-        errors = data.get("errors")
-        if errors:
+        if data.get("errors"):
             if message:
                 message += " "
-            message += " ".join(f"{k}: {v}" for k, v in errors.items())
+            message += " ".join(f"{k}: {v}" for k, v in data.get("errors").items())
         return message
 
     def error_fields_from_json(self, data):
@@ -709,7 +715,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         if not errors:
             return None
 
-        return {key: [error] for key, error in errors.items()}
+        return {key: [error] for key, error in data.get("errors").items()}
 
     def search_url(self, org_slug: str) -> str:
         return reverse("sentry-extensions-jiraserver-search", args=[org_slug, self.model.id])
@@ -1311,8 +1317,7 @@ class JiraServerIntegration(IssueSyncIntegration):
                 raise IntegrationSyncTargetNotFound("No matching Jira Server user found")
         try:
             id_field = client.user_id_field()
-            assignee = jira_user.get(id_field) if jira_user is not None else None
-            client.assign_issue(external_issue.key, assignee)
+            client.assign_issue(external_issue.key, jira_user and jira_user.get(id_field))
         except ApiUnauthorized as e:
             logger.info(
                 "jira_server.user-assignment-unauthorized",
