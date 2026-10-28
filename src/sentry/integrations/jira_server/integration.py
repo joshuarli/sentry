@@ -626,7 +626,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             raise IntegrationFormError({"externalIssue": "Invalid Jira issue URL"})
         return {"externalIssue": key.upper()}
 
-    def get_issue(self, issue_id: str, **kwargs: object) -> dict[str, object]:
+    def get_issue(self, issue_id, **kwargs):
         """
         Jira installation's implementation of IssueSyncIntegration's `get_issue`.
         """
