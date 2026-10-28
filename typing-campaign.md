@@ -121,6 +121,7 @@ Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compi
 - `9a4eff1d69b` refactor(typing): type project stats, options, and release helpers (get_stats split out on dataset overloads; 1 file, 6+/5-; 65 tests green serially)
 - `e2c5b412373` refactor(typing): type jira client and integration contracts (clean cherry-pick; ApiClient base split out; 2 files, 14+/11-; 80 tests green)
 - `e7346e52dd4` refactor(typing): type jira server client params (verifier narrowing declined on live None path; 1 file, 21+/19-; 72 tests green)
+- `5ecc3bb2280` refactor(typing): type remaining jira cloud client params (completes client surface; 1 file, 16+/16-; 80 tests green)
 - `aab5a2ddee9` refactor(typing): type group search view init kwargs (completes the file; 1 file, 1+/1-)
 - `bc351b54ad1` refactor(typing): type releasefile model lifecycle methods (save/update/guard-init; update returns base-helper row count; 1 file, 3+/3-; 10 tests green)
 - `1e9753fc67b` refactor(typing): type release index data and stream protocol details (nullable-yield guard; get_or_create assert; protocol match; 2 files, 18+/14-; 16 tests green)
@@ -499,6 +500,8 @@ No next source wave is selected. On resume, repair the Corrective checkpoint def
 2026-10-28 — Parked jira lane repaired via clean cherry-pick: `e2c5b41` (client + integration contracts; ApiClient base stays split out). Continuing with the next interface group.
 
 2026-10-28 — Parked jira-server lane repaired: `e7346e5` (param contracts; verifier narrowing declined — explicit None guard proves the path live). Continuing with the next interface group.
+
+2026-10-28 — Jira cloud client completed: `5ecc3bb` (remaining wrapper params; returns stay open on the untyped base). Continuing with the next interface group.
 
 2026-10-28 — Releasefile model methods typed: `bc351b5` (save/update/guard init; update resolves to the base-helper row count). Continuing with the next interface group.
 
