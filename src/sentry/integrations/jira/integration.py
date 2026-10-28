@@ -5,7 +5,7 @@ import re
 import sys
 from collections.abc import Iterable, Mapping, Sequence
 from operator import attrgetter
-from typing import Any, NamedTuple, NoReturn, TypedDict
+from typing import Any, NamedTuple, NoReturn, TypedDict, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -997,7 +997,9 @@ class JiraIntegration(IssueSyncIntegration):
         """
         return reverse("sentry-extensions-jira-search", args=[org_slug, self.model.id])
 
-    def build_dynamic_field(self, field_meta, group=None):
+    def build_dynamic_field(
+        self, field_meta: Mapping[str, Any], group: Group | None = None
+    ) -> dict[str, Any] | None:
         """
         Builds a field based on Jira's meta field information
         """
@@ -1265,7 +1267,10 @@ class JiraIntegration(IssueSyncIntegration):
                 if mb_field["label"] in params.get("ignored", []):
                     continue
                 mb_field["name"] = field
-                fields.append(mb_field)
+                # Builder keys (label/required/type + optional
+                # choices/url/multiple/default) plus the caller-set name
+                # exactly match IntegrationIssueConfigField.
+                fields.append(cast(IntegrationIssueConfigField, mb_field))
 
         for field in fields:
             if field["name"] == "priority":
