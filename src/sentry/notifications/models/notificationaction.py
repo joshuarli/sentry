@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABCMeta, abstractmethod
-from collections.abc import Callable, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -227,9 +227,7 @@ class NotificationAction(AbstractNotificationAction):
         db_table = "sentry_notificationaction"
 
     @classmethod
-    def register_action(
-        cls, trigger_type: int, service_type: int, target_type: int
-    ) -> Callable[[type[ActionRegistrationT]], type[ActionRegistrationT]]:
+    def register_action(cls, trigger_type: int, service_type: int, target_type: int):
         """
         Register a new trigger/service/target combination for NotificationActions.
         For example, allowing audit-logs (trigger) to fire actions to slack (service) channels (target)

@@ -8,7 +8,7 @@ from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
 from types import TracebackType
-from typing import IO, Any, ClassVar, Self
+from typing import IO, ClassVar, Self
 from urllib.parse import urlunsplit
 
 from django.db import models, router
@@ -98,7 +98,7 @@ class ReleaseFile(Model):
         app_label = "sentry"
         db_table = "sentry_releasefile"
 
-    def save(self, *args: Any, **kwargs: Any) -> None:
+    def save(self, *args, **kwargs) -> None:
         from sentry.models.distribution import Distribution
 
         if not self.ident and self.name:
@@ -108,7 +108,7 @@ class ReleaseFile(Model):
             self.ident = type(self).get_ident(self.name, dist)
         return super().save(*args, **kwargs)
 
-    def update(self, *args: Any, **kwargs: Any) -> int:
+    def update(self, *args, **kwargs) -> int:
         # If our name is changing, we must also change the ident
         if "name" in kwargs and "ident" not in kwargs:
             dist_name = None
@@ -169,9 +169,9 @@ class ReleaseArchive:
 
     def __exit__(
         self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
+        exc: type[BaseException] | None,
+        value: BaseException | None,
+        tb: TracebackType | None,
     ) -> None:
         self.close()
 
@@ -213,12 +213,12 @@ class ReleaseArchive:
 class _ArtifactIndexData:
     """Holds data of artifact index and keeps track of changes"""
 
-    def __init__(self, data: dict[str, Any], fresh: bool = False) -> None:
+    def __init__(self, data: dict, fresh: bool = False) -> None:
         self._data = data
         self.changed = fresh
 
     @property
-    def data(self) -> dict[str, Any]:
+    def data(self):
         """Meant to be read-only"""
         return self._data
 
@@ -226,10 +226,10 @@ class _ArtifactIndexData:
     def num_files(self) -> int:
         return len(self._data.get("files", {}))
 
-    def get(self, filename: str) -> Any:
+    def get(self, filename: str):
         return self._data.get("files", {}).get(filename, None)
 
-    def update_files(self, files: dict[str, Any]) -> None:
+    def update_files(self, files: dict) -> None:
         if files:
             self._data.setdefault("files", {}).update(files)
             self.changed = True
@@ -246,7 +246,7 @@ class _ArtifactIndexData:
 class _ArtifactIndexGuard:
     """Ensures atomic write operations to the artifact index"""
 
-    def __init__(self, release: Release, dist: Distribution | None, **filter_args: Any) -> None:
+    def __init__(self, release: Release, dist: Distribution | None, **filter_args) -> None:
         self._release = release
         self._dist = dist
         self._ident = ReleaseFile.get_ident(
