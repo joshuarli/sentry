@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 import sys
-from collections.abc import Iterable, Mapping, MutableMapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from operator import attrgetter
 from typing import Any, NamedTuple, NoReturn, TypedDict, cast
 
@@ -819,7 +819,7 @@ class JiraIntegration(IssueSyncIntegration):
                 body += f"| *{evidence.name}* | {truncatechars(evidence.value, MAX_CHAR)} |\n"
         return body[:-2]  # chop off final newline
 
-    def get_group_description(self, group: Group, event, **kwargs) -> str:
+    def get_group_description(self, group, event, **kwargs):
         output = []
         if group.issue_category == GroupCategory.FEEDBACK:
             output = [
@@ -873,7 +873,7 @@ class JiraIntegration(IssueSyncIntegration):
             raise IntegrationFormError({"externalIssue": "Invalid Jira issue URL"})
         return {"externalIssue": key.upper()}
 
-    def get_issue(self, issue_id: str, **kwargs):
+    def get_issue(self, issue_id, **kwargs):
         """
         Jira installation's implementation of IssueSyncIntegration's `get_issue`.
         """
@@ -892,7 +892,7 @@ class JiraIntegration(IssueSyncIntegration):
             "metadata": {PROVIDER_ISSUE_ID_KEY: issue.get("id")},
         }
 
-    def create_comment(self, issue_id: str, user_id: int, group_note):
+    def create_comment(self, issue_id, user_id, group_note):
         # https://jira.atlassian.com/secure/WikiRendererHelpAction.jspa?section=texteffects
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
@@ -914,7 +914,7 @@ class JiraIntegration(IssueSyncIntegration):
         attribution = f"{username} wrote:\n\n"
         return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
-    def update_comment(self, issue_id: str, user_id: int, group_note):
+    def update_comment(self, issue_id, user_id, group_note):
         quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
         try:
             return self.get_client().update_comment(
@@ -959,7 +959,7 @@ class JiraIntegration(IssueSyncIntegration):
             results.append((key, value))
         return results
 
-    def error_message_from_json(self, data) -> str:
+    def error_message_from_json(self, data):
         message = ""
         if data.get("errorMessages"):
             message = " ".join(data["errorMessages"])
@@ -1001,7 +1001,7 @@ class JiraIntegration(IssueSyncIntegration):
         """
         return reverse("sentry-extensions-jira-search", args=[org_slug, self.model.id])
 
-    def build_dynamic_field(self, field_meta, group: Group | None = None):
+    def build_dynamic_field(self, field_meta, group=None):
         """
         Builds a field based on Jira's meta field information
         """
@@ -1065,7 +1065,7 @@ class JiraIntegration(IssueSyncIntegration):
         fkwargs["type"] = fieldtype
         return fkwargs
 
-    def get_issue_type_meta(self, issue_type: str | None, meta):
+    def get_issue_type_meta(self, issue_type, meta):
         self.parse_jira_issue_metadata(meta)
         issue_types = meta["issuetypes"]
         issue_type_meta = None
@@ -1079,12 +1079,7 @@ class JiraIntegration(IssueSyncIntegration):
 
         return issue_type_meta
 
-    def get_issue_create_meta(
-        self,
-        client: JiraCloudClient,
-        project_id: str | None,
-        jira_projects,
-    ):
+    def get_issue_create_meta(self, client, project_id, jira_projects):
         meta = None
         if project_id:
             meta = self.fetch_issue_create_meta(client, project_id)
@@ -1125,7 +1120,7 @@ class JiraIntegration(IssueSyncIntegration):
             "Ensure that your project permissions are correct."
         )
 
-    def fetch_issue_create_meta(self, client: JiraCloudClient, project_id: str):
+    def fetch_issue_create_meta(self, client, project_id):
         try:
             meta = client.get_create_meta_for_project(project_id)
         except ApiUnauthorized:
