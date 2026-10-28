@@ -53,8 +53,8 @@ class BitbucketServerSetupClient(ApiClient):
         consumer_key: str,
         private_key: str,
         verify_ssl: bool = True,
-        *args: Any,
-        **kwargs: Any,
+        *args,
+        **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.base_url = base_url
@@ -101,7 +101,7 @@ class BitbucketServerSetupClient(ApiClient):
         resp = self.post(url, auth=auth, allow_text=True)
         return dict(parse_qsl(resp.text))
 
-    def request(self, *args: Any, **kwargs: Any) -> Any:
+    def request(self, *args, **kwargs):
         """
         Add OAuth1 RSA signatures.
         """
@@ -160,13 +160,13 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
         prepared_request.prepare_auth(auth=auth_scheme)
         return prepared_request
 
-    def get_repos(self) -> Any:
+    def get_repos(self):
         return self.get(
             BitbucketServerAPIPath.repositories,
             params={"limit": 250, "permission": "REPO_ADMIN"},
         )
 
-    def search_repositories(self, query_string: str) -> Any:
+    def search_repositories(self, query_string: str):
         return self.get(
             BitbucketServerAPIPath.repositories,
             params={"limit": 250, "permission": "REPO_ADMIN", "name": query_string},
@@ -215,9 +215,7 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
             ),
         )
 
-    def get_commits(
-        self, project: str, repo: str, from_hash: str, to_hash: str, limit: int = 1000
-    ) -> list[Any]:
+    def get_commits(self, project: str, repo: str, from_hash: str, to_hash: str, limit: int = 1000):
         logger.info(
             "load.commits",
             extra={
@@ -233,15 +231,13 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
             {"limit": limit, "since": from_hash, "until": to_hash, "merges": "exclude"},
         )
 
-    def get_last_commits(self, project: str, repo: str, limit: int = 10) -> list[Any]:
+    def get_last_commits(self, project: str, repo: str, limit: int = 10):
         return self.get(
             BitbucketServerAPIPath.repository_commits.format(project=project, repo=repo),
             params={"merges": "exclude", "limit": limit},
         )["values"]
 
-    def get_commit_filechanges(
-        self, project: str, repo: str, commit: str, limit: int = 1000
-    ) -> list[Any]:
+    def get_commit_filechanges(self, project: str, repo: str, commit: str, limit: int = 1000):
         logger.info(
             "load.filechanges",
             extra={
@@ -256,9 +252,7 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
             {"limit": limit},
         )
 
-    def _get_values(
-        self, uri: str, params: dict[str, Any], max_pages: int = 1000000
-    ) -> list[Any]:
+    def _get_values(self, uri: str, params, max_pages: int = 1000000):
         values = []
         start = 0
 
