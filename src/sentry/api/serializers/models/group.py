@@ -1207,7 +1207,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
     @staticmethod
     def _parse_seen_stats_results(
-        result: dict[str, Any],
+        result: Mapping[str, Any],
         item_list: Sequence[Group],
         use_result_first_seen_times_seen: bool,
         environment_ids: list[int] | None = None,
