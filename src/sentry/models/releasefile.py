@@ -8,7 +8,7 @@ from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
 from types import TracebackType
-from typing import IO, ClassVar, Self
+from typing import IO, ClassVar, Self, cast
 from urllib.parse import urlunsplit
 
 from django.db import models, router
@@ -98,7 +98,7 @@ class ReleaseFile(Model):
         app_label = "sentry"
         db_table = "sentry_releasefile"
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> None:
         from sentry.models.distribution import Distribution
 
         if not self.ident and self.name:
@@ -108,7 +108,7 @@ class ReleaseFile(Model):
             self.ident = type(self).get_ident(self.name, dist)
         return super().save(*args, **kwargs)
 
-    def update(self, *args, **kwargs):
+    def update(self, *args, **kwargs) -> int:
         # If our name is changing, we must also change the ident
         if "name" in kwargs and "ident" not in kwargs:
             dist_name = None
@@ -261,9 +261,9 @@ class _ArtifactIndexGuard:
         except IndexError:
             return None
         else:
-            fp = releasefile.file.getfile()
+            fp = cast(IO[bytes], releasefile.file.getfile())
             with fp:
-                return json.load(fp)
+                return cast(dict[str, object], json.load(fp))
 
     @contextmanager
     def writable_data(
@@ -294,12 +294,12 @@ class _ArtifactIndexGuard:
                 return
 
             if created:
-                index_data = _ArtifactIndexData({}, fresh=True)
+                index_data = _ArtifactIndexData(cast(dict[str, object], {}), fresh=True)
             else:
                 source_file = releasefile.file
                 if source_file.type != ARTIFACT_INDEX_TYPE:
                     raise RuntimeError("Unexpected file type for artifact index")
-                raw_data = json.load(source_file.getfile())
+                raw_data = cast(dict[str, object], json.load(cast(IO[bytes], source_file.getfile())))
                 index_data = _ArtifactIndexData(raw_data)
 
             yield index_data
@@ -312,7 +312,7 @@ class _ArtifactIndexGuard:
                         name=ARTIFACT_INDEX_FILENAME, type=ARTIFACT_INDEX_TYPE
                     )
 
-                target_file.putfile(BytesIO(json.dumps(index_data.data).encode()))
+                target_file.putfile(BytesIO(json.dumps(cast(dict[str, object], index_data.data)).encode()))
 
                 artifact_count = index_data.num_files
                 if not created:
@@ -345,7 +345,7 @@ class _ArtifactIndexGuard:
         return dict(
             organization_id=self._release.organization_id,
             release_id=self._release.id,
-            dist_id=self._dist.id if self._dist else self._dist,
+            dist_id=cast(int, self._dist.id) if self._dist is not None else None,
             name=ARTIFACT_INDEX_FILENAME,
             ident=self._ident,
         )
@@ -383,17 +383,17 @@ def update_artifact_index(
         artifact_count=0,  # Artifacts will be counted with artifact index
     )
 
-    files_out = {}
-    with ReleaseArchive(temp_file or archive_file.getfile()) as archive:
-        manifest = archive.manifest
+    files_out: dict[str, dict[str, object]] = {}
+    with ReleaseArchive(temp_file or cast(IO[bytes], archive_file.getfile())) as archive:
+        manifest = cast(dict[str, object], archive.manifest)
 
-        files = manifest.get("files", {})
+        files: dict[str, object] = cast(dict[str, object], manifest.get("files", {}))
         if not files:
             return None
 
-        for filename, info in files.items():
-            info = info.copy()
-            url = info.pop("url")
+        for filename, info_obj in files.items():
+            info = cast(dict[str, object], info_obj).copy()
+            url = cast(str, info.pop("url"))
             info["filename"] = filename
             info["archive_ident"] = releasefile.ident
             info["date_created"] = archive_file.timestamp

@@ -2,22 +2,18 @@ import base64
 import uuid
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import TypedDict, cast
+from typing import TypeAlias, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer
-from sentry.models.artifactbundle import (
-    ArtifactBundleArchive,
-    ReleaseArtifactBundle,
-    SourceFileType,
-)
+from sentry.models.artifactbundle import ReleaseArtifactBundle, SourceFileType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 INVALID_SOURCE_FILE_TYPE = 0
 
-ArtifactBundleRow = tuple[int, uuid.UUID, int, datetime | None, datetime]
+ArtifactBundleRow: TypeAlias = tuple[int, uuid.UUID, int, datetime | None, datetime]
 
 
 class ArtifactBundleAssociationResponse(TypedDict):
@@ -108,8 +104,8 @@ class ArtifactBundlesSerializer(Serializer[ArtifactBundlesSerializerResponse]):
         }
 
 
-class ArtifactBundleFilesSerializer(Serializer[ArtifactBundleFilesSerializerResponse]):
-    def __init__(self, archive: ArtifactBundleArchive, *args: object, **kwargs: object) -> None:
+class ArtifactBundleFilesSerializer(Serializer):
+    def __init__(self, archive, *args, **kwargs):
         Serializer.__init__(self, *args, **kwargs)
         self.archive = archive
 
