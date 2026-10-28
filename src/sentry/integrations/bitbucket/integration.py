@@ -116,7 +116,7 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
 
     # IntegrationInstallation methods
 
-    def error_message_from_json(self, data: Mapping[str, Any]) -> str:
+    def error_message_from_json(self, data):
         return data.get("error", {}).get("message", "unknown error")
 
     # RepositoryIntegration methods
