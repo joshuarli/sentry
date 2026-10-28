@@ -97,6 +97,7 @@ Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compi
 - `6cf8bfd761a` refactor(typing): narrow seer serializer users to union (passthrough only; 2 files, 20+/5-; 85 tests green)
 - `325d1a00c86` refactor(typing): narrow remaining serializer user and attrs params (onboarding/chunk/trace; unused in bodies; 3 files, 20+/3-; 52 tests green)
 - `f02c781cf0a` refactor(typing): narrow trace attribute value serializer params (sibling contract; 1 file, 10+/1-; 29 tests green serially)
+- `1718d596fd0` refactor(typing): type group release serializer contracts (registry dispatch deterministic; fixes in-body key annotation; 1 file, 55+/12-; 21 tests green)
 - `dbf118c2c1e` fix(tests): pin admin broadcast creator email contract (previously untested Admin path; 1 file, 11+/0-)
 - `4ade7ff1e9f` refactor(typing): type broadcast serializer contracts (response TypedDicts; user unions; relation-named created_by_id stands; 1 file, 62+/11-; 25 tests green)
 
@@ -422,6 +423,8 @@ No next source wave is selected. On resume, repair the Corrective checkpoint def
 2026-10-28 — Remaining serializer user/attrs narrowing: `325d1a0` (3 files, params unused in bodies). Continuing with the next interface group.
 
 2026-10-28 — Trace attribute value sibling: `f02c781` (same unused-params pattern). Continuing with the next interface group.
+
+2026-10-28 — Group release serializers typed: `1718d59` (single-consumer contracts; deterministic registry dispatch). Continuing with the next interface group.
 
 2026-10-28 — Broadcast serializers typed: `4ade7ff` (suspected created_by_id defect disproven by relation-name evidence + repro test `dbf118c`; response contracts; user unions). Continuing with the next interface group.
 
