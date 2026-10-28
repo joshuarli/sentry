@@ -102,6 +102,7 @@ Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compi
 - `e4d63a28860` refactor(typing): type artifact bundle serializer contracts (row-tuple shape; archive typed; endpoint-local entry shape split out; 1 file, 69+/12-; 13 tests green)
 - `9332b77f002` refactor(typing): type data export serializer contracts (params mirror base; response holds vs model evidence; 1 file, 18+/2-; 61 tests green)
 - `5e75f33ae11` refactor(typing): type discover saved query serializer contracts (user union + adapter; nullable corrections per structural producers; 1 file, 41+/22-; 79 tests green)
+- `7fa86705728` refactor(typing): type SimpleEventSerializer serialize params (completes event family bar transaction floats; 1 file, 5+/1-; 62 tests green serially)
 - `9de1067c2eb` refactor(typing): type audit log entry serializer contracts (response vs typed event registry; private helpers stay untyped; 1 file, 33+/3-; 38 tests green)
 - `dbf118c2c1e` fix(tests): pin admin broadcast creator email contract (previously untested Admin path; 1 file, 11+/0-)
 - `4ade7ff1e9f` refactor(typing): type broadcast serializer contracts (response TypedDicts; user unions; relation-named created_by_id stands; 1 file, 62+/11-; 25 tests green)
@@ -438,6 +439,8 @@ No next source wave is selected. On resume, repair the Corrective checkpoint def
 2026-10-28 — Data export serializer typed: `9332b77` (params + apidocs-documented response). Continuing with the next interface group.
 
 2026-10-28 — Discover saved query serializer typed: `5e75f33` (user contract + nullable corrections; obj split out pending dateCreated payload evidence). Continuing with the next interface group.
+
+2026-10-28 — SimpleEventSerializer serialize params: `7fa8670` (event family complete except transaction floats). Continuing with the next interface group.
 
 2026-10-28 — Audit log entry serializer typed: `9de1067` (response vs typed registry; helpers stay file-private). Continuing with the next interface group.
 
