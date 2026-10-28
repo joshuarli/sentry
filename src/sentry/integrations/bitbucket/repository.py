@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 from sentry.integrations.services.repository.model import RpcRepository
@@ -10,6 +10,8 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.locks import locks
 from sentry.models.apitoken import generate_token
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.plugins.providers.integration_repository import RepositoryConfig
@@ -27,7 +29,9 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
     name = "Bitbucket"
     repo_provider = IntegrationProviderSlug.BITBUCKET.value
 
-    def get_repository_data(self, organization, config):
+    def get_repository_data(
+        self, organization: Organization, config: MutableMapping[str, Any]
+    ) -> MutableMapping[str, Any]:
         installation = self.get_installation(config.get("installation"), organization.id)
         client = installation.get_client()
         try:
@@ -39,7 +43,7 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
             config["name"] = repo["full_name"]
         return config
 
-    def get_webhook_secret(self, organization):
+    def get_webhook_secret(self, organization: Organization) -> str:
         # TODO(LB): Revisit whether Integrations V3 should be using OrganizationOption for storage
         lock = locks.get(
             f"bitbucket:webhook-secret:{organization.id}",
@@ -120,7 +124,7 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
                     },
                 )
 
-    def on_delete_repository(self, repo):
+    def on_delete_repository(self, repo: Repository) -> None:
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
 
@@ -131,7 +135,9 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
                 return
             raise
 
-    def _format_commits(self, repo, commit_list):
+    def _format_commits(
+        self, repo: Repository, commit_list: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         return [
             {
                 "id": c["hash"],
@@ -145,7 +151,9 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
             for c in commit_list
         ]
 
-    def compare_commits(self, repo, start_sha, end_sha):
+    def compare_commits(
+        self, repo: Repository, start_sha: str | None, end_sha: str
+    ) -> Sequence[Mapping[str, Any]]:
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
         # use config name because that is kept in sync via webhooks
@@ -165,5 +173,5 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
             else:
                 return self._format_commits(repo, res)
 
-    def repository_external_slug(self, repo):
+    def repository_external_slug(self, repo: Repository) -> str | None:
         return repo.name
