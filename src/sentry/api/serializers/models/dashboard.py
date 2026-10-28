@@ -34,6 +34,7 @@ from sentry.search.events.fields import is_function, parse_arguments
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.avatar import get_gravatar_url
@@ -573,7 +574,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
     def get_attrs(
         self,
         item_list: Sequence[Dashboard],
-        user: Any,
+        user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> dict[Dashboard, _Widget]:
         item_dict = {i.id: i for i in item_list}
@@ -584,7 +585,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             "organizations:dashboards-user-last-visited", organization, actor=user
         )
         user_last_visited_map: dict[int, datetime] = {}
-        if use_user_last_visited:
+        if use_user_last_visited and not isinstance(user, AnonymousUser):
             user_last_visited_map = {
                 dlv.dashboard_id: dlv.last_visited
                 for dlv in DashboardLastVisited.objects.filter(
@@ -595,11 +596,13 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
 
         widgets = DashboardWidget.objects.filter(dashboard_id__in=item_dict.keys()).order_by("id")
 
-        favorited_dashboard_ids = set(
-            DashboardFavoriteUser.objects.filter(
-                user_id=user.id, dashboard_id__in=item_dict.keys(), favorited=True
-            ).values_list("dashboard_id", flat=True)
-        )
+        favorited_dashboard_ids: set[int] = set()
+        if not isinstance(user, AnonymousUser):
+            favorited_dashboard_ids = set(
+                DashboardFavoriteUser.objects.filter(
+                    user_id=user.id, dashboard_id__in=item_dict.keys(), favorited=True
+                ).values_list("dashboard_id", flat=True)
+            )
 
         permissions = DashboardPermissions.objects.filter(
             dashboard_id__in=item_dict.keys()
@@ -644,7 +647,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
                         if dashboard.created_by_id
                     ]
                 },
-                as_user=user,
+                as_user=serialize_generic_user(user),
             )
         }
 
