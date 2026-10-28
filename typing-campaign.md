@@ -123,6 +123,7 @@ Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compi
 - `e7346e52dd4` refactor(typing): type jira server client params (verifier narrowing declined on live None path; 1 file, 21+/19-; 72 tests green)
 - `5ecc3bb2280` refactor(typing): type remaining jira cloud client params (completes client surface; 1 file, 16+/16-; 80 tests green)
 - `d0dfd54b43f` refactor(typing): type jira integration helper contracts (assert guards the base-allowed None at the call boundary; 1 file, 5+/4-; 92 tests green)
+- `05aa8f60d3d` refactor(typing): type jira server integration helpers (client/done-status/migrate + search assert + assignee narrowing; 1 file, 6+/4-; 72 tests green)
 - `aab5a2ddee9` refactor(typing): type group search view init kwargs (completes the file; 1 file, 1+/1-)
 - `bc351b54ad1` refactor(typing): type releasefile model lifecycle methods (save/update/guard-init; update returns base-helper row count; 1 file, 3+/3-; 10 tests green)
 - `1e9753fc67b` refactor(typing): type release index data and stream protocol details (nullable-yield guard; get_or_create assert; protocol match; 2 files, 18+/14-; 16 tests green)
@@ -505,6 +506,8 @@ No next source wave is selected. On resume, repair the Corrective checkpoint def
 2026-10-28 — Jira cloud client completed: `5ecc3bb` (remaining wrapper params; returns stay open on the untyped base). Continuing with the next interface group.
 
 2026-10-28 — Jira integration helpers typed: `d0dfd54` (helper contracts + guarded-caller assert). Continuing with the next interface group.
+
+2026-10-28 — Jira server integration helpers typed: `05aa8f6` (mirror of the cloud wave). Continuing with the next interface group.
 
 2026-10-28 — Releasefile model methods typed: `bc351b5` (save/update/guard init; update resolves to the base-helper row count). Continuing with the next interface group.
 
