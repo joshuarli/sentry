@@ -63,7 +63,7 @@ class MeasurementValue(TypedDict):
     unit: NotRequired[str | None]
 
 
-def get_crash_files(events):
+def get_crash_files(events: Sequence[Event | GroupEvent]) -> list[EventAttachment]:
     event_ids = [x.event_id for x in events if x.platform == "native"]
     if event_ids:
         return [
@@ -267,7 +267,12 @@ class EventSerializer(Serializer):
             user_report = None
         return serialize(user_report, user)
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[Event | GroupEvent],
+        user: Any,
+        **kwargs: Any,
+    ) -> dict[Event | GroupEvent, dict[str, Any]]:
         is_public = kwargs.pop("is_public", False)
         crash_files = get_crash_files(item_list)
         serialized_files = {
@@ -427,7 +432,12 @@ class SqlFormatEventSerializer(EventSerializer):
         super().__init__()
         self.formatted_sql_cache: dict[str, str] = {}
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[Event | GroupEvent],
+        user: Any,
+        **kwargs: Any,
+    ) -> dict[Event | GroupEvent, dict[str, Any]]:
         is_public = kwargs.pop("is_public", False)
         return super().get_attrs(item_list, user, is_public=is_public)
 
@@ -546,8 +556,8 @@ class IssueEventSerializer(SqlFormatEventSerializer):
         self,
         item_list: Sequence[Event | GroupEvent],
         user: User | RpcUser | AnonymousUser,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> dict[Event | GroupEvent, dict[str, Any]]:
         is_public = kwargs.pop("is_public", False)
         return super().get_attrs(item_list, user, is_public=is_public, **kwargs)
 
@@ -581,7 +591,12 @@ class IssueEventSerializer(SqlFormatEventSerializer):
 
 
 class SharedEventSerializer(EventSerializer):
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[Event | GroupEvent],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[Event | GroupEvent, dict[str, Any]]:
         return super().get_attrs(item_list, user, is_public=True, **kwargs)
 
     def serialize(self, obj, attrs, user, **kwargs):
