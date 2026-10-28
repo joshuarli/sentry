@@ -116,6 +116,7 @@ Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compi
 - `937a75b069e` refactor(typing): type access request and codeowner serializer contracts (registry-backed nested responses; None-key guard; 2 files, 55+/9-; 54 tests green)
 - `f42813515fb` refactor(typing): type remaining paginator entry points (opaque/generic results; ChainPaginator split out on value-domain question; 1 file, 10+/3-; 51 tests green)
 - `9a4eff1d69b` refactor(typing): type project stats, options, and release helpers (get_stats split out on dataset overloads; 1 file, 6+/5-; 65 tests green serially)
+- `aab5a2ddee9` refactor(typing): type group search view init kwargs (completes the file; 1 file, 1+/1-)
 - `bc351b54ad1` refactor(typing): type releasefile model lifecycle methods (save/update/guard-init; update returns base-helper row count; 1 file, 3+/3-; 10 tests green)
 - `1e9753fc67b` refactor(typing): type release index data and stream protocol details (nullable-yield guard; get_or_create assert; protocol match; 2 files, 18+/14-; 16 tests green)
 - `dbf118c2c1e` fix(tests): pin admin broadcast creator email contract (previously untested Admin path; 1 file, 11+/0-)
