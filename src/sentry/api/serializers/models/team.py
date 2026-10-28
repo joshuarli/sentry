@@ -172,7 +172,7 @@ class BaseTeamSerializer(Serializer):
         collapse: Sequence[str] | None = None,
         expand: Sequence[str] | None = None,
         access: Access | None = None,
-    ):
+    ) -> None:
         self.collapse = collapse
         self.expand = expand
         self.access = access
