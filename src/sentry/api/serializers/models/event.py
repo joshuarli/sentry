@@ -681,7 +681,12 @@ class SimpleEventSerializer(EventSerializer):
     organization event search API gets real slow.
     """
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(  # type: ignore[override]  # Event-only producers, no GroupEvent registration
+        self,
+        item_list: Sequence[Event],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[Event, dict[str, Any]]:
         # Batch-fetch event bodies from nodestore in a single multi-get RPC.
         # serialize() accesses properties (tags, message, title,
         # get_event_metadata, etc.) that fall through to nodestore when the
