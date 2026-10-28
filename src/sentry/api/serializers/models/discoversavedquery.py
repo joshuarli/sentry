@@ -43,7 +43,7 @@ class DiscoverSavedQueryResponseOptional(TypedDict, total=False):
     topEvents: int
     interval: str
     exploreQuery: dict | None
-    lastVisited: str
+    lastVisited: datetime | None
     starred: bool
     position: int | None
 
@@ -56,8 +56,8 @@ class DiscoverSavedQueryResponse(DiscoverSavedQueryResponseOptional):
     queryDataset: str
     datasetSource: str
     expired: bool
-    dateCreated: str
-    dateUpdated: str
+    dateCreated: datetime
+    dateUpdated: datetime
     createdBy: UserSerializerResponse | None
 
 
@@ -187,7 +187,7 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
 
     def serialize(
         self,
-        obj,
+        obj: DiscoverSavedQuery,
         attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
