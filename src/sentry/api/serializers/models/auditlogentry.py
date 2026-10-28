@@ -1,6 +1,10 @@
 import re
+from collections.abc import Mapping, Sequence
 from copy import copy
+from datetime import datetime
+from typing import Any, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 from sentry_sdk import capture_exception
 
@@ -8,6 +12,8 @@ from sentry import audit_log
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.audit_log.metadata import AGENT_DELEGATION_DATA_KEY, SEER_AGENT_DELEGATION
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 def fix(data):
@@ -36,9 +42,27 @@ def override_actor_id(user):
     return scim_match
 
 
+class AuditLogEntrySerializerResponse(TypedDict):
+    id: str
+    actor: dict[str, Any]
+    event: str
+    ipAddress: str | None
+    note: str
+    targetObject: int | None
+    targetUser: dict[str, Any] | int | None
+    data: dict[str, Any]
+    agentDelegation: object | None
+    dateCreated: datetime
+
+
 @register(AuditLogEntry)
-class AuditLogEntrySerializer(Serializer):
-    def get_attrs(self, item_list, user, **kwargs):
+class AuditLogEntrySerializer(Serializer[AuditLogEntrySerializerResponse]):
+    def get_attrs(
+        self,
+        item_list: Sequence[AuditLogEntry],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[AuditLogEntry, dict[str, Any]]:
         # TODO(dcramer); assert on relations
         prefetch_related_objects(item_list, "actor")
         prefetch_related_objects(item_list, "target_user")
@@ -64,7 +88,13 @@ class AuditLogEntrySerializer(Serializer):
             for item in item_list
         }
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self,
+        obj: AuditLogEntry,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> AuditLogEntrySerializerResponse:
         audit_log_event = audit_log.get(obj.event)
         agent_delegation = obj.data.get(AGENT_DELEGATION_DATA_KEY)
         render_obj = obj
