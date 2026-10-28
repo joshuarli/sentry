@@ -101,6 +101,7 @@ Post-rebase waves accepted by targeted mypy, Ruff, `git diff --check`, `py_compi
 - `b7e3fa300bb` refactor(typing): type explore and starred search view contracts (user union + adapter; explicit subset; 2 files, 69+/25-; 129 tests green)
 - `e942d522a34` refactor(typing): type uptime validator entry contracts (repairs parked lane on current tree; monitor create/update split out; 1 file, 13+/6-; 33 tests green)
 - `234eca0c89f` refactor(typing): type uptime monitor create and update (validated-data contracts; status fallback made explicit; 1 file, 3+/3-; 42 tests green)
+- `a5a6eea4e6d` refactor(typing): type releases endpoint helper contracts (threaders stay untyped Django plumbing; 1 file, 5+/2-; 89 tests green, flake pre-existing)
 - `3398be4e89f` refactor(typing): finish uptime validator contracts (DataSource validate/bind; Detector return correction; 1 file, 4+/3-; 42 tests green)
 - `c96ef218b7e` refactor(typing): narrow event user serializer user and attrs (obj split out: 7 nullable producer fields vs non-null response; 1 file, 13+/2-; 8 tests green, apidocs fixture missing on base)
 - `081ea3d0203` refactor(typing): type group search view user contract (dashboard pattern; obj split out pending shared date audit; 1 file, 36+/13-; 58 tests green)
@@ -456,6 +457,8 @@ No next source wave is selected. On resume, repair the Corrective checkpoint def
 2026-10-28 — Parked uptime lane repaired: `e942d52` (entry contracts on current tree; monitor create/update split out). Continuing with the next interface group.
 
 2026-10-28 — Uptime monitor create/update typed: `234eca0` (completes the validator file). Continuing with the next interface group.
+
+2026-10-28 — Releases endpoint helpers typed: `a5a6eea` (queryset threaders stay untyped with the three named checker gaps). Continuing with the next interface group.
 
 2026-10-28 — Uptime validator file completed: `3398be4` (DataSource contracts; return correction). Continuing with the next interface group.
 
