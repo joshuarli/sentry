@@ -10,7 +10,6 @@ from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils.samples import load_data
@@ -39,7 +38,7 @@ class SendTestNotification(GroupType):
         return True
 
 
-def get_test_notification_event_data(project: Project) -> GroupEvent | None:
+def get_test_notification_event_data(project) -> GroupEvent | None:
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         project_id=project.id,
@@ -58,7 +57,7 @@ def get_test_notification_event_data(project: Project) -> GroupEvent | None:
 
     # Load mock data
     event_data = load_data(
-        platform=project.platform or "javascript",
+        platform=project.platform,
         default="javascript",
         event_id=occurrence.event_id,
     )
