@@ -22,6 +22,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -84,7 +85,9 @@ class ProjectTransferEndpoint(ProjectEndpoint):
         },
     )
     @sudo_required
-    def post(self, request: Request, project: Project) -> Response:
+    def post(
+        self, request: Request, project: Project
+    ) -> Response[DetailResponse] | Response[str] | Response[None]:
         """
         Schedule a project for transfer to a new organization.
 
