@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from typing import NotRequired, TypedDict, cast
+from typing import NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
@@ -13,7 +13,6 @@ from sentry import release_health, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.release_details_types import (
     Author,
-    HealthData,
     NonMappableUser,
     VersionInfo,
 )
@@ -64,10 +63,10 @@ def expose_version_info(info) -> VersionInfo | None:
     }
 
 
-def _expose_health_data(data: ReleaseHealthOverview | None) -> HealthData | None:
+def _expose_health_data(data):
     if not data:
         return None
-    rv: HealthData = {
+    return {
         "durationP50": data["duration_p50"],
         "durationP90": data["duration_p90"],
         "crashFreeUsers": data["crash_free_users"],
@@ -82,11 +81,10 @@ def _expose_health_data(data: ReleaseHealthOverview | None) -> HealthData | None
         "totalProjectSessions24h": data["total_project_sessions_24h"],
         "adoption": data["adoption"],
         "sessionsAdoption": data["sessions_adoption"],
-        "stats": cast("dict[str, object]", data.get("stats") or {}),
+        "stats": data.get("stats"),
         # XXX: legacy key, should be removed later.
         "hasHealthData": data["has_health_data"],
     }
-    return rv
 
 
 def _expose_project(project: _ProjectDict) -> SerializedProject:
