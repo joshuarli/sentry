@@ -202,10 +202,10 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
             "expired": False,
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
-            "lastVisited": attrs.get("user_last_visited"),
-            "createdBy": attrs.get("created_by"),
+            "lastVisited": cast(datetime | None, attrs.get("user_last_visited")),
+            "createdBy": cast(UserSerializerResponse | None, attrs.get("created_by")),
             "starred": cast(bool, attrs.get("starred")),
-            "position": attrs.get("position"),
+            "position": cast(int | None, attrs.get("position")),
             "isPrebuilt": obj.prebuilt_id is not None,
             "changedReason": obj.changed_reason,
         }

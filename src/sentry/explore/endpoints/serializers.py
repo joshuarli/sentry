@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Literal, NotRequired, TypedDict, cast
 
@@ -318,12 +319,16 @@ class ExploreSavedQuerySerializer(
 
     # Avoid including any side-effecting logic here, since this logic is also used when generating prebuilt queries on first read
     def validate(self, data: ExploreSavedQueryInput) -> ExploreSavedQueryValidatedData:
-        transformation_pipelines = []
-        for query in data["query"]:
+        transformation_pipelines: list[Sequence[str]] = []
+        for query_data in data["query"]:
             for field in ("visualize", "aggregateField"):
-                for visualization in query.get(field) or []:
+                for visualization in cast(
+                    Sequence[Mapping[str, object]], query_data.get(field) or []
+                ):
                     if "transformations" in visualization:
-                        transformation_pipelines.append(visualization["transformations"])
+                        transformation_pipelines.append(
+                            cast(Sequence[str], visualization["transformations"])
+                        )
         if transformation_pipelines and not features.has(
             "organizations:explore-interpolation-and-smoothing",
             self.context["organization"],
