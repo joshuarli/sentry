@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import datetime, timezone
 from io import BytesIO
 from threading import Thread
@@ -204,7 +205,7 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
 
     def _create_update_fn(
         self, initial_delay: float, locked_delay: float, files: dict[str, object], create: bool
-    ):
+    ) -> Callable[[], None]:
         def f() -> None:
             sleep(initial_delay * self.tick)
             with _ArtifactIndexGuard(self.release, None).writable_data(create=create) as data:
