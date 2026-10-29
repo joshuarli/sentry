@@ -81,7 +81,7 @@ def _expose_health_data(data):
         "totalProjectSessions24h": data["total_project_sessions_24h"],
         "adoption": data["adoption"],
         "sessionsAdoption": data["sessions_adoption"],
-        "stats": data.get("stats"),
+        "stats": data.get("stats") or {},
         # XXX: legacy key, should be removed later.
         "hasHealthData": data["has_health_data"],
     }
