@@ -190,7 +190,7 @@ class ReleaseArchive:
         manifest_bytes = self.read("manifest.json")
         return json.loads(manifest_bytes.decode("utf-8"))
 
-    def get_file_by_url(self, url: str) -> tuple[IO[bytes], dict]:
+    def get_file_by_url(self, url: str) -> tuple[IO[bytes], dict[str, object]]:
         """Return file-like object and headers.
 
         The caller is responsible for closing the returned stream.
