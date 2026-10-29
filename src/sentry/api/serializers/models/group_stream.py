@@ -189,7 +189,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
             )
             assert stats is not None
             for item in item_list:
-                attrs[item]["stats"] = stats[item.id]
+                attrs[item]["stats"] = cast("list[tuple[int, int]]", stats[item.id])
 
         return attrs
 

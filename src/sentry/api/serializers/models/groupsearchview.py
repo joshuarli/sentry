@@ -14,7 +14,7 @@ from sentry.models.savedsearch import SORT_LITERALS
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.users.services.user.serial import serialize_generic_user
+from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.users.services.user.service import user_service
 
 
@@ -77,11 +77,15 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
         )
         last_visited_map = {lv.group_search_view_id: lv for lv in last_visited_views}
 
-        serialized_users = {
-            user["id"]: user
+        serialized_users: dict[str, dict[str, object]] = {
+            cast(str, user["id"]): cast("dict[str, object]", user)
             for user in user_service.serialize_many(
                 filter={"user_ids": [view.user_id for view in item_list if view.user_id]},
-                as_user=serialize_generic_user(user),
+                as_user=user
+                if isinstance(user, RpcUser)
+                else serialize_rpc_user(user)
+                if isinstance(user, User)
+                else None,
             )
             if user is not None
         }

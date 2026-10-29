@@ -16,7 +16,7 @@ from sentry.explore.models import (
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.users.services.user.serial import serialize_generic_user
+from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
@@ -162,7 +162,11 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
                     if explore_saved_query.created_by_id
                 ]
             },
-            as_user=serialize_generic_user(user),
+            as_user=user
+            if isinstance(user, RpcUser)
+            else serialize_rpc_user(user)
+            if isinstance(user, User)
+            else None,
         )
         serialized_users = {user["id"]: user for user in service_serialized}
 
