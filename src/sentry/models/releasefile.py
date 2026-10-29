@@ -7,7 +7,7 @@ from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
 from types import TracebackType
-from typing import IO, ClassVar, Iterator, Self, cast
+from typing import IO, ClassVar, Iterator, Mapping, Self, cast
 from urllib.parse import urlunsplit
 
 from django.db import models, router
@@ -230,7 +230,7 @@ class _ArtifactIndexData:
     def get(self, filename: str):
         return self._data.get("files", {}).get(filename, None)
 
-    def update_files(self, files: dict) -> None:
+    def update_files(self, files: Mapping[str, object]) -> None:
         if files:
             self._data.setdefault("files", {}).update(files)
             self.changed = True
@@ -268,7 +268,7 @@ class _ArtifactIndexGuard:
 
     @contextmanager
     def writable_data(
-        self, create: bool, initial_artifact_count=None
+        self, create: bool, initial_artifact_count: int | None = None
     ) -> Iterator[_ArtifactIndexData | None]:
         """Context manager for editable artifact index"""
         with atomic_transaction(
@@ -321,7 +321,7 @@ class _ArtifactIndexGuard:
                     releasefile.update(file=target_file, artifact_count=artifact_count)
                     old_file.delete()
 
-    def _get_or_create_releasefile(self, initial_artifact_count):
+    def _get_or_create_releasefile(self, initial_artifact_count: int | None):
         """Make sure that the release file exists"""
         return ReleaseFile.objects.select_for_update().get_or_create(
             **self._key_fields(),
