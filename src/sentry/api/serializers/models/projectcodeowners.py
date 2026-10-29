@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Collection, Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -89,9 +89,9 @@ class ProjectCodeOwnersSerializer(Serializer[ProjectCodeOwnersResponse]):
         self,
         item_list: Sequence[ProjectCodeOwners],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> dict[ProjectCodeOwners, dict[str, Any]]:
-        attrs: dict[ProjectCodeOwners, dict[str, Any]] = {}
+        **kwargs: object,
+    ) -> dict[ProjectCodeOwners, dict[str, object]]:
+        attrs: dict[ProjectCodeOwners, dict[str, object]] = {}
         integrations = {
             i.id: i
             for i in integration_service.get_integrations(
@@ -133,9 +133,9 @@ class ProjectCodeOwnersSerializer(Serializer[ProjectCodeOwnersResponse]):
     def serialize(
         self,
         obj: ProjectCodeOwners,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> ProjectCodeOwnersResponse:
         data: ProjectCodeOwnersResponse = {
             "id": str(obj.id),

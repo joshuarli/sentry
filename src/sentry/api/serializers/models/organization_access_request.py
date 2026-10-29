@@ -1,5 +1,5 @@
 from collections.abc import Mapping, Sequence
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -26,8 +26,8 @@ class OrganizationAccessRequestSerializer(Serializer[OrganizationAccessRequestSe
         self,
         item_list: Sequence[OrganizationAccessRequest],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> dict[OrganizationAccessRequest, dict[str, Any]]:
+        **kwargs: object,
+    ) -> dict[OrganizationAccessRequest, dict[str, object]]:
         serialized_requesters = user_service.serialize_many(
             filter=dict(user_ids=[item.requester_id for item in item_list if item.requester_id])
         )
@@ -61,9 +61,9 @@ class OrganizationAccessRequestSerializer(Serializer[OrganizationAccessRequestSe
     def serialize(
         self,
         obj: OrganizationAccessRequest,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> OrganizationAccessRequestSerializerResponse:
         serialized_access_request: OrganizationAccessRequestSerializerResponse = {
             "id": str(obj.id),

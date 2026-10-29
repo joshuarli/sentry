@@ -502,7 +502,7 @@ class GroupSerializerBase(Serializer, ABC):
         return key in self.collapse
 
     def _get_status(
-        self, attrs: Mapping[str, Any], obj: Group
+        self, attrs, obj: Group
     ) -> tuple[GroupStatusDetailsResponseOptional, GroupStatusStr]:
         status = obj.status
         status_details: GroupStatusDetailsResponseOptional = {}
@@ -1144,9 +1144,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
         item_list: Sequence[Group],
         start: datetime | None = None,
         end: datetime | None = None,
-        conditions: Sequence[Sequence[Any]] | None = None,
+        conditions=None,
         environment_ids: list[int] | None = None,
-    ) -> dict[str, Any]:
+    ):
         project_ids = list({item.project_id for item in item_list})
         group_ids = [item.id for item in item_list]
         aggregations = [
@@ -1180,9 +1180,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
         item_list: Sequence[Group],
         start: datetime | None = None,
         end: datetime | None = None,
-        conditions: Sequence[Sequence[Any]] | None = None,
+        conditions=None,
         environment_ids: list[int] | None = None,
-    ) -> dict[str, Any]:
+    ):
         project_ids = list({item.project_id for item in item_list})
         group_ids = [item.id for item in item_list]
         aggregations = [
@@ -1212,7 +1212,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
     @staticmethod
     def _parse_seen_stats_results(
-        result: Mapping[str, Any],
+        result,
         item_list: Sequence[Group],
         use_result_first_seen_times_seen: bool,
         environment_ids: list[int] | None = None,

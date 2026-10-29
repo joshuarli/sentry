@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Collection, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Final, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, Final, NotRequired, TypedDict, cast
 
 import orjson
 from django.conf import settings
@@ -118,7 +118,7 @@ def _get_team_memberships(
 
 def get_access_by_project(
     projects: Sequence[Project], user: User | RpcUser | AnonymousUser
-) -> dict[Project, dict[str, Any]]:
+) -> dict[Project, dict[str, object]]:
     request = env.request
 
     project_teams = ProjectTeam.objects.filter(project__in=projects).values_list(
@@ -142,7 +142,7 @@ def get_access_by_project(
     is_superuser = request and is_active_superuser(request) and request.user == user
     prefetch_related_objects(projects, "organization")
 
-    result: dict[Project, dict[str, Any]] = {}
+    result: dict[Project, dict[str, object]] = {}
     has_team_roles_cache: dict[int, bool] = {}
     with traces.start_span(
         name="project.check-access", attributes={"sentry.op": "project.check-access"}
@@ -374,8 +374,8 @@ class ProjectSerializer(Serializer):
         return key in self.collapse
 
     def get_attrs(
-        self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: Any
-    ) -> dict[Project, dict[str, Any]]:
+        self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: object
+    ) -> dict[Project, dict[str, object]]:
         def measure_span(op_tag):
             span = traces.start_span(
                 name=f"serialize.get_attrs.project.{op_tag}",
@@ -589,7 +589,7 @@ class ProjectSerializer(Serializer):
 
         return ret
 
-    def get_options(self, projects: Sequence[Project]) -> dict[int, dict[str, Any]]:
+    def get_options(self, projects: Sequence[Project]) -> dict[int, dict[str, object]]:
         # no options specified
         option_list: list[str] = []
 
@@ -601,7 +601,7 @@ class ProjectSerializer(Serializer):
 
         queryset = ProjectOption.objects.filter(project__in=projects, key__in=option_list)
 
-        options_by_project: dict[int, dict[str, Any]] = defaultdict(dict)
+        options_by_project: dict[int, dict[str, object]] = defaultdict(dict)
         for option in queryset:
             options_by_project[option.project_id][option.key] = option.value
 
@@ -610,9 +610,9 @@ class ProjectSerializer(Serializer):
     def serialize(
         self,
         obj: Project,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> ProjectSerializerResponse:
         status_label = STATUS_LABELS.get(obj.status, "unknown")
 
@@ -673,8 +673,8 @@ class ProjectWithOrganizationSerializerResponse(ProjectSerializerResponse):
 
 class ProjectWithOrganizationSerializer(ProjectSerializer):
     def get_attrs(
-        self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: Any
-    ) -> dict[Project, dict[str, Any]]:
+        self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: object
+    ) -> dict[Project, dict[str, object]]:
         attrs = super().get_attrs(item_list, user)
 
         orgs = {d["id"]: d for d in serialize(list({i.organization for i in item_list}), user)}
@@ -685,9 +685,9 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
     def serialize(
         self,
         obj: Project,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> ProjectWithOrganizationSerializerResponse:
         base = super().serialize(obj, attrs, user)
         return {**base, "organization": attrs["organization"]}
@@ -709,8 +709,8 @@ class ProjectWithTeamResponseDict(ProjectSerializerResponse, _MaybeTeam):
 
 class ProjectWithTeamSerializer(ProjectSerializer):
     def get_attrs(
-        self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: Any
-    ) -> dict[Project, dict[str, Any]]:
+        self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: object
+    ) -> dict[Project, dict[str, object]]:
         attrs = super().get_attrs(item_list, user)
 
         project_teams = list(
@@ -737,9 +737,9 @@ class ProjectWithTeamSerializer(ProjectSerializer):
     def serialize(
         self,
         obj: Project,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> ProjectWithTeamResponseDict:
         base = super().serialize(obj, attrs, user)
         # TODO(jess): remove this when this is deprecated
@@ -756,7 +756,7 @@ class LatestReleaseDict(TypedDict):
 
 class _OrganizationProjectOptionalResponse(TypedDict, total=False):
     latestDeploys: dict[str, dict[str, str]] | None
-    options: dict[str, Any]
+    options: dict[str, object]
 
 
 class OrganizationProjectResponse(
@@ -776,7 +776,7 @@ class _DeployDict(TypedDict):
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
-    def __init__(self, access: Access | None = None, **kwargs: Any) -> None:
+    def __init__(self, access: Access | None = None, **kwargs) -> None:
         self.access = access
         super().__init__(**kwargs)
 
@@ -828,8 +828,8 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         return deploys_by_project
 
     def get_attrs(
-        self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: Any
-    ) -> dict[Project, dict[str, Any]]:
+        self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: object
+    ) -> dict[Project, dict[str, object]]:
         attrs = super().get_attrs(item_list, user)
 
         projects_with_user_reports = set(
@@ -860,9 +860,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
     def serialize(  # type: ignore[override]  # intentionally different data shape
         self,
         obj: Project,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> OrganizationProjectResponse:
         context = OrganizationProjectResponse(
             team=attrs["teams"][0] if attrs["teams"] else None,
@@ -979,7 +979,7 @@ def _get_project_to_release_version_mapping(
     """
     return {
         # Raw SQL above selects project_id as actual_project_id.
-        release.actual_project_id: {"version": release.version}  # type: ignore[attr-defined]
+        cast(int, getattr(release, "actual_project_id")): {"version": release.version}
         for release in bulk_fetch_project_latest_releases(item_list)
     }
 
@@ -1014,7 +1014,7 @@ class Plugin(TypedDict):
 
 class DetailedProjectResponse(ProjectWithTeamResponseDict):
     latestRelease: LatestReleaseDict | None
-    options: dict[str, Any]
+    options: dict[str, object]
     digestsMinDelay: int
     digestsMaxDelay: int
     subjectPrefix: str
@@ -1033,7 +1033,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     scrapeJavaScript: bool
     enableAutoReleaseCreation: bool
     highlightTags: list[str]
-    highlightContext: dict[str, Any]
+    highlightContext: dict[str, object]
     highlightPreset: HighlightPreset
     groupingConfig: str
     derivedGroupingEnhancements: str
@@ -1061,12 +1061,12 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
     def get_attrs(
-        self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: Any
-    ) -> dict[Project, dict[str, Any]]:
+        self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: object
+    ) -> dict[Project, dict[str, object]]:
         attrs = super().get_attrs(item_list, user)
 
         queryset = ProjectOption.objects.filter(project__in=item_list, key__in=OPTION_KEYS)
-        options_by_project: dict[int, dict[str, Any]] = defaultdict(dict)
+        options_by_project: dict[int, dict[str, object]] = defaultdict(dict)
         for option in queryset.iterator():
             options_by_project[option.project_id][option.key] = option.value
 
@@ -1105,9 +1105,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
     def serialize(
         self,
         obj: Project,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> DetailedProjectResponse:
         base = super().serialize(obj, attrs, user)
 
@@ -1231,7 +1231,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
 
         return data
 
-    def format_options(self, attrs: Mapping[str, Any]) -> dict[str, Any]:
+    def format_options(self, attrs: Mapping[str, Any]) -> dict[str, object]:
         options = attrs["options"]
 
         return {
@@ -1337,7 +1337,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             ),
         }
 
-    def get_value_with_default(self, attrs: Mapping[str, Any], key: str) -> Any:
+    def get_value_with_default(self, attrs, key: str):
         value = attrs["options"].get(key)
         if value is not None:
             return value
@@ -1350,7 +1350,7 @@ class SharedProjectSerializer(Serializer):
     def serialize(
         self,
         obj: Project,
-        attrs: Mapping[str, object],
+        attrs,
         user: User | RpcUser | AnonymousUser | None,
         **kwargs: object,
     ) -> dict[str, object]:

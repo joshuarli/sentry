@@ -1,7 +1,7 @@
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, Literal, TypedDict, cast
+from typing import Literal, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -183,7 +183,7 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
     def serialize(
         self,
         obj: ExploreSavedQuery,
-        attrs: Mapping[Any, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> ExploreSavedQueryResponse:

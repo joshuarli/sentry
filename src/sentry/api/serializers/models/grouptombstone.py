@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -18,8 +18,8 @@ class GroupTombstoneSerializerResponse(TypedDict):
     message: str
     culprit: str | None
     type: str
-    metadata: dict[str, Any]
-    actor: dict[str, Any]
+    metadata: dict[str, object]
+    actor: dict[str, object]
     timesSeen: int
     lastSeen: datetime | None
     dateAdded: datetime | None
@@ -31,8 +31,8 @@ class GroupTombstoneSerializer(Serializer[GroupTombstoneSerializerResponse]):
         self,
         item_list: Sequence[GroupTombstone],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> dict[GroupTombstone, dict[str, Any]]:
+        **kwargs: object,
+    ) -> dict[GroupTombstone, dict[str, object]]:
         user_list = user_service.serialize_many(
             filter={"user_ids": [item.actor_id for item in item_list if item.actor_id is not None]}
         )
@@ -46,9 +46,9 @@ class GroupTombstoneSerializer(Serializer[GroupTombstoneSerializerResponse]):
     def serialize(
         self,
         obj: GroupTombstone,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> GroupTombstoneSerializerResponse:
         return {
             "id": str(obj.id),

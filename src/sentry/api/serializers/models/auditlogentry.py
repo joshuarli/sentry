@@ -2,7 +2,7 @@ import re
 from collections.abc import Mapping, Sequence
 from copy import copy
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
@@ -44,13 +44,13 @@ def override_actor_id(user):
 
 class AuditLogEntrySerializerResponse(TypedDict):
     id: str
-    actor: dict[str, Any]
+    actor: dict[str, object]
     event: str
     ipAddress: str | None
     note: str
     targetObject: int | None
-    targetUser: dict[str, Any] | int | None
-    data: dict[str, Any]
+    targetUser: dict[str, object] | int | None
+    data: dict[str, object]
     agentDelegation: object | None
     dateCreated: datetime
 
@@ -61,8 +61,8 @@ class AuditLogEntrySerializer(Serializer[AuditLogEntrySerializerResponse]):
         self,
         item_list: Sequence[AuditLogEntry],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> dict[AuditLogEntry, dict[str, Any]]:
+        **kwargs: object,
+    ) -> dict[AuditLogEntry, dict[str, object]]:
         # TODO(dcramer); assert on relations
         prefetch_related_objects(item_list, "actor")
         prefetch_related_objects(item_list, "target_user")
@@ -91,9 +91,9 @@ class AuditLogEntrySerializer(Serializer[AuditLogEntrySerializerResponse]):
     def serialize(
         self,
         obj: AuditLogEntry,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> AuditLogEntrySerializerResponse:
         audit_log_event = audit_log.get(obj.event)
         agent_delegation = obj.data.get(AGENT_DELEGATION_DATA_KEY)

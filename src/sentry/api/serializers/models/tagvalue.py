@@ -1,5 +1,5 @@
-from collections.abc import Mapping, Sequence
-from typing import Any, cast
+from collections.abc import Sequence
+from typing import cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -16,7 +16,10 @@ class UserTagValueSerializer(Serializer):
         self.project_id = project_id
 
     def get_attrs(
-        self, item_list: Sequence[GroupTagValue], user: User | RpcUser | AnonymousUser, **kwargs: Any
+        self,
+        item_list: Sequence[GroupTagValue],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
     ) -> dict[GroupTagValue, dict[str, EventUser | None]]:
         users = EventUser.for_tags(project_id=self.project_id, values=[t.value for t in item_list])
         result: dict[GroupTagValue, dict[str, EventUser | None]] = {}
@@ -27,13 +30,13 @@ class UserTagValueSerializer(Serializer):
     def serialize(
         self,
         obj: GroupTagValue,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> dict[str, Any]:
-        result: dict[str, Any] = {}
+        **kwargs: object,
+    ):
+        result: dict[str, object] = {}
         if isinstance(attrs["user"], EventUser):
-            result = cast(dict[str, Any], attrs["user"].serialize())
+            result = cast(dict[str, object], attrs["user"].serialize())
         else:
             result = {"id": None}
 

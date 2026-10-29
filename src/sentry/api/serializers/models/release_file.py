@@ -16,7 +16,7 @@ class ReleaseFileSerializerResponse(TypedDict):
     id: str
     name: str
     dist: str | None
-    headers: dict[str, Any]
+    headers: dict[str, object]
     size: int
     sha1: str | None
     dateCreated: datetime
@@ -55,9 +55,9 @@ class ReleaseFileSerializer(Serializer[ReleaseFileSerializerResponse]):
     def serialize(
         self,
         obj: ReleaseFile,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> ReleaseFileSerializerResponse:
         dist_name = None
         if obj.dist_id:
