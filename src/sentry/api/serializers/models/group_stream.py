@@ -187,9 +187,8 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
                 user,
                 GroupStatsQueryArgs(self.stats_period, None, None),
             )
-            assert stats is not None
             for item in item_list:
-                attrs[item]["stats"] = cast("list[tuple[int, int]]", stats[item.id])
+                attrs[item]["stats"] = stats[item.id]
 
         return attrs
 

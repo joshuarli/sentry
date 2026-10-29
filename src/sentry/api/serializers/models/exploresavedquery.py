@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from datetime import datetime
 from typing import Literal, TypedDict, cast
 
@@ -118,30 +118,22 @@ class ExploreSavedQueryAttrs(TypedDict, total=False):
 
 @register(ExploreSavedQuery)
 class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
-    def get_attrs(
-        self,
-        item_list: Sequence[ExploreSavedQuery],
-        user: User | RpcUser | AnonymousUser,
-        **kwargs: object,
-    ) -> defaultdict[ExploreSavedQuery, ExploreSavedQueryAttrs]:
-        result: defaultdict[ExploreSavedQuery, ExploreSavedQueryAttrs] = defaultdict(
-            lambda: {"created_by": None, "starred": False, "position": None}
-        )
-        user_id_filter = {"user_id": user.id}
+    def get_attrs(self, item_list, user, **kwargs):
+        result: defaultdict[str, dict] = defaultdict(lambda: {"created_by": {}})
 
         starred_queries = dict(
             ExploreSavedQueryStarred.objects.filter(
                 explore_saved_query__in=item_list,
+                user_id=user.id,
                 organization=item_list[0].organization if item_list else None,
                 starred=True,
-                **user_id_filter,
             ).values_list("explore_saved_query_id", "position")
         )
         user_last_visited = dict(
             ExploreSavedQueryLastVisited.objects.filter(
                 explore_saved_query__in=item_list,
+                user_id=user.id,
                 organization=item_list[0].organization if item_list else None,
-                **user_id_filter,
             ).values_list("explore_saved_query_id", "last_visited")
         )
 
@@ -155,9 +147,7 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
             },
             as_user=user if user.id else None,
         )
-        serialized_users: dict[str, UserSerializerResponse] = {
-            user["id"]: user for user in service_serialized
-        }
+        serialized_users = {user["id"]: user for user in service_serialized}
 
         for explore_saved_query in item_list:
             result[explore_saved_query]["created_by"] = serialized_users.get(
