@@ -113,7 +113,7 @@ class UserSerializerResponse(UserSerializerResponseOptional):
     lastActive: datetime | None
     isSuperuser: bool
     isStaff: bool
-    experiments: dict[str, Any]  # TODO
+    experiments: dict[str, str]
     emails: list[_UserEmails]
 
 
