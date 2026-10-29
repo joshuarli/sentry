@@ -1,6 +1,6 @@
 # Sentry typing hillclimb
 
-## Status: paused 2026-10-29 — winddown complete. No lanes, no processes, no worktrees, no scratch; main checkout clean. Do not start new work until the owner resumes.
+## Status: active 2026-10-29 — resumed per owner "dont stop". Slice 1-5 committed on `typing-hillclimb` (test `def f() -> None`, grouptype parent-exact, HealthData stats narrowed, artifact index params, backup opaque rel models); exact `evaluate` vs `4f75fa69` running in background under `.work/tmp/evaluate-*`. Next: work evaluate punchlist, then precision long tail file-by-file until `complete`.
 Resume prompt: "Resume the typing campaign from typing-campaign.md Status."
 First command: `git status --short --branch` on `typing-hillclimb` (expect clean), then reread Status + Doctrine + Final measurement below.
 Last revision: code `19a3c9627d6` (plus docs-only commits to this pause). Integration branch is NOT green: exact `evaluate` vs parent `4f75fa69` rejects with 59 reasons (53 precision + 5 Any + 1 all-strong); hard rows itemized in Final measurement.
