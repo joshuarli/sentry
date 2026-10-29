@@ -202,7 +202,9 @@ class ReleaseArchiveTestCase(TestCase):
 class ArtifactIndexGuardTestCase(TransactionTestCase):
     tick = 0.1  # seconds
 
-    def _create_update_fn(self, initial_delay, locked_delay, files, create):
+    def _create_update_fn(
+        self, initial_delay: float, locked_delay: float, files: dict[str, object], create: bool
+    ):
         def f():
             sleep(initial_delay * self.tick)
             with _ArtifactIndexGuard(self.release, None).writable_data(create=create) as data:
