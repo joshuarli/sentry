@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 from urllib.parse import parse_qs, urlparse, urlsplit
 
@@ -15,7 +15,7 @@ from sentry.integrations.source_code_management.repository import RepositoryClie
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.models.repository import Repository
-from sentry.shared_integrations.response import MappingApiResponse, SequenceApiResponse
+from sentry.shared_integrations.response import MappingApiResponse
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 from sentry.utils.patch_set import FileChange, patch_to_file_changes
@@ -199,19 +199,25 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
         )
         return patch_to_file_changes(resp.text)
 
-    def zip_commit_data(self, repo, commit_list):
+    def zip_commit_data(
+        self, repo: str, commit_list: Sequence[MutableMapping[str, object]]
+    ) -> Sequence[MutableMapping[str, object]]:
         for commit in commit_list:
-            commit.update({"patch_set": self.get_commit_filechanges(repo, commit["hash"])})
+            sha = commit["hash"]
+            assert isinstance(sha, str)
+            commit.update({"patch_set": self.get_commit_filechanges(repo, sha)})
         return commit_list
 
-    def get_last_commits(self, repo: str, end_sha: str) -> SequenceApiResponse:
+    def get_last_commits(self, repo: str, end_sha: str) -> Sequence[Mapping[str, object]]:
         # return api request that fetches last ~30 commits
         # see https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/commits/%7Brevision%7D
         # using end_sha as parameter
         data = self.get(BitbucketAPIPath.repository_commits.format(repo=repo, revision=end_sha))
         return self.zip_commit_data(repo, data["values"])
 
-    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> SequenceApiResponse:
+    def compare_commits(
+        self, repo: str, start_sha: str, end_sha: str
+    ) -> Sequence[Mapping[str, object]]:
         # where start_sha is oldest and end_sha is most recent
         # see
         # https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/commits/%7Brevision%7D

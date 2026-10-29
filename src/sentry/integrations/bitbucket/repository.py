@@ -49,7 +49,7 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
             name="bitbucket_webhook_secret",
         )
         with lock.acquire():
-            secret = OrganizationOption.objects.get_value(
+            secret: str | None = OrganizationOption.objects.get_value(
                 organization=organization, key="bitbucket:webhook_secret"
             )
             if secret is None:
