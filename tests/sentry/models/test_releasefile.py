@@ -202,10 +202,13 @@ class ReleaseArchiveTestCase(TestCase):
 class ArtifactIndexGuardTestCase(TransactionTestCase):
     tick = 0.1  # seconds
 
-    def _create_update_fn(self, initial_delay, locked_delay, files, create):
+    def _create_update_fn(
+        self, initial_delay: float, locked_delay: float, files: dict[str, object], create: bool
+    ):
         def f():
             sleep(initial_delay * self.tick)
             with _ArtifactIndexGuard(self.release, None).writable_data(create=create) as data:
+                assert data is not None
                 sleep(locked_delay * self.tick)
                 data.update_files(files)
 
@@ -254,6 +257,7 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
         dist = None
 
         with _ArtifactIndexGuard(release, dist).writable_data(create=True) as data:
+            assert data is not None
             data.update_files({"0": 0})
 
         update1 = self._create_update_fn(0, 2, {"foo": "bar"}, create=False)

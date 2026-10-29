@@ -1,6 +1,9 @@
 from collections import defaultdict
+from collections.abc import Sequence
 from datetime import datetime
 from typing import TypedDict
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -13,6 +16,8 @@ from sentry.discover.models import (
 )
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
 from sentry.users.api.serializers.user import UserSerializerResponse
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
@@ -35,8 +40,8 @@ class DiscoverSavedQueryResponseOptional(TypedDict, total=False):
     display: str
     topEvents: int
     interval: str
-    exploreQuery: dict
-    lastVisited: str
+    exploreQuery: dict | None
+    lastVisited: datetime | None
     starred: bool
     position: int | None
 
@@ -49,9 +54,9 @@ class DiscoverSavedQueryResponse(DiscoverSavedQueryResponseOptional):
     queryDataset: str
     datasetSource: str
     expired: bool
-    dateCreated: str
-    dateUpdated: str
-    createdBy: UserSerializerResponse
+    dateCreated: datetime
+    dateUpdated: datetime
+    createdBy: UserSerializerResponse | None
 
 
 @register(DiscoverSavedQuery)
@@ -98,29 +103,36 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
 
         return data
 
-    def get_attrs(self, item_list, user, **kwargs):
-        result: defaultdict[str, dict] = defaultdict(
+    def get_attrs(
+        self,
+        item_list: Sequence[DiscoverSavedQuery],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> defaultdict[DiscoverSavedQuery, dict[str, object]]:
+        result: defaultdict[DiscoverSavedQuery, dict[str, object]] = defaultdict(
             lambda: {"created_by": {}, "explore_query": None}
         )
 
         organization = item_list[0].organization if item_list else None
 
         user_last_visited: dict[int, datetime] = {}
-        starred_queries = dict(
-            DiscoverSavedQueryStarred.objects.filter(
-                discover_saved_query__in=item_list,
-                user_id=user.id,
-                organization=item_list[0].organization if item_list else None,
-                starred=True,
-            ).values_list("discover_saved_query_id", "position")
-        )
-        user_last_visited = dict(
-            DiscoverSavedQueryLastVisited.objects.filter(
-                discover_saved_query__in=item_list,
-                user_id=user.id,
-                organization=organization,
-            ).values_list("discover_saved_query_id", "last_visited")
-        )
+        starred_queries: dict[int, int | None] = {}
+        if not isinstance(user, AnonymousUser):
+            starred_queries = dict(
+                DiscoverSavedQueryStarred.objects.filter(
+                    discover_saved_query__in=item_list,
+                    user_id=user.id,
+                    organization=item_list[0].organization if item_list else None,
+                    starred=True,
+                ).values_list("discover_saved_query_id", "position")
+            )
+            user_last_visited = dict(
+                DiscoverSavedQueryLastVisited.objects.filter(
+                    discover_saved_query__in=item_list,
+                    user_id=user.id,
+                    organization=organization,
+                ).values_list("discover_saved_query_id", "last_visited")
+            )
 
         service_serialized = user_service.serialize_many(
             filter={
@@ -171,7 +183,13 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
 
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs) -> DiscoverSavedQueryResponse:
+    def serialize(
+        self,
+        obj: DiscoverSavedQuery,
+        attrs,
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> DiscoverSavedQueryResponse:
         query_keys = [
             "environment",
             "query",

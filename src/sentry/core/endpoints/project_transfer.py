@@ -24,6 +24,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.email import MessageBuilder
@@ -83,7 +84,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
         },
     )
     @sudo_required
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Schedule a project for transfer to a new organization.
 
@@ -116,7 +117,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        unique_user_ids: set[int] = {owner.user_id for owner in owners}
+        unique_user_ids: set[int] = {owner.user_id for owner in owners if owner.user_id is not None}
 
         if len(unique_user_ids) == 0:
             return Response(

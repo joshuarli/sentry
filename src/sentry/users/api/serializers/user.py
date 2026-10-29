@@ -78,6 +78,14 @@ class _UserOptions(TypedDict):
     prefersIssueDetailsStreamlinedUI: bool | None
 
 
+class _AuthenticatorSerializerResponse(TypedDict):
+    id: str
+    type: str
+    name: str
+    dateCreated: datetime
+    dateUsed: datetime | None
+
+
 class UserSerializerResponseOptional(TypedDict, total=False):
     # NOTE: There is a bug here where trying to move these fields to
     # UserSerializerResponse and using NotRequired. "identities" is marked as
@@ -85,7 +93,7 @@ class UserSerializerResponseOptional(TypedDict, total=False):
     # OrganizationMemberResponse).
     identities: list[_Identity]
     avatar: SerializedAvatarFields
-    authenticators: list[Any]  # TODO: find out what type this is
+    authenticators: list[_AuthenticatorSerializerResponse]
     canReset2fa: bool
 
 

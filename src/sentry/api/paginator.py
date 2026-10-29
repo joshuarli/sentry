@@ -459,7 +459,14 @@ class SequencePaginator[T]:
         self.max_limit = max_limit
         self.on_results = on_results
 
-    def get_result(self, limit, cursor=None, count_hits=False, known_hits=None, max_hits=None):
+    def get_result(
+        self,
+        limit: int,
+        cursor: Cursor | None = None,
+        count_hits: bool = False,
+        known_hits: int | None = None,
+        max_hits: int | None = None,
+    ) -> CursorResult[T]:
         limit = min(limit, self.max_limit)
 
         if cursor is None:
@@ -548,7 +555,7 @@ class GenericOffsetPaginator:
     def __init__(self, data_fn):
         self.data_fn = data_fn
 
-    def get_result(self, limit, cursor=None):
+    def get_result(self, limit: int, cursor: Cursor | None = None) -> CursorResult[object]:
         assert limit > 0
         offset = cursor.offset if cursor is not None else 0
         if offset < 0:
@@ -865,7 +872,7 @@ class EAPPageTokenPaginator:
     def __init__(self, data_fn):
         self.data_fn = data_fn
 
-    def get_result(self, limit, cursor=None):
+    def get_result(self, limit: int, cursor: Cursor | None = None) -> CursorResult[object]:
         assert limit > 0
 
         page_token = self.page_token_from_cursor(cursor)

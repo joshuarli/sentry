@@ -6,10 +6,12 @@ from contextlib import contextmanager
 from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
-from typing import IO, ClassVar, Self
+from types import TracebackType
+from typing import IO, ClassVar, Iterator, Self, cast
 from urllib.parse import urlunsplit
 
 from django.db import models, router
+from django.db.models import QuerySet
 from django.db.models.functions import Now
 from django.utils import timezone
 from sentry_sdk import traces
@@ -52,7 +54,7 @@ class PublicReleaseFileManager(models.Manager["ReleaseFile"]):
 
     """
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[ReleaseFile]:
         return super().get_queryset().select_related("file").filter(file__type="release.file")
 
 
@@ -119,13 +121,13 @@ class ReleaseFile(Model):
         return super().update(*args, **kwargs)
 
     @classmethod
-    def get_ident(cls, name, dist=None):
+    def get_ident(cls, name: str, dist: str | None = None) -> str:
         if dist is not None:
             return sha1_text(name + "\x00\x00" + dist).hexdigest()
         return sha1_text(name).hexdigest()
 
     @classmethod
-    def normalize(cls, url):
+    def normalize(cls, url: str) -> list[str]:
         """Transforms a full absolute url into 2 or 4 generalized options
 
         * the original url as input
@@ -153,21 +155,28 @@ class ReleaseFile(Model):
 class ReleaseArchive:
     """Read-only view of uploaded ZIP-archive of release files"""
 
-    def __init__(self, fileobj: IO):
+    def __init__(self, fileobj: IO[bytes]) -> None:
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
-        self.artifact_count = len(self.manifest.get("files", {}))
-        files = self.manifest.get("files", {})
-        self._entries_by_url = {entry["url"]: (path, entry) for path, entry in files.items()}
+        self.artifact_count = len(cast(dict[str, object], self.manifest.get("files", {})))
+        files = cast(dict[str, dict[str, object]], self.manifest.get("files", {}))
+        self._entries_by_url = {
+            cast(str, entry["url"]): (path, entry) for path, entry in files.items()
+        }
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, exc, value, tb):
+    def __exit__(
+        self,
+        exc: type[BaseException] | None,
+        value: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         self.close()
 
-    def close(self):
+    def close(self) -> None:
         self._zip_file.close()
         self._fileobj.close()
 
@@ -177,11 +186,11 @@ class ReleaseArchive:
     def read(self, filename: str) -> bytes:
         return self._zip_file.read(filename)
 
-    def _read_manifest(self) -> dict:
+    def _read_manifest(self) -> dict[str, object]:
         manifest_bytes = self.read("manifest.json")
-        return json.loads(manifest_bytes.decode("utf-8"))
+        return cast(dict[str, object], json.loads(manifest_bytes.decode("utf-8")))
 
-    def get_file_by_url(self, url: str) -> tuple[IO[bytes], dict]:
+    def get_file_by_url(self, url: str) -> tuple[IO[bytes], dict[str, object]]:
         """Return file-like object and headers.
 
         The caller is responsible for closing the returned stream.
@@ -189,9 +198,9 @@ class ReleaseArchive:
         May raise ``KeyError``
         """
         filename, entry = self._entries_by_url[url]
-        return self._zip_file.open(filename), entry.get("headers", {})
+        return self._zip_file.open(filename), cast(dict[str, object], entry.get("headers", {}))
 
-    def extract(self) -> TemporaryDirectory:
+    def extract(self) -> TemporaryDirectory[str]:
         """Extract contents to a temporary directory.
 
         The caller is responsible for cleanup of the temporary files.
@@ -205,7 +214,7 @@ class ReleaseArchive:
 class _ArtifactIndexData:
     """Holds data of artifact index and keeps track of changes"""
 
-    def __init__(self, data: dict, fresh=False):
+    def __init__(self, data: dict, fresh: bool = False) -> None:
         self._data = data
         self.changed = fresh
 
@@ -215,13 +224,13 @@ class _ArtifactIndexData:
         return self._data
 
     @property
-    def num_files(self):
+    def num_files(self) -> int:
         return len(self._data.get("files", {}))
 
     def get(self, filename: str):
         return self._data.get("files", {}).get(filename, None)
 
-    def update_files(self, files: dict):
+    def update_files(self, files: dict) -> None:
         if files:
             self._data.setdefault("files", {}).update(files)
             self.changed = True
@@ -238,10 +247,12 @@ class _ArtifactIndexData:
 class _ArtifactIndexGuard:
     """Ensures atomic write operations to the artifact index"""
 
-    def __init__(self, release: Release, dist: Distribution | None, **filter_args):
+    def __init__(self, release: Release, dist: Distribution | None, **filter_args) -> None:
         self._release = release
         self._dist = dist
-        self._ident = ReleaseFile.get_ident(ARTIFACT_INDEX_FILENAME, dist and dist.name)
+        self._ident = ReleaseFile.get_ident(
+            ARTIFACT_INDEX_FILENAME, dist.name if dist is not None else None
+        )
         self._filter_args = filter_args  # Extra constraints on artifact index release file
 
     def readable_data(self) -> dict | None:
@@ -256,7 +267,9 @@ class _ArtifactIndexGuard:
                 return json.load(fp)
 
     @contextmanager
-    def writable_data(self, create: bool, initial_artifact_count=None):
+    def writable_data(
+        self, create: bool, initial_artifact_count=None
+    ) -> Iterator[_ArtifactIndexData | None]:
         """Context manager for editable artifact index"""
         with atomic_transaction(
             using=(
@@ -325,12 +338,12 @@ class _ArtifactIndexGuard:
         """QuerySet for selecting artifact index"""
         return ReleaseFile.objects.filter(**self._key_fields(), **self._filter_args)
 
-    def _key_fields(self):
+    def _key_fields(self) -> dict[str, int | str | None]:
         """Columns needed to identify the artifact index in the db"""
         return dict(
             organization_id=self._release.organization_id,
             release_id=self._release.id,
-            dist_id=self._dist.id if self._dist else self._dist,
+            dist_id=cast(int, self._dist.id) if self._dist is not None else None,
             name=ARTIFACT_INDEX_FILENAME,
             ident=self._ident,
         )
@@ -372,13 +385,13 @@ def update_artifact_index(
     with ReleaseArchive(temp_file or archive_file.getfile()) as archive:
         manifest = archive.manifest
 
-        files = manifest.get("files", {})
+        files = cast(dict[str, object], manifest.get("files", {}))
         if not files:
             return
 
         for filename, info in files.items():
-            info = info.copy()
-            url = info.pop("url")
+            info = cast(dict[str, object], info).copy()
+            url = cast(str, info.pop("url"))
             info["filename"] = filename
             info["archive_ident"] = releasefile.ident
             info["date_created"] = archive_file.timestamp
@@ -388,6 +401,7 @@ def update_artifact_index(
 
     guard = _ArtifactIndexGuard(release, dist)
     with guard.writable_data(create=True, initial_artifact_count=len(files_out)) as index_data:
+        assert index_data is not None
         index_data.update_files(files_out)
 
     return releasefile

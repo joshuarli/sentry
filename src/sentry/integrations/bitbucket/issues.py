@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
-from typing import Any, NoReturn
+from collections.abc import Mapping, Sequence
+from typing import Any, NoReturn, cast
 
 from django.urls import reverse
 
@@ -81,7 +81,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
         if title_field:
             title_field["maxLength"] = BITBUCKET_MAX_TITLE_LENGTH
             title_field["default"] = truncatechars(
-                title_field["default"], BITBUCKET_MAX_TITLE_LENGTH
+                cast(str, title_field["default"]), BITBUCKET_MAX_TITLE_LENGTH
             )
 
         return [
@@ -112,7 +112,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
             },
         ]
 
-    def get_link_issue_config(self, group: Group, **kwargs) -> list[dict[str, Any]]:
+    def get_link_issue_config(self, group: Group, **kwargs) -> list[IntegrationIssueConfigField]:
         params = kwargs.pop("params", {})
         default_repo, repo_choices = self.get_repository_choices(group, params)
 
@@ -194,7 +194,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
             "repo": repo,
         }
 
-    def make_external_key(self, data):
+    def make_external_key(self, data: Mapping[str, str]) -> str:
         return "{}#{}".format(data["repo"], data["key"])
 
     def after_link_issue(self, external_issue, **kwargs):
