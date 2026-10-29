@@ -159,9 +159,11 @@ class ReleaseArchive:
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
-        self.artifact_count = len(self.manifest.get("files", {}))
-        files = self.manifest.get("files", {})
-        self._entries_by_url = {entry["url"]: (path, entry) for path, entry in files.items()}
+        self.artifact_count = len(cast(dict[str, object], self.manifest.get("files", {})))
+        files = cast(dict[str, dict[str, object]], self.manifest.get("files", {}))
+        self._entries_by_url = {
+            cast(str, entry["url"]): (path, entry) for path, entry in files.items()
+        }
 
     def __enter__(self) -> Self:
         return self
@@ -184,7 +186,7 @@ class ReleaseArchive:
     def read(self, filename: str) -> bytes:
         return self._zip_file.read(filename)
 
-    def _read_manifest(self) -> dict:
+    def _read_manifest(self) -> dict[str, object]:
         manifest_bytes = self.read("manifest.json")
         return json.loads(manifest_bytes.decode("utf-8"))
 
@@ -196,7 +198,7 @@ class ReleaseArchive:
         May raise ``KeyError``
         """
         filename, entry = self._entries_by_url[url]
-        return self._zip_file.open(filename), entry.get("headers", {})
+        return self._zip_file.open(filename), cast(dict[str, object], entry.get("headers", {}))
 
     def extract(self) -> TemporaryDirectory[str]:
         """Extract contents to a temporary directory.
@@ -381,13 +383,13 @@ def update_artifact_index(
     with ReleaseArchive(temp_file or archive_file.getfile()) as archive:
         manifest = archive.manifest
 
-        files = manifest.get("files", {})
+        files = cast(dict[str, object], manifest.get("files", {}))
         if not files:
             return
 
         for filename, info in files.items():
-            info = info.copy()
-            url = info.pop("url")
+            info = cast(dict[str, object], info).copy()
+            url = cast(str, info.pop("url"))
             info["filename"] = filename
             info["archive_ident"] = releasefile.ident
             info["date_created"] = archive_file.timestamp

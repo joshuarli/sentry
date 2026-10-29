@@ -422,7 +422,7 @@ def get_exceeded_env_vars_limit_error(err_message: str) -> bool:
     return env_vars_limit_error in err_message
 
 
-def get_sentry_err_message(err_message: str) -> tuple[bool, str]:
+def get_sentry_err_message(err_message):
     """
     Check to see if an error matches a custom error and customizes the error
     message if it is a custom error
