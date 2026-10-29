@@ -1,6 +1,6 @@
 # Sentry typing hillclimb
 
-## Status: active 2026-10-29 — resumed per owner "dont stop". Slice 1-5 done; first `evaluate` 59→54. Follow-up returns cleared 3 missing-return rows but exposed 10 downstream Django `Any` (61, worse) → reverted releasefile return to untyped (neutral, hides downstream), kept test `Callable` return (clean). Third `evaluate` running. Next: work its punchlist, then long tail file-by-file until `complete`.
+## Status: active 2026-10-29 — 53→28 via shared-type narrowing (experiments, team flags, project stats) + trusted-relay annotation. Project-transfer precise returns committed but still flagged under strong profile; project stats union split committed for 4 project_details rows. 6th `evaluate` running. Next: work its punchlist (integrations, executors, gcs, seer/tools, deferred releasefile/backup) until `complete`.
 Resume prompt: "Resume the typing campaign from typing-campaign.md Status."
 First command: `git status --short --branch` on `typing-hillclimb` (expect clean), then reread Status + Doctrine + Final measurement below.
 Last revision: code `19a3c9627d6` (plus docs-only commits to this pause). Integration branch is NOT green: exact `evaluate` vs parent `4f75fa69` rejects with 59 reasons (53 precision + 5 Any + 1 all-strong); hard rows itemized in Final measurement.
