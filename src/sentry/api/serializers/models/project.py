@@ -283,7 +283,7 @@ def get_has_trace_metrics(project: Project) -> bool:
 
 
 class _ProjectSerializerOptionalBaseResponse(TypedDict, total=False):
-    stats: list[tuple[int, int]]
+    stats: list[tuple[int, int]] | dict[str, int]
     transactionStats: list[tuple[int, int]]
     sessionStats: CrashFreeRatesWithHealthData
 
