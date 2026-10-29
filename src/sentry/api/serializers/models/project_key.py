@@ -1,8 +1,9 @@
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, NotRequired, TypedDict
+from typing import NotRequired, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
+from rest_framework.request import Request
 
 from sentry.api.serializers import Serializer, register
 from sentry.auth.superuser import is_active_superuser
@@ -75,9 +76,9 @@ class ProjectKeySerializer(Serializer[ProjectKeySerializerResponse]):
     def serialize(
         self,
         obj: ProjectKey,
-        attrs: Mapping[str, Any],
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> ProjectKeySerializerResponse:
         # obj.public_key should always be set but it isn't required in the ProjectKey model.
         # Because of this mypy complains that ProjectKeySerializerResponse attrs id, name, and label
@@ -131,7 +132,7 @@ class ProjectKeySerializer(Serializer[ProjectKeySerializerResponse]):
             },
         }
 
-        request = kwargs.get("request")
+        request = cast(Request, kwargs.get("request"))
         if request and is_active_superuser(request):
             data["useCase"] = obj.use_case
 

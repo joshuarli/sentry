@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from datetime import datetime
-from typing import Any, NotRequired, TypedDict
+from typing import NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -69,8 +69,8 @@ class CommitSerializer(Serializer[CommitSerializerResponse]):
         exclude: Collection[str] | None = None,
         include: Collection[str] | None = None,
         type: str | None = None,
-        *args: Any,
-        **kwargs: Any,
+        *args: object,
+        **kwargs: object,
     ) -> None:
         Serializer.__init__(self, *args, **kwargs)
         self.exclude = frozenset(exclude if exclude else ())
@@ -80,7 +80,7 @@ class CommitSerializer(Serializer[CommitSerializerResponse]):
         self,
         item_list: Sequence[Commit],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> dict[Commit, dict[str, object]]:
         if "author" not in self.exclude:
             users_by_author = get_users_for_commits(item_list, user)
@@ -122,9 +122,9 @@ class CommitSerializer(Serializer[CommitSerializerResponse]):
     def serialize(
         self,
         obj: Commit,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> CommitSerializerResponse:
         d: CommitSerializerResponse = {
             "id": obj.key,
@@ -147,8 +147,8 @@ class CommitWithReleaseSerializer(CommitSerializer):
         exclude: Collection[str] | None = None,
         include: Collection[str] | None = None,
         type: str | None = None,
-        *args: Any,
-        **kwargs: Any,
+        *args: object,
+        **kwargs: object,
     ) -> None:
         Serializer.__init__(self, *args, **kwargs)
         self.exclude = frozenset(exclude if exclude else ())
@@ -158,7 +158,7 @@ class CommitWithReleaseSerializer(CommitSerializer):
         self,
         item_list: Sequence[Commit],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> dict[Commit, dict[str, object]]:
         from sentry.models.releasecommit import ReleaseCommit
 
@@ -176,9 +176,9 @@ class CommitWithReleaseSerializer(CommitSerializer):
     def serialize(
         self,
         obj: Commit,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> CommitSerializerResponseWithReleases:
         data = super().serialize(obj, attrs, user)
         ret: CommitSerializerResponseWithReleases = {

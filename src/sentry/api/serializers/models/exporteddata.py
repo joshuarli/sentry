@@ -1,4 +1,4 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
@@ -20,7 +20,7 @@ class ExportedDataUserResponse(TypedDict):
 
 class ExportedDataQueryResponse(TypedDict):
     type: str
-    info: dict[str, Any]
+    info: dict[str, object]
 
 
 class ExportedDataResponse(TypedDict):
@@ -42,9 +42,9 @@ class ExportedDataSerializer(Serializer):
         self,
         item_list: Sequence[ExportedData],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> dict[ExportedData, dict[str, Any]]:
-        attrs = {}
+        **kwargs: object,
+    ) -> dict[ExportedData, dict[str, object]]:
+        attrs: dict[ExportedData, dict[str, object]] = {}
         serialized_users = {
             u["id"]: u
             for u in user_service.serialize_many(
@@ -68,9 +68,9 @@ class ExportedDataSerializer(Serializer):
     def serialize(
         self,
         obj: ExportedData,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> ExportedDataResponse:
         file = obj._get_file()
         if file is None:

@@ -562,7 +562,7 @@ class GenericOffsetPaginator:
     def __init__(self, data_fn):
         self.data_fn = data_fn
 
-    def get_result(self, limit: int, cursor: Cursor | None = None) -> CursorResult[Any]:
+    def get_result(self, limit: int, cursor: Cursor | None = None):
         assert limit > 0
         offset = cursor.offset if cursor is not None else 0
         if offset < 0:
@@ -879,7 +879,7 @@ class EAPPageTokenPaginator:
     def __init__(self, data_fn):
         self.data_fn = data_fn
 
-    def get_result(self, limit: int, cursor: Cursor | None = None) -> CursorResult[Any]:
+    def get_result(self, limit: int, cursor: Cursor | None = None):
         assert limit > 0
 
         page_token = self.page_token_from_cursor(cursor)

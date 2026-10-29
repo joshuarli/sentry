@@ -1,6 +1,6 @@
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, NotRequired, TypedDict
+from typing import NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
@@ -37,12 +37,12 @@ class UserReportSerializerResponse(TypedDict):
 
 
 class UserReportWithGroupSerializerResponse(UserReportSerializerResponse):
-    issue: dict[str, Any]
+    issue: dict[str, object]
 
 
 class _EventUser(TypedDict):
     event_user: EventUser | dict[None, None]
-    group: NotRequired[dict[str, Any] | None]
+    group: NotRequired[dict[str, object] | None]
 
 
 @register(UserReport)
@@ -51,7 +51,7 @@ class UserReportSerializer(Serializer[UserReportSerializerResponse]):
         self,
         item_list: Sequence[UserReport],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> dict[UserReport, _EventUser]:
         attrs: dict[UserReport, _EventUser] = {}
 
@@ -86,9 +86,9 @@ class UserReportSerializer(Serializer[UserReportSerializerResponse]):
     def serialize(
         self,
         obj: UserReport,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> UserReportSerializerResponse:
         # TODO(dcramer): add in various context from the event
         # context == user / http / extra interfaces
@@ -124,7 +124,7 @@ class UserReportWithGroupSerializer(UserReportSerializer):
         self,
         item_list: Sequence[UserReport],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> dict[UserReport, _EventUser]:
         from sentry.api.serializers import GroupSerializer
 
@@ -150,9 +150,9 @@ class UserReportWithGroupSerializer(UserReportSerializer):
     def serialize(
         self,
         obj: UserReport,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> UserReportWithGroupSerializerResponse:
         context = super().serialize(obj, attrs, user)
         return {

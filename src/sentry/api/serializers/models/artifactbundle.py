@@ -64,8 +64,8 @@ class ArtifactBundlesSerializer(Serializer[ArtifactBundlesSerializerResponse]):
         self,
         item_list: Sequence[ArtifactBundleRow],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> dict[ArtifactBundleRow, dict[str, Any]]:
+        **kwargs: object,
+    ) -> dict[ArtifactBundleRow, dict[str, object]]:
         # We sort by id, since it's the best (already existing) field to define total order of
         # release associations that is somehow consistent with upload sequence.
         release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
@@ -91,9 +91,9 @@ class ArtifactBundlesSerializer(Serializer[ArtifactBundlesSerializerResponse]):
     def serialize(
         self,
         obj: ArtifactBundleRow,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> ArtifactBundlesSerializerResponse:
         return {
             "bundleId": str(attrs["bundle_id"]),
@@ -105,16 +105,16 @@ class ArtifactBundlesSerializer(Serializer[ArtifactBundlesSerializerResponse]):
 
 
 class ArtifactBundleFilesSerializer(Serializer[ArtifactBundleFilesSerializerResponse]):
-    def __init__(self, archive: ArtifactBundleArchive, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, archive: ArtifactBundleArchive, *args: Any, **kwargs: object) -> None:
         Serializer.__init__(self, *args, **kwargs)
         self.archive = archive
 
     def get_attrs(
-        self, item_list: Any, user: User | RpcUser | AnonymousUser, **kwargs: Any
-    ) -> dict[Any, dict[str, Any]]:
+        self, item_list: Any, user: User | RpcUser | AnonymousUser, **kwargs: object
+    ) -> dict[Any, dict[str, object]]:
         return {item: self._compute_attrs(item) for item in item_list}
 
-    def _compute_attrs(self, item: Any) -> dict[str, Any]:
+    def _compute_attrs(self, item: Any) -> dict[str, object]:
         file_path = item.file_path
         info = item.info
 
@@ -134,9 +134,9 @@ class ArtifactBundleFilesSerializer(Serializer[ArtifactBundleFilesSerializerResp
     def serialize(
         self,
         obj: Any,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> ArtifactBundleFilesSerializerResponse:
         return {
             "id": base64.urlsafe_b64encode(attrs["file_path"].encode()).decode(),

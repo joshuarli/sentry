@@ -52,13 +52,13 @@ class ActivitySerializerResponse(TypedDict):
     commentId: str | None
     # The serialized acting user (a user serializer response), or null for
     # system/integration activity. Left loose: the full user shape is out of scope.
-    user: dict[str, Any] | None
+    user: dict[str, object] | None
     sentry_app: _ActivitySentryAppEmbed | None
     type: str
     # Polymorphic by activity type (note text, commit, pull request, unmerge
     # fingerprints + source/destination, ...). Loose by design — describing every
     # variant is out of scope.
-    data: dict[str, Any]
+    data: dict[str, object]
     dateCreated: datetime
 
 
@@ -173,7 +173,7 @@ class ActivitySerializer(Serializer):
         self,
         item_list: Sequence[Activity],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> dict[Activity, dict[str, object]]:
         from sentry.api.serializers.models.group import GroupSerializer
 
@@ -284,9 +284,9 @@ class ActivitySerializer(Serializer):
     def serialize(
         self,
         obj: Activity,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> ActivitySerializerResponse:
         if (
             obj.type == ActivityType.SET_RESOLVED_IN_RELEASE.value

@@ -41,7 +41,7 @@ from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 
 
-def expose_version_info(info: dict[str, Any] | None) -> VersionInfo | None:
+def expose_version_info(info) -> VersionInfo | None:
     if info is None:
         return None
     version = {"raw": info["version_raw"]}
@@ -64,7 +64,7 @@ def expose_version_info(info: dict[str, Any] | None) -> VersionInfo | None:
     }
 
 
-def _expose_health_data(data: Mapping[str, Any] | None) -> HealthData | None:
+def _expose_health_data(data) -> HealthData | None:
     if not data:
         return None
     rv: HealthData = {
@@ -105,8 +105,8 @@ def _expose_project(project: _ProjectDict) -> SerializedProject:
     return rv
 
 
-def _expose_current_project_meta(current_project_meta: dict[str, Any]) -> dict[str, Any]:
-    rv: dict[str, Any] = {}
+def _expose_current_project_meta(current_project_meta: dict[str, object]) -> dict[str, object]:
+    rv: dict[str, object] = {}
     if "sessions_lower_bound" in current_project_meta:
         rv["sessionsLowerBound"] = current_project_meta["sessions_lower_bound"]
     if "sessions_upper_bound" in current_project_meta:
@@ -178,7 +178,7 @@ def _get_authors_metadata(
 
 def _get_last_commit_metadata(
     item_list: Sequence[Release], user: User | RpcUser | AnonymousUser
-) -> dict[Release, dict[str, Any]]:
+) -> dict[Release, dict[str, object]]:
     """
     Returns a dictionary of release_id => commit metadata,
     where each commit metadata dict contains last_commit.
@@ -197,7 +197,7 @@ def _get_last_commit_metadata(
     else:
         commits = {}
 
-    result: dict[Release, dict[str, Any]] = {}
+    result: dict[Release, dict[str, object]] = {}
     for item in item_list:
         result[item] = {
             "last_commit": commits.get(item.last_commit_id),
@@ -207,7 +207,7 @@ def _get_last_commit_metadata(
 
 def _get_last_deploy_metadata(
     item_list: Sequence[Release], user: User | RpcUser | AnonymousUser
-) -> dict[Release, dict[str, Any]]:
+) -> dict[Release, dict[str, object]]:
     """
     Returns a dictionary of release_id => deploy metadata,
     where each commit metadata dict contains last_deploy
@@ -227,7 +227,7 @@ def _get_last_deploy_metadata(
     else:
         deploys = {}
 
-    result: dict[Release, dict[str, Any]] = {}
+    result: dict[Release, dict[str, object]] = {}
     for item in item_list:
         result[item] = {"last_deploy": deploys.get(item.last_deploy_id)}
     return result
@@ -456,9 +456,7 @@ class ReleaseSerializer(Serializer):
         project: Project | None,
         item_list: Sequence[Release],
         no_snuba_for_release_creation: bool | None,
-    ) -> tuple[
-        dict[str, datetime.datetime], dict[str, datetime.datetime], dict[int, dict[int, Any]]
-    ]:
+    ):
         if project is not None:
             project_ids = [project.id]
             organization_id = project.organization_id
@@ -579,8 +577,8 @@ class ReleaseSerializer(Serializer):
         self,
         item_list: Sequence[Release],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> dict[Release, dict[str, Any]]:
+        **kwargs,
+    ) -> dict[Release, dict[str, object]]:
         project = kwargs.get("project")
 
         # Some code paths pass an environment object, other pass a list of
@@ -621,7 +619,7 @@ class ReleaseSerializer(Serializer):
                 issue_counts_by_release,
             ) = self.__get_release_data_with_environments(release_project_envs)
 
-        owners: dict[str, Any] = {}
+        owners: dict[str, object] = {}
         owner_ids = [i.owner_id for i in item_list if i.owner_id]
         if owner_ids:
             owners = {
@@ -699,7 +697,7 @@ class ReleaseSerializer(Serializer):
                 ) in has_health_data
             release_projects[pr["release_id"]].append(pr_rv)
 
-        result: dict[Release, dict[str, Any]] = {}
+        result: dict[Release, dict[str, object]] = {}
         for item in item_list:
             single_release_projects = release_projects.get(item.id, [])
 
@@ -713,7 +711,7 @@ class ReleaseSerializer(Serializer):
             else:
                 release_new_groups = sum((issue_counts_by_release.get(item.id) or {}).values())
 
-            p: dict[str, Any] = {
+            p: dict[str, object] = {
                 "owner": owners[str(item.owner_id)] if item.owner_id else None,
                 "new_groups": release_new_groups,
                 "projects": single_release_projects,
@@ -737,9 +735,9 @@ class ReleaseSerializer(Serializer):
     def serialize(
         self,
         obj: Release,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs,
     ) -> ReleaseSerializerResponse:
         d: ReleaseSerializerResponse = {
             "id": obj.id,
@@ -785,14 +783,14 @@ class GroupEventReleaseSerializer(Serializer):
         self,
         item_list: Sequence[Release],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> dict[Release, dict[str, Any]]:
+        **kwargs: object,
+    ) -> dict[Release, dict[str, object]]:
         last_commit_metadata_attrs = _get_last_commit_metadata(item_list, user)
         deploy_metadata_attrs = _get_last_deploy_metadata(item_list, user)
 
-        result: dict[Release, dict[str, Any]] = {}
+        result: dict[Release, dict[str, object]] = {}
         for item in item_list:
-            p: dict[str, Any] = {}
+            p: dict[str, object] = {}
             p.update(last_commit_metadata_attrs[item])
             p.update(deploy_metadata_attrs[item])
 
@@ -802,9 +800,9 @@ class GroupEventReleaseSerializer(Serializer):
     def serialize(
         self,
         obj: Release,
-        attrs: Mapping[str, Any],
+        attrs,
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> GroupEventReleaseSerializerResponse:
         return {
             "id": obj.id,
