@@ -267,4 +267,5 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         return f"{repo.url}/merge_requests/{pull_request.key}"
 
     def repository_external_slug(self, repo: Repository) -> str | None:
-        return repo.config["project_id"]
+        project_id: str | None = repo.config["project_id"]
+        return project_id
