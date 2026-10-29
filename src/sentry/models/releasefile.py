@@ -305,7 +305,6 @@ class _ArtifactIndexGuard:
             yield index_data  # editable reference to index
 
             if index_data is not None and index_data.changed:
-                assert releasefile is not None
                 if created:
                     target_file = releasefile.file
                 else:
@@ -322,9 +321,7 @@ class _ArtifactIndexGuard:
                     releasefile.update(file=target_file, artifact_count=artifact_count)
                     old_file.delete()
 
-    def _get_or_create_releasefile(
-        self, initial_artifact_count: int | None
-    ) -> tuple[ReleaseFile, bool]:
+    def _get_or_create_releasefile(self, initial_artifact_count: int | None):
         """Make sure that the release file exists"""
         return ReleaseFile.objects.select_for_update().get_or_create(
             **self._key_fields(),
