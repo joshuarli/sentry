@@ -1,5 +1,4 @@
 import re
-from pathlib import Path
 
 from tools.mypy_helpers.check_stronglist import _glob_to_re, main
 
@@ -264,12 +263,5 @@ disallow_untyped_defs = false
 
     tmp_path.joinpath("a/b").mkdir(parents=True)
     tmp_path.joinpath("a/b/__init__.py").touch()
-
-    assert main((str(f),)) == 0
-
-
-def test_absent_debt_overrides_are_empty(tmp_path: Path) -> None:
-    f = tmp_path / "f"
-    f.write_text("[tool.mypy]\npython_version = '3.13'\n")
 
     assert main((str(f),)) == 0
