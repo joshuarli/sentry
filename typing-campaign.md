@@ -1,6 +1,6 @@
 # Sentry typing hillclimb
 
-## Status: resumed 2026-10-28 — devservices fully up without devenv (OrbStack + manual cache + pre-pulled ghcr images; postgres/redis/snuba/clickhouse/kafka/relay/spotlight/objectstore healthy). ~70 waves landed since the rebase: event/external/shared/issue/sqlformat/simple serializer contracts, Author alias repair, release producer chain + get_attrs/serialize, dashboard user contract, CommitSerializer parameterization, BasePaginator + remaining entry points, S3 filestore, releasefile archive/index/model, pagerduty/scope-validator verification batch (62 tests), external/issue/transaction-adjacent coverage, group seen-stats + stream enrichment + stats mixin, event base-producer chain, uptime validator + monitor completion, jira cloud/server clients, integrations, and helpers. Every post-rebase wave carries DB-backed test evidence (snuba-backed suites green); combined targeted mypy clean; exact global `evaluate` still pending.
+## Status: winding down 2026-10-29 — freeze in effect. Do not start new work, lanes, or evaluations. Closeout in progress (reclaim scratch, verify head, trim doc, final handoff).
 
 ## Previous status (2026-10-27): defects 1-3 repaired; serializer waves through event get_attrs landed (provisional), continuing.
 
