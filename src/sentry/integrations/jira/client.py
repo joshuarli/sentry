@@ -225,7 +225,8 @@ class JiraCloudClient(ApiClient):
 
     def get_email(self, account_id: str | None) -> str | None:
         user = self.get_cached(self.EMAIL_URL, params={"accountId": account_id})
-        return user.get("email")
+        email: str | None = user.get("email")
+        return email
 
     def get_field_autocomplete(self, name, value):
         if name.startswith(CUSTOMFIELD_PREFIX):
