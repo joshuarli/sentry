@@ -57,7 +57,7 @@ def get_test_notification_event_data(project: Project) -> GroupEvent | None:
     )
 
     # Load mock data
-    event_data = load_data(
+    event_data: dict[str, object] = load_data(
         platform=project.platform or "javascript",
         default="javascript",
         event_id=occurrence.event_id,

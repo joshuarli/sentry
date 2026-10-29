@@ -407,7 +407,7 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
 
             # Now add a dependency for any FK relation visible to Django.
             for field in model._meta.get_fields():
-                is_nullable = getattr(field, "null", False)
+                is_nullable: bool = getattr(field, "null", False)
                 if field.name != "id" and getattr(field, "unique", False):
                     uniques.add(frozenset({field.name}))
 

@@ -63,7 +63,7 @@ def expose_version_info(info) -> VersionInfo | None:
     }
 
 
-def _expose_health_data(data):
+def _expose_health_data(data: ReleaseHealthOverview | None):
     if not data:
         return None
     return {
