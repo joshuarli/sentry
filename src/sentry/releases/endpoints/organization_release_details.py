@@ -167,7 +167,7 @@ class OrganizationReleaseDetailsPaginationMixin:
             Queryset that contains one element that represents either next or previous release
             based on the inputs
         """
-        queryset = Release.objects.filter(
+        queryset: QuerySet[Release] = Release.objects.filter(
             date_query_q,
             organization=org,
             projects__id__in=filter_params["project_id"],
