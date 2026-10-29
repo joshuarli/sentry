@@ -2,7 +2,7 @@ import functools
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, cast
+from typing import Any
 
 import sentry_sdk
 from django.utils import timezone
@@ -109,7 +109,7 @@ def inbox_search(
     end = max([earliest_date, end])
 
     if start >= end:
-        return cast(CursorResult[Group], Paginator(Group.objects.none()).get_result())
+        return Paginator(Group.objects.none()).get_result()
 
     # Make sure search terms are valid
     invalid_search_terms = (
@@ -155,29 +155,19 @@ def inbox_search(
         )
 
     paginator = DateTimePaginator(qs.order_by("date_added"), "-date_added")
-    paginator_results = cast(
-        CursorResult[GroupInbox],
-        paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits),
-    )
+    results = paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
 
     # We want to return groups from the endpoint, but have the cursor be related to the
     # GroupInbox rows. So we paginate on the GroupInbox results queryset, then fetch
     # the group_ids out and use them to get the actual groups.
     group_qs = Group.objects.filter(
-        id__in=[r.group_id for r in paginator_results.results],
+        id__in=[r.group_id for r in results.results],
         project__in=projects,
         status=GroupStatus.UNRESOLVED,
     )
     groups: Mapping[int, Group] = {g.id: g for g in group_qs}
-    return CursorResult(
-        results=[
-            groups[r.group_id] for r in paginator_results.results if r.group_id in groups
-        ],
-        next=paginator_results.next,
-        prev=paginator_results.prev,
-        hits=paginator_results.hits,
-        max_hits=paginator_results.max_hits,
-    )
+    results.results = [groups[r.group_id] for r in results.results if r.group_id in groups]
+    return results
 
 
 def search_issues(

@@ -84,7 +84,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         self._client = None
 
     @property
-    def region(self) -> str:
+    def region(self):
         return self.metadata["region"]
 
     @property
@@ -332,7 +332,6 @@ class InstrumentationApiStep:
         enabled_functions = validated_data["enabled_functions"]
         enabled_lambdas = {name: True for name in enabled_functions}
 
-        assert project_id is not None
         sentry_project_dsn = get_dsn_for_project(organization.id, project_id)
 
         lambda_client = gen_aws_client(account_number, region, aws_external_id)
@@ -364,7 +363,7 @@ class InstrumentationApiStep:
                     success_count += 1
                 else:
                     err_message: str | _StrPromise = str(e)
-                    is_custom_err, err_message = get_sentry_err_message(str(err_message))
+                    is_custom_err, err_message = get_sentry_err_message(err_message)
                     if not is_custom_err:
                         capture_exception(e)
                         err_message = _("Unknown Error")

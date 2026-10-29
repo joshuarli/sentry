@@ -379,14 +379,14 @@ def update_artifact_index(
 
     files_out = {}
     with ReleaseArchive(temp_file or archive_file.getfile()) as archive:
-        manifest = cast(dict[str, object], archive.manifest)
+        manifest = archive.manifest
 
-        files = cast(dict[str, object], manifest.get("files", {}))
+        files = manifest.get("files", {})
         if not files:
             return
 
         for filename, info in files.items():
-            info = cast(dict[str, object], info).copy()
+            info = info.copy()
             url = info.pop("url")
             info["filename"] = filename
             info["archive_ident"] = releasefile.ident

@@ -21,11 +21,11 @@ class GitlabIssueSearchEndpoint(SourceCodeSearchEndpoint):
         return "project"
 
     @property
-    def integration_provider(self) -> str:
+    def integration_provider(self):
         return IntegrationProviderSlug.GITLAB.value
 
     @property
-    def installation_class(self) -> type[GitlabIntegration]:
+    def installation_class(self):
         return GitlabIntegration
 
     def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:

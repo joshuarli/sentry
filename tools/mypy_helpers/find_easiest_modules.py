@@ -8,6 +8,11 @@ from collections.abc import Sequence
 from tools.mypy_helpers.mypy_output import InvalidMypyOutput, parse_mypy_output
 
 
+def _by_count_then_name(item: tuple[str, int]) -> tuple[int, str]:
+    filename, count = item
+    return (count, filename)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = sys.argv[1:] if argv is None else argv
     out = subprocess.run(
@@ -26,7 +31,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 2
         counts[diagnostic.filename] += 1
 
-    for filename, count in sorted(counts.items(), key=lambda item: (item[1], item[0])):
+    for filename, count in sorted(counts.items(), key=_by_count_then_name):
         print(f"{count}\t{filename}")
 
     return 0
