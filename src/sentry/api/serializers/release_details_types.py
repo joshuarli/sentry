@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Any, TypeAlias, TypedDict
 
+from sentry.release_health.base import ReleaseHealthStats
 from sentry.users.api.serializers.user import UserSerializerResponse
 
 
@@ -53,7 +54,7 @@ class HealthData(HealthDataOptional):
     sessionsCrashed: int
     sessionsErrored: int
     hasHealthData: bool
-    stats: dict[str, Any]
+    stats: dict[str, ReleaseHealthStats]
 
 
 class ProjectOptional(TypedDict, total=False):
