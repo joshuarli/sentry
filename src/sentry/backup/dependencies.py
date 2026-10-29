@@ -411,17 +411,19 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
                 if field.name != "id" and getattr(field, "unique", False):
                     uniques.add(frozenset({field.name}))
 
-                rel_model = getattr(field.remote_field, "model", None)
-                if rel_model is not None and rel_model != model:
+                fk_rel_model: type[models.base.Model] | None = getattr(
+                    field.remote_field, "model", None
+                )
+                if fk_rel_model is not None and fk_rel_model != model:
                     if isinstance(field, FlexibleForeignKey):
                         foreign_keys[field.name] = ForeignField(
-                            model=rel_model,
+                            model=fk_rel_model,
                             kind=ForeignFieldKind.FlexibleForeignKey,
                             nullable=is_nullable,
                         )
                     elif isinstance(field, ForeignKey):
                         foreign_keys[field.name] = ForeignField(
-                            model=rel_model,
+                            model=fk_rel_model,
                             kind=ForeignFieldKind.DefaultForeignKey,
                             nullable=is_nullable,
                         )
@@ -442,17 +444,19 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
                 if getattr(field, "unique", False):
                     uniques.add(frozenset({field.name}))
 
-                rel_model = getattr(field.remote_field, "model", None)
-                if rel_model is not None and rel_model != model:
+                o2o_rel_model: type[models.base.Model] | None = getattr(
+                    field.remote_field, "model", None
+                )
+                if o2o_rel_model is not None and o2o_rel_model != model:
                     if isinstance(field, OneToOneCascadeDeletes):
                         foreign_keys[field.name] = ForeignField(
-                            model=rel_model,
+                            model=o2o_rel_model,
                             kind=ForeignFieldKind.OneToOneCascadeDeletes,
                             nullable=is_nullable,
                         )
                     elif isinstance(field, OneToOneField):
                         foreign_keys[field.name] = ForeignField(
-                            model=rel_model,
+                            model=o2o_rel_model,
                             kind=ForeignFieldKind.DefaultOneToOneField,
                             nullable=is_nullable,
                         )
