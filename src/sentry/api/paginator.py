@@ -5,7 +5,7 @@ import logging
 import math
 from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime, timezone
-from typing import Any, Protocol, cast
+from typing import Any, Protocol
 from urllib.parse import quote
 
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
@@ -14,13 +14,7 @@ from django.db.models import QuerySet
 from django.db.models.functions import Lower
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 
-from sentry.utils.cursors import (
-    Cursor,
-    CursorResult,
-    CursorValue,
-    KeyCallable,
-    build_cursor,
-)
+from sentry.utils.cursors import Cursor, CursorResult, CursorValue, build_cursor
 from sentry.utils.pagination_factory import PaginatorLike
 
 quote_name = connections["default"].ops.quote_name
@@ -145,14 +139,7 @@ class BasePaginator:
     def value_from_cursor(self, cursor: Cursor) -> CursorValue:
         raise NotImplementedError
 
-    def get_result(
-        self,
-        limit: int = 100,
-        cursor: Cursor | None = None,
-        count_hits: bool = False,
-        known_hits: int | None = None,
-        max_hits: int | None = None,
-    ) -> CursorResult[object]:
+    def get_result(self, limit=100, cursor=None, count_hits=False, known_hits=None, max_hits=None):
         # cursors are:
         #   (identifier(integer), row offset, is_prev)
         if cursor is None:
@@ -199,7 +186,7 @@ class BasePaginator:
             extra += 1
 
         stop = offset + limit + extra
-        results: list[object] = cast(list[object], list(queryset[offset:stop]))
+        results = list(queryset[offset:stop])
 
         if cursor.is_prev and cursor.value:
             # If the first result is equal to the cursor_value then it's safe to filter
@@ -213,29 +200,24 @@ class BasePaginator:
         if cursor.is_prev:
             results.reverse()
 
-        result_cursor = cast(
-            CursorResult[object],
-            build_cursor(
-                results=results,
-                limit=limit,
-                hits=hits,
-                max_hits=max_hits if count_hits else None,
-                cursor=cursor,
-                is_desc=self.desc,
-                key=cast(KeyCallable, self.get_item_key),
-                on_results=self.on_results,
-            ),
+        cursor = build_cursor(
+            results=results,
+            limit=limit,
+            hits=hits,
+            max_hits=max_hits if count_hits else None,
+            cursor=cursor,
+            is_desc=self.desc,
+            key=self.get_item_key,  # type: ignore[arg-type] # mypy loses default-param info on bound methods
+            on_results=self.on_results,
         )
 
         # Note that this filter is just to remove unwanted rows from the result set.
         # This will reduce the number of rows returned rather than fill a full page,
         # and could result in an empty page being returned
         if self.post_query_filter:
-            result_cursor.results = cast(
-                Sequence[object], self.post_query_filter(result_cursor.results)
-            )
+            cursor.results = self.post_query_filter(cursor.results)
 
-        return result_cursor
+        return cursor
 
     def count_hits(self, max_hits: int) -> int:
         return count_hits(self.queryset, max_hits)

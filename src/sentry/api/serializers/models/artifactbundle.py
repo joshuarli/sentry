@@ -2,7 +2,7 @@ import base64
 import uuid
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import TypeAlias, TypedDict, cast
+from typing import TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -13,7 +13,7 @@ from sentry.users.services.user.model import RpcUser
 
 INVALID_SOURCE_FILE_TYPE = 0
 
-ArtifactBundleRow: TypeAlias = tuple[int, uuid.UUID, int, datetime | None, datetime]
+type ArtifactBundleRow = tuple[int, uuid.UUID, int, datetime | None, datetime]
 
 
 class ArtifactBundleAssociationResponse(TypedDict):

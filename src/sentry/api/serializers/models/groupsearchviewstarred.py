@@ -23,7 +23,7 @@ class GroupSearchViewStarredSerializerResponse(TypedDict):
     querySort: SORT_LITERALS
     projects: list[int]
     environments: list[str]
-    timeFilters: dict
+    timeFilters: dict[str, object]
     lastVisited: datetime | None
     dateCreated: datetime | None
     dateUpdated: datetime
