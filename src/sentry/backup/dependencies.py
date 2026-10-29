@@ -4,7 +4,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass
 from enum import Enum, auto, unique
 from functools import lru_cache
-from typing import NamedTuple, cast
+from typing import NamedTuple
 
 from django.db import models
 from django.db.models import Q, UniqueConstraint
@@ -407,14 +407,11 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
 
             # Now add a dependency for any FK relation visible to Django.
             for field in model._meta.get_fields():
-                is_nullable: bool = getattr(field, "null", False)
+                is_nullable = getattr(field, "null", False)
                 if field.name != "id" and getattr(field, "unique", False):
                     uniques.add(frozenset({field.name}))
 
-                rel_model = cast(
-                    "type[models.base.Model] | None",
-                    getattr(field.remote_field, "model", None),
-                )
+                rel_model = getattr(field.remote_field, "model", None)
                 if rel_model is not None and rel_model != model:
                     if isinstance(field, FlexibleForeignKey):
                         foreign_keys[field.name] = ForeignField(
@@ -445,10 +442,7 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
                 if getattr(field, "unique", False):
                     uniques.add(frozenset({field.name}))
 
-                rel_model = cast(
-                    "type[models.base.Model] | None",
-                    getattr(field.remote_field, "model", None),
-                )
+                rel_model = getattr(field.remote_field, "model", None)
                 if rel_model is not None and rel_model != model:
                     if isinstance(field, OneToOneCascadeDeletes):
                         foreign_keys[field.name] = ForeignField(

@@ -251,7 +251,7 @@ class ArtifactBundleArchive:
         return json.loads(manifest_bytes.decode("utf-8"))
 
     @staticmethod
-    def normalize_headers(headers: Mapping[str, object]) -> dict[str, object]:
+    def normalize_headers(headers: dict) -> dict[str, object]:
         return {k.lower(): v for k, v in headers.items()}
 
     @staticmethod

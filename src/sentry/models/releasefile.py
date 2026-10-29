@@ -7,7 +7,7 @@ from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
 from types import TracebackType
-from typing import IO, ClassVar, Self, cast
+from typing import IO, ClassVar, Iterator, Self, cast
 from urllib.parse import urlunsplit
 
 from django.db import models, router
@@ -188,7 +188,7 @@ class ReleaseArchive:
 
     def _read_manifest(self) -> dict[str, object]:
         manifest_bytes = self.read("manifest.json")
-        return json.loads(manifest_bytes.decode("utf-8"))
+        return cast(dict[str, object], json.loads(manifest_bytes.decode("utf-8")))
 
     def get_file_by_url(self, url: str) -> tuple[IO[bytes], dict[str, object]]:
         """Return file-like object and headers.
@@ -267,7 +267,9 @@ class _ArtifactIndexGuard:
                 return json.load(fp)
 
     @contextmanager
-    def writable_data(self, create: bool, initial_artifact_count=None):
+    def writable_data(
+        self, create: bool, initial_artifact_count=None
+    ) -> Iterator[_ArtifactIndexData | None]:
         """Context manager for editable artifact index"""
         with atomic_transaction(
             using=(
@@ -399,6 +401,7 @@ def update_artifact_index(
 
     guard = _ArtifactIndexGuard(release, dist)
     with guard.writable_data(create=True, initial_artifact_count=len(files_out)) as index_data:
+        assert index_data is not None
         index_data.update_files(files_out)
 
     return releasefile

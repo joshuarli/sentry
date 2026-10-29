@@ -16,7 +16,7 @@ from sentry.api.serializers.release_details_types import (
     NonMappableUser,
     VersionInfo,
 )
-from sentry.api.serializers.release_details_types import Project as SerializedProject
+from sentry.api.serializers.release_details_types import HealthData, Project as SerializedProject
 from sentry.api.serializers.types import (
     GroupEventReleaseSerializerResponse,
     ReleaseSerializerResponse,
@@ -63,7 +63,7 @@ def expose_version_info(info) -> VersionInfo | None:
     }
 
 
-def _expose_health_data(data: ReleaseHealthOverview | None):
+def _expose_health_data(data: ReleaseHealthOverview | None) -> HealthData | None:
     if not data:
         return None
     return {
@@ -81,7 +81,7 @@ def _expose_health_data(data: ReleaseHealthOverview | None):
         "totalProjectSessions24h": data["total_project_sessions_24h"],
         "adoption": data["adoption"],
         "sessionsAdoption": data["sessions_adoption"],
-        "stats": data.get("stats") or {},
+        "stats": {str(k): v for k, v in (data.get("stats") or {}).items()},
         # XXX: legacy key, should be removed later.
         "hasHealthData": data["has_health_data"],
     }
