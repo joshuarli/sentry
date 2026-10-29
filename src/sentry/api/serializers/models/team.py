@@ -137,7 +137,7 @@ class BaseTeamSerializerResponse(TypedDict):
     dateCreated: datetime | None
     isMember: bool
     teamRole: str | None
-    flags: dict[str, Any]
+    flags: dict[str, bool]
     access: frozenset[str]  # scopes granted by teamRole
     hasAccess: bool
     isPending: bool
