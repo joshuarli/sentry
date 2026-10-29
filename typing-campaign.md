@@ -1,6 +1,6 @@
 # Sentry typing hillclimb
 
-## Status: active 2026-10-29 — resumed per owner "dont stop". Slice 1-5 committed on `typing-hillclimb` (test `def f() -> None`, grouptype parent-exact, HealthData stats narrowed, artifact index params, backup opaque rel models); exact `evaluate` vs `4f75fa69` running in background under `.work/tmp/evaluate-*`. Next: work evaluate punchlist, then precision long tail file-by-file until `complete`.
+## Status: active 2026-10-29 — resumed per owner "dont stop". Slice 1-5 committed on `typing-hillclimb` (test `def f() -> None`, grouptype parent-exact, HealthData stats narrowed, artifact index params, backup opaque rel models); exact `evaluate` vs `4f75fa69` rejected 59→54 (old hard rows L69/L60/L205/L405/L447 gone; 3 new rows from partial annotations since fixed: releasefile + test missing returns). Follow-ups committed (artifact return + assert, test Callable return). Second `evaluate` running under `.work/tmp/evaluate-*`. Next: work new punchlist, then precision long tail file-by-file until `complete`.
 Resume prompt: "Resume the typing campaign from typing-campaign.md Status."
 First command: `git status --short --branch` on `typing-hillclimb` (expect clean), then reread Status + Doctrine + Final measurement below.
 Last revision: code `19a3c9627d6` (plus docs-only commits to this pause). Integration branch is NOT green: exact `evaluate` vs parent `4f75fa69` rejects with 59 reasons (53 precision + 5 Any + 1 all-strong); hard rows itemized in Final measurement.
