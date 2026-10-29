@@ -3,36 +3,23 @@ from __future__ import annotations
 import collections
 import subprocess
 import sys
-from collections.abc import Sequence
-
-from tools.mypy_helpers.mypy_output import InvalidMypyOutput, parse_mypy_output
 
 
-def _by_count_then_name(item: tuple[str, int]) -> tuple[int, str]:
-    filename, count = item
-    return (count, filename)
-
-
-def main(argv: Sequence[str] | None = None) -> int:
-    args = sys.argv[1:] if argv is None else argv
+def main() -> int:
     out = subprocess.run(
-        (sys.executable, "-m", "tools.mypy_helpers.mypy_without_ignores", *args),
+        (sys.executable, "-m", "tools.mypy_helpers.mypy_without_ignores", *sys.argv[1:]),
         capture_output=True,
     )
     counts: collections.Counter[str] = collections.Counter()
-    try:
-        run = parse_mypy_output(out.stdout, out.stderr, out.returncode)
-    except InvalidMypyOutput as exc:
-        print(str(exc), file=sys.stderr)
-        return 2
-    for diagnostic in run.errors:
-        if diagnostic.filename is None:
-            print("mypy reported an error without a source filename", file=sys.stderr)
-            return 2
-        counts[diagnostic.filename] += 1
+    for line in out.stdout.decode().splitlines():
+        filename, _, _ = line.partition(":")
+        if filename.endswith(".py"):
+            counts[filename] += 1
 
-    for filename, count in sorted(counts.items(), key=_by_count_then_name):
-        print(f"{count}\t{filename}")
+    vals = [(count, fname) for fname, count in counts.most_common()]
+    vals.sort(reverse=True)
+    for count, fname in vals:
+        print(f"{count}\t{fname}")
 
     return 0
 
