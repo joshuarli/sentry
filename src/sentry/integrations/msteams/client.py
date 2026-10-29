@@ -5,7 +5,7 @@ import time
 from abc import ABC
 from collections.abc import Mapping
 from datetime import datetime, timezone
-from typing import TypedDict
+from typing import TypedDict, cast
 from urllib.parse import urlencode
 
 from requests import PreparedRequest
@@ -51,9 +51,8 @@ class MsTeamsClientABC(ApiClient, ABC):
 
     def get_user_conversation_id(self, user_id: str, tenant_id: str) -> str:
         data = {"members": [{"id": user_id}], "channelData": {"tenant": {"id": tenant_id}}}
-        resp = self.post(self.CONVERSATION_URL, data=data)
-        conversation_id: str = resp["id"]
-        return conversation_id
+        resp: dict[str, object] = self.post(self.CONVERSATION_URL, data=data)
+        return cast(str, resp["id"])
 
     def send_message(self, conversation_id: str, data: Mapping[str, object]) -> object:
         response: object = self.post(self.ACTIVITY_URL % conversation_id, data=data)

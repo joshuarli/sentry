@@ -812,7 +812,8 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
                     if e.code != 404:
                         raise
                 else:
-                    if hook.get("alert_status") != "disabled":
+                    hook_data: Mapping[str, object] = hook
+                    if hook_data.get("alert_status") != "disabled":
                         outcome = "updated"
                         return hook_id
                     # PUT does not re-enable permanently disabled hooks. Temporarily

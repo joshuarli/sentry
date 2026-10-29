@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import subprocess
 import sys
@@ -34,7 +33,17 @@ def _module_for_filename(filename: str, source_root: Path) -> str:
 
 
 def _toml_string(value: str) -> str:
-    return json.dumps(value, ensure_ascii=False)
+    return (
+        '"'
+        + (
+            value.replace("\\", "\\\\")
+            .replace('"', '\\"')
+            .replace("\n", "\\n")
+            .replace("\t", "\\t")
+            .replace("\r", "\\r")
+        )
+        + '"'
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
