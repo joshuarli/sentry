@@ -21,6 +21,10 @@ from sentry.shared_integrations.response import MappingApiResponse
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
 
 
+class _ValuesResponse(TypedDict):
+    values: list[Mapping[str, object]]
+
+
 class BitbucketServerWebhookFields(TypedDict):
     name: str
     url: str
@@ -231,10 +235,11 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
     def get_last_commits(
         self, project: str, repo: str, limit: int = 10
     ) -> Sequence[Mapping[str, object]]:
-        return self.get(
+        data: _ValuesResponse = self.get(
             BitbucketServerAPIPath.repository_commits.format(project=project, repo=repo),
             params={"merges": "exclude", "limit": limit},
-        )["values"]
+        )
+        return data["values"]
 
     def get_commit_filechanges(
         self, project: str, repo: str, commit: str, limit: int = 1000
