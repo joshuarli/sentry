@@ -158,7 +158,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User | RpcUser, **kwargs: Any
+        self, group: Group | None, user: User | RpcUser, **kwargs: object
     ) -> list[IntegrationIssueConfigField]:
         """
         We use the `group` to get three things: organization_slug, project
@@ -185,7 +185,8 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             assert org_context is not None
             org = org_context.organization
 
-        params = kwargs.pop("params", {})
+        params_obj: object = kwargs.pop("params", {})
+        params: Mapping[str, object] = params_obj if isinstance(params_obj, dict) else {}
         prefetch_options = features.has("organizations:github-issue-form-prefetch", org, actor=user)
         if prefetch_options:
             defaults = self.get_project_defaults(group.project_id) if group else {}
