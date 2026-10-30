@@ -160,14 +160,16 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
             except Exception as e:
                 installation.raise_error(e)
             else:
-                return self._format_commits(repo, res[:10])
+                formatted: Sequence[Mapping[str, object]] = self._format_commits(repo, res[:10])
+                return formatted
         else:
             try:
                 res = client.compare_commits(name, start_sha, end_sha)
             except Exception as e:
                 installation.raise_error(e)
             else:
-                return self._format_commits(repo, res)
+                formatted = self._format_commits(repo, res)
+                return formatted
 
     def repository_external_slug(self, repo: Repository) -> str | None:
         return repo.name
