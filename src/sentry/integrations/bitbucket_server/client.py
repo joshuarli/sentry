@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any, NotRequired, TypedDict
 from urllib.parse import parse_qsl
 
@@ -16,7 +16,7 @@ from sentry.integrations.source_code_management.repository import RepositoryClie
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.shared_integrations.response import MappingApiResponse, SequenceApiResponse
+from sentry.shared_integrations.response import MappingApiResponse
 
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
 
@@ -210,7 +210,9 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
             ),
         )
 
-    def get_commits(self, project: str, repo: str, from_hash: str, to_hash: str, limit: int = 1000) -> SequenceApiResponse:
+    def get_commits(
+        self, project: str, repo: str, from_hash: str, to_hash: str, limit: int = 1000
+    ) -> Sequence[Mapping[str, object]]:
         logger.info(
             "load.commits",
             extra={
@@ -226,13 +228,17 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
             {"limit": limit, "since": from_hash, "until": to_hash, "merges": "exclude"},
         )
 
-    def get_last_commits(self, project: str, repo: str, limit: int = 10) -> SequenceApiResponse:
+    def get_last_commits(
+        self, project: str, repo: str, limit: int = 10
+    ) -> Sequence[Mapping[str, object]]:
         return self.get(
             BitbucketServerAPIPath.repository_commits.format(project=project, repo=repo),
             params={"merges": "exclude", "limit": limit},
         )["values"]
 
-    def get_commit_filechanges(self, project: str, repo: str, commit: str, limit: int = 1000) -> SequenceApiResponse:
+    def get_commit_filechanges(
+        self, project: str, repo: str, commit: str, limit: int = 1000
+    ) -> Sequence[Mapping[str, object]]:
         logger.info(
             "load.filechanges",
             extra={
@@ -247,8 +253,10 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
             {"limit": limit},
         )
 
-    def _get_values(self, uri, params, max_pages=1000000):
-        values = []
+    def _get_values(
+        self, uri: str, params: Mapping[str, object], max_pages: int = 1000000
+    ) -> list[Mapping[str, object]]:
+        values: list[Mapping[str, object]] = []
         start = 0
 
         logger.info(
@@ -261,7 +269,7 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
         )
 
         for i in range(max_pages):
-            new_params = dict.copy(params)
+            new_params = dict(params)
             new_params["start"] = start
             logger.debug(
                 "Loading values for paginated uri starting from %s",
