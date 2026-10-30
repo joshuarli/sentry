@@ -214,29 +214,33 @@ class ReleaseArchive:
 class _ArtifactIndexData:
     """Holds data of artifact index and keeps track of changes"""
 
-    def __init__(self, data: dict, fresh: bool = False) -> None:
+    def __init__(self, data: dict[str, object], fresh: bool = False) -> None:
         self._data = data
         self.changed = fresh
 
     @property
-    def data(self):
+    def data(self) -> dict[str, object]:
         """Meant to be read-only"""
         return self._data
 
     @property
     def num_files(self) -> int:
-        return len(self._data.get("files", {}))
+        files = cast(dict[str, object], self._data.get("files", dict[str, object]()))
+        return len(files)
 
-    def get(self, filename: str):
-        return self._data.get("files", {}).get(filename, None)
+    def get(self, filename: str) -> object:
+        files = cast(dict[str, object], self._data.get("files", dict[str, object]()))
+        return files.get(filename, None)
 
     def update_files(self, files: Mapping[str, object]) -> None:
         if files:
-            self._data.setdefault("files", {}).update(files)
+            files_map = cast(dict[str, object], self._data.setdefault("files", dict[str, object]()))
+            files_map.update(files)
             self.changed = True
 
     def delete(self, filename: str) -> bool:
-        result = self._data.get("files", {}).pop(filename, None)
+        files_map = cast(dict[str, object], self._data.get("files", dict[str, object]()))
+        result = files_map.pop(filename, None)
         deleted = result is not None
         if deleted:
             self.changed = True
@@ -299,7 +303,7 @@ class _ArtifactIndexGuard:
                     source_file = releasefile.file
                     if source_file.type != ARTIFACT_INDEX_TYPE:
                         raise RuntimeError("Unexpected file type for artifact index")
-                    raw_data = json.load(source_file.getfile())
+                    raw_data: dict[str, object] = json.load(source_file.getfile())
                     index_data = _ArtifactIndexData(raw_data)
 
             yield index_data  # editable reference to index
@@ -337,7 +341,7 @@ class _ArtifactIndexGuard:
             },
         )
 
-    def _releasefile_qs(self):
+    def _releasefile_qs(self) -> QuerySet[ReleaseFile]:
         """QuerySet for selecting artifact index"""
         return ReleaseFile.objects.filter(**self._key_fields(), **self._filter_args)
 
