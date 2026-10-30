@@ -259,7 +259,7 @@ class _ArtifactIndexGuard:
         )
         self._filter_args = filter_args  # Extra constraints on artifact index release file
 
-    def readable_data(self) -> dict | None:
+    def readable_data(self) -> dict[str, object] | None:
         """Simple read, no synchronization necessary"""
         try:
             releasefile = self._releasefile_qs()[0]
