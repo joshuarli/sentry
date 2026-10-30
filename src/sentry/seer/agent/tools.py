@@ -17,7 +17,7 @@ from sentry import eventstore, features
 from sentry.api.client import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
 from sentry.api.serializers.base import serialize
-from sentry.api.serializers.models.activity import ActivitySerializer
+from sentry.api.serializers.models.activity import ActivitySerializer, ActivitySerializerResponse
 from sentry.api.serializers.models.commit import CommitSerializer
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
@@ -1438,7 +1438,7 @@ def get_issue_details(
         activities = (
             Activity.objects.filter(group=group).filter(activity_filter).order_by("-datetime")[:50]
         )
-        serialized_activities = serialize(
+        serialized_activities: list[ActivitySerializerResponse] = serialize(
             list(activities), user=None, serializer=ActivitySerializer(resolve_mentions=True)
         )
     except Exception:
