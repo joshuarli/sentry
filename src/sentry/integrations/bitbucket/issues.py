@@ -70,8 +70,8 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
                 raise IntegrationFormError({"repo": "Organization not found"})
             org = org_context.organization
 
-        params_obj: object = kwargs.pop("params", {})
-        params: Mapping[str, object] = params_obj if isinstance(params_obj, dict) else {}
+        params_obj: object = kwargs.pop("params", dict[str, object]())
+        params: Mapping[str, object] = cast(Mapping[str, object], params_obj)
         default_repo, repo_choices = self.get_repository_choices(group, params)
 
         autocomplete_url = reverse(
@@ -113,9 +113,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
             },
         ]
 
-    def get_link_issue_config(
-        self, group: Group, **kwargs
-    ) -> list[IntegrationIssueConfigField]:
+    def get_link_issue_config(self, group: Group, **kwargs) -> list[IntegrationIssueConfigField]:
         params = kwargs.pop("params", {})
         default_repo, repo_choices = self.get_repository_choices(group, params)
 

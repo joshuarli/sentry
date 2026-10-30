@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping, Sequence
 from operator import attrgetter
-from typing import Any, NoReturn
+from typing import Any, NoReturn, cast
 
 from django.urls import reverse
 
@@ -185,8 +185,8 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             assert org_context is not None
             org = org_context.organization
 
-        params_obj: object = kwargs.pop("params", {})
-        params: Mapping[str, object] = params_obj if isinstance(params_obj, dict) else {}
+        params_obj: object = kwargs.pop("params", dict[str, object]())
+        params: Mapping[str, object] = cast(Mapping[str, object], params_obj)
         prefetch_options = features.has("organizations:github-issue-form-prefetch", org, actor=user)
         if prefetch_options:
             defaults = self.get_project_defaults(group.project_id) if group else {}
