@@ -54,7 +54,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User | RpcUser, **kwargs
+        self, group: Group | None, user: User | RpcUser, **kwargs: object
     ) -> list[IntegrationIssueConfigField]:
         kwargs["link_referrer"] = "bitbucket_integration"
 
@@ -70,7 +70,8 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
                 raise IntegrationFormError({"repo": "Organization not found"})
             org = org_context.organization
 
-        params = kwargs.pop("params", {})
+        params_obj: object = kwargs.pop("params", {})
+        params: Mapping[str, object] = params_obj if isinstance(params_obj, dict) else {}
         default_repo, repo_choices = self.get_repository_choices(group, params)
 
         autocomplete_url = reverse(

@@ -67,11 +67,12 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User | RpcUser, **kwargs
+        self, group: Group | None, user: User | RpcUser, **kwargs: object
     ) -> list[IntegrationIssueConfigField]:
         kwargs["link_referrer"] = "gitlab_integration"
         fields = super().get_create_issue_config(group, user, **kwargs)
-        params = kwargs.pop("params", {})
+        params_obj: object = kwargs.pop("params", {})
+        params: Mapping[str, object] = params_obj if isinstance(params_obj, dict) else {}
         default_project, project_choices = self.get_projects_and_default(group, params, **kwargs)
 
         org = self.organization
