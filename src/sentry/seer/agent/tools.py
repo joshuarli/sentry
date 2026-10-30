@@ -1608,7 +1608,7 @@ class _IssueCommitters:
             commits_by_id: dict[str, Commit] = {
                 commit.key: commit
                 for entry in author_commits
-                for commit, _ in entry.get("commits", [])
+                for commit, _ in entry.get("commits", list[tuple[Commit, int]]())
             }
             serialized_by_id: dict[str, CommitSerializerResponse] = {
                 commit_id: serialized
@@ -1625,7 +1625,7 @@ class _IssueCommitters:
                     "author": entry.get("author"),
                     "commits": [
                         {**serialized_by_id[commit.key], "score": score}
-                        for commit, score in entry.get("commits", [])
+                        for commit, score in entry.get("commits", list[tuple[Commit, int]]())
                     ],
                 }
                 for entry in author_commits
