@@ -454,14 +454,13 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
                             kind=ForeignFieldKind.OneToOneCascadeDeletes,
                             nullable=is_nullable,
                         )
-                    elif isinstance(field, OneToOneField):
+                    else:
+                        # one_to_one_fields filters to OneToOneField instances.
                         foreign_keys[field.name] = ForeignField(
                             model=o2o_rel_model,
                             kind=ForeignFieldKind.DefaultOneToOneField,
                             nullable=is_nullable,
                         )
-                    else:
-                        raise RuntimeError("Unknown one to kind")
 
             # Use some heuristics to grab numeric-only unlinked dependencies.
             simple_integer_fields = [
