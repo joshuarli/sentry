@@ -1,6 +1,6 @@
 # Sentry typing hillclimb
 
-## Status: active 2026-10-29 — 59→28→25→23→22 via shared-type narrowing + precise returns/querysets. Bitbucket client + webhook secret typed (9th `evaluate` running). Remaining: bitbucket_server 3, bitbucket _format 2, issues kwargs 5, executors 2, seer/tools 2, gcs 1, plus deferred releasefile 2 / backup 2. Next: work 9th punchlist until `complete`.
+## Status: active 2026-10-29 — 59→28→25→23→22→19 via shared-type narrowing + precise returns/querysets/pagination. Bitbucket server pagination typed (10th `evaluate` running). Remaining: bitbucket _format 2, issues kwargs 5, executors 2, seer/tools 2, gcs 1, plus deferred releasefile 2 / backup 2. Next: work 10th punchlist until `complete`.
 Resume prompt: "Resume the typing campaign from typing-campaign.md Status."
 First command: `git status --short --branch` on `typing-hillclimb` (expect clean), then reread Status + Doctrine + Final measurement below.
 Last revision: code `19a3c9627d6` (plus docs-only commits to this pause). Integration branch is NOT green: exact `evaluate` vs parent `4f75fa69` rejects with 59 reasons (53 precision + 5 Any + 1 all-strong); hard rows itemized in Final measurement.
