@@ -104,7 +104,7 @@ def try_repeated(func: Callable[[], T]) -> T:
         idx += 1
 
 
-def get_client(project_id, credentials):
+def get_client(project_id: str | None, credentials: object | None) -> object:
     global _client
     if _client[2] is None or (project_id, credentials) != (_client[0], _client[1]):
         client = Client(project=project_id, credentials=credentials)
@@ -112,7 +112,8 @@ def get_client(project_id, credentials):
         adapter = TimeoutAdapter(timeout=GCS_TIMEOUT)
         session.mount("http://", adapter)
         session.mount("https://", adapter)
-        _client = (project_id, credentials, client)
+        client_obj: object = client
+        _client = (project_id, credentials, client_obj)
     return _client[2]
 
 

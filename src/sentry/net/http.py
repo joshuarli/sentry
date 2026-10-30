@@ -185,12 +185,24 @@ class BlacklistAdapter(HTTPAdapter):
 
 
 class TimeoutAdapter(HTTPAdapter):
-    def __init__(self, *args, **kwargs):
-        timeout = kwargs.pop("timeout", None)
-        HTTPAdapter.__init__(self, *args, **kwargs)
+    def __init__(
+        self,
+        pool_connections: int = 10,
+        pool_maxsize: int = 10,
+        max_retries: Retry | int = 0,
+        pool_block: bool = False,
+        timeout: float | None = None,
+    ) -> None:
+        HTTPAdapter.__init__(
+            self,
+            pool_connections=pool_connections,
+            pool_maxsize=pool_maxsize,
+            max_retries=max_retries,
+            pool_block=pool_block,
+        )
         if timeout is None:
             timeout = 10.0
-        self.default_timeout = timeout
+        self.default_timeout: float = timeout
 
     def send(self, *args, **kwargs):
         if kwargs.get("timeout") is None:
