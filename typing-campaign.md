@@ -1,6 +1,6 @@
 # Sentry typing hillclimb
 
-## Status: active 2026-10-30 — 59→3 via shared-type narrowing + precise kwargs/client/activities/creator/o2o (13th `evaluate` running). Remaining 3: executors 2, seer/tools 1 (1626 dict Any). Next: work remaining in that order until `complete`.
+## Status: active 2026-10-30 — 59→2 via shared-type narrowing + precise kwargs/client/activities/creator/o2o/keys (13th `evaluate` running for 9, 14th planned overnight for 12). Remaining 2: executors 2 (Paginator untyped-call). Next: type `BasePaginator` as generic + remove `cast` in executors until `complete`.
 Resume prompt: "Resume the typing campaign from typing-campaign.md Status."
 First command: `git status --short --branch` on `typing-hillclimb` (expect clean), then reread Status + Doctrine + Final measurement below.
 Last revision: code `19a3c9627d6` (plus docs-only commits to this pause). Integration branch is NOT green: exact `evaluate` vs parent `4f75fa69` rejects with 59 reasons (53 precision + 5 Any + 1 all-strong); hard rows itemized in Final measurement.
