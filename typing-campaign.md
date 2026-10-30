@@ -1,6 +1,6 @@
 # Sentry typing hillclimb
 
-## Status: active 2026-10-29 — 59→14 via shared-type narrowing + precise returns/querysets/pagination/pins (12th `evaluate` confirms). Remaining 14: issues kwargs 5, executors 2, seer/tools 2, gcs 1, bitbucket _format 0 (done, pending confirm), plus deferred Django wave releasefile 2 / backup 2. Next: work remaining in that order until `complete`.
+## Status: active 2026-10-30 — 59→3 via shared-type narrowing + precise kwargs/client/activities/creator/o2o (13th `evaluate` running). Remaining 3: executors 2, seer/tools 1 (1626 dict Any). Next: work remaining in that order until `complete`.
 Resume prompt: "Resume the typing campaign from typing-campaign.md Status."
 First command: `git status --short --branch` on `typing-hillclimb` (expect clean), then reread Status + Doctrine + Final measurement below.
 Last revision: code `19a3c9627d6` (plus docs-only commits to this pause). Integration branch is NOT green: exact `evaluate` vs parent `4f75fa69` rejects with 59 reasons (53 precision + 5 Any + 1 all-strong); hard rows itemized in Final measurement.
