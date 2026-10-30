@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping, Sequence
+from typing import cast
 
 from django.urls import reverse
 
@@ -71,8 +72,8 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
     ) -> list[IntegrationIssueConfigField]:
         kwargs["link_referrer"] = "gitlab_integration"
         fields = super().get_create_issue_config(group, user, **kwargs)
-        params_obj: object = kwargs.pop("params", {})
-        params: Mapping[str, object] = params_obj if isinstance(params_obj, dict) else {}
+        params_obj: object = kwargs.pop("params", dict[str, object]())
+        params: Mapping[str, object] = cast(Mapping[str, object], params_obj)
         default_project, project_choices = self.get_projects_and_default(group, params, **kwargs)
 
         org = self.organization
@@ -143,9 +144,7 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
-    def get_link_issue_config(
-        self, group: Group, **kwargs
-    ) -> list[IntegrationIssueConfigField]:
+    def get_link_issue_config(self, group: Group, **kwargs) -> list[IntegrationIssueConfigField]:
         params = kwargs.pop("params", {})
         default_project, project_choices = self.get_projects_and_default(group, params, **kwargs)
 
