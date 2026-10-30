@@ -1,6 +1,6 @@
 # Sentry typing hillclimb
 
-## Status: active 2026-10-30 — 59→2 via shared-type narrowing + precise kwargs/client/activities/creator/o2o/keys (13th `evaluate` running for 9, 14th planned overnight for 12). Remaining 2: executors 2 (Paginator untyped-call). Next: type `BasePaginator` as generic + remove `cast` in executors until `complete`.
+## Status: active 2026-10-30 — 59→17 via exact-evaluate hillclimb (13th 29 for 9-fix, 14th 29 for 12-fix, 15th 19, 16th 18, 17th 17 for 7-commit HEAD). Fixed since 14: issues kwargs 12 (explicit dict[str, object]() + cast, no bare generics), backup is_nullable bool, releasefile artifact-index precise + readable_data cast, seer committer defaults explicit. Remaining 17: executors 2 (BasePaginator generic + remove cast), seer 4 (serialize arg-type + list[Any] + dict-comp + 1441 Any), backup 1 (ForeignKey isinstance bare generic), releasefile 10 (writable_data unannotated/from_another_any). Next: executors generic BasePaginator[M,R] until `complete`.
 Resume prompt: "Resume the typing campaign from typing-campaign.md Status."
 First command: `git status --short --branch` on `typing-hillclimb` (expect clean), then reread Status + Doctrine + Final measurement below.
 Last revision: code `19a3c9627d6` (plus docs-only commits to this pause). Integration branch is NOT green: exact `evaluate` vs parent `4f75fa69` rejects with 59 reasons (53 precision + 5 Any + 1 all-strong); hard rows itemized in Final measurement.
