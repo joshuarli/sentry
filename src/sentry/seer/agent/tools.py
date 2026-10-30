@@ -18,7 +18,7 @@ from sentry.api.client import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.activity import ActivitySerializer, ActivitySerializerResponse
-from sentry.api.serializers.models.commit import CommitSerializer
+from sentry.api.serializers.models.commit import CommitSerializer, CommitSerializerResponse
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
@@ -1604,12 +1604,12 @@ class _IssueCommitters:
             # Batch-serialize every commit in one call: CommitSerializer.get_attrs runs
             # repository and pull request queries per invocation, so serializing one
             # commit at a time would be an N+1.
-            commits_by_id = {
-                commit.id: commit
+            commits_by_id: dict[str, Commit] = {
+                commit.key: commit
                 for entry in author_commits
                 for commit, _ in entry.get("commits", [])
             }
-            serialized_by_id = {
+            serialized_by_id: dict[str, CommitSerializerResponse] = {
                 commit_id: serialized
                 for commit_id, serialized in zip(
                     commits_by_id,
@@ -1623,7 +1623,7 @@ class _IssueCommitters:
                 {
                     "author": entry.get("author"),
                     "commits": [
-                        {**serialized_by_id[commit.id], "score": score}
+                        {**serialized_by_id[commit.key], "score": score}
                         for commit, score in entry.get("commits", [])
                     ],
                 }
