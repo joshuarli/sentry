@@ -268,7 +268,7 @@ class _ArtifactIndexGuard:
         else:
             fp = releasefile.file.getfile()
             with fp:
-                return json.load(fp)
+                return cast(dict[str, object], json.load(fp))
 
     @contextmanager
     def writable_data(
