@@ -253,7 +253,7 @@ class DataForwarderProjectSerializer(Serializer):
     overrides = serializers.JSONField(default=dict)
     is_enabled = serializers.BooleanField(default=True)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._validated_data_forwarder: DataForwarder | None = None
 

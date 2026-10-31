@@ -345,7 +345,7 @@ class SavedQueriesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
     permission_classes = (ExploreSavedQueryPermission,)
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         )
@@ -446,7 +446,7 @@ class SavedQueriesEndpoint(OrganizationEndpoint):
             user_id=request.user.id,
         )
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> list[object]:
             return list(combined[offset : offset + limit])
 
         return self.paginate(

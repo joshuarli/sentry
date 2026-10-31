@@ -1,8 +1,18 @@
+from typing import TypedDict, Unpack
 from unittest import TestCase
 
 import pytest
 from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    Assertion,
+    CheckResult,
+    CheckStatus,
+    CheckStatusReason,
+    RequestDurations,
+    RequestInfo,
+)
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.testutils.cases import TestCase as SentryTestCase
 from sentry.testutils.helpers.uptime import MOCK_ASSERTION_FAILURE_DATA
@@ -14,6 +24,24 @@ from sentry.uptime.consumers.eap_converter import (
 )
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import json
+
+
+class CheckResultOverrides(TypedDict, total=False):
+    status: CheckStatus
+    status_reason: CheckStatusReason | None
+    scheduled_check_time_ms: int | float
+    actual_check_time_ms: int | float
+    duration_ms: int | float | None
+    request_info: RequestInfo | None
+    request_info_list: list[RequestInfo]
+    region: str
+    assertion_failure_data: Assertion | None
+
+
+class RequestInfoOverrides(TypedDict, total=False):
+    http_status_code: int | float | None
+    request_duration_us: int | float
+    durations: RequestDurations
 
 
 class TestHelperFunctions(TestCase):
@@ -48,8 +76,8 @@ class TestHelperFunctions(TestCase):
 
 
 class TestDenormalizedUptimeConverter(SentryTestCase):
-    def _create_base_result(self, **overrides):
-        return {
+    def _create_base_result(self, **overrides: Unpack[CheckResultOverrides]) -> CheckResult:
+        base: CheckResult = {
             "guid": "test-guid-123",
             "subscription_id": "sub-456",
             "status": "success",
@@ -62,27 +90,29 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
             "request_info": None,
             "region": "us-east-1",
             "assertion_failure_data": None,
-            **overrides,
         }
+        base.update(overrides)
+        return base
 
-    def _create_base_request_info(self, **overrides):
-        return {
+    def _create_base_request_info(self, **overrides: Unpack[RequestInfoOverrides]) -> RequestInfo:
+        request_info: RequestInfo = {
             "url": "https://example.com",
             "request_type": "GET",
             "http_status_code": 200,
             "request_body_size_bytes": 0,
             "response_body_size_bytes": 1024,
             "request_duration_us": 125000,
-            **overrides,
         }
+        request_info.update(overrides)
+        return request_info
 
     def _assert_trace_item_base_fields(
         self,
-        trace_item,
-        expected_trace_id="trace-789",
-        expected_scheduled_time_ms=1609459200000,
-        expected_actual_time_ms=1609459205000,
-    ):
+        trace_item: TraceItem,
+        expected_trace_id: str = "trace-789",
+        expected_scheduled_time_ms: int = 1609459200000,
+        expected_actual_time_ms: int = 1609459205000,
+    ) -> None:
         assert trace_item.organization_id == self.project.organization_id
         assert trace_item.project_id == self.project.id
         assert trace_item.trace_id == expected_trace_id
@@ -273,7 +303,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
         """Test that we can create a TraceItem when request_info is None (e.g., for misses)."""
         result = self._create_base_result(
             status="missed_window",
-            status_reason={"type": "missed_window", "description": "Check was not executed"},
+            status_reason={"type": "miss_produced", "description": "Check was not executed"},
         )
 
         item_id = b"span-789"[:16].ljust(16, b"\x00")
@@ -323,9 +353,9 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
 
 
 class TestFullDenormalizedConversion(SentryTestCase):
-    def _create_base_result(self, **overrides):
+    def _create_base_result(self, **overrides: Unpack[CheckResultOverrides]) -> CheckResult:
         """Create a base CheckResult for testing."""
-        base = {
+        base: CheckResult = {
             "guid": "test-guid-123",
             "subscription_id": "sub-456",
             "status": "success",
@@ -421,7 +451,7 @@ class TestFullDenormalizedConversion(SentryTestCase):
         """Test conversion when there are no requests (e.g., missed_window status)."""
         result = self._create_base_result(
             status="missed_window",
-            status_reason={"type": "missed_window", "description": "Check was not executed"},
+            status_reason={"type": "miss_produced", "description": "Check was not executed"},
         )  # Has request_info=None and no request_info_list
 
         trace_items = convert_uptime_result_to_trace_items(

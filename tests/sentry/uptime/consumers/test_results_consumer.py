@@ -32,6 +32,7 @@ from sentry.constants import ObjectStatus
 from sentry.models.files.file import File
 from sentry.models.group import Group, GroupStatus
 from sentry.quotas.base import SeatAssignmentResult
+from sentry.quotas.types import SeatObject
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
@@ -99,7 +100,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
     def send_result(
         self, result: CheckResult, consumer: ProcessingStrategy[KafkaPayload] | None = None
-    ):
+    ) -> None:
         codec = kafka_definition.get_topic_codec(kafka_definition.Topic.UPTIME_RESULTS)
         message = Message(
             BrokerValue(
@@ -705,7 +706,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         ):
             remove_call_vals = []
 
-            def capture_remove_seat(data_category=None, seat_object=None):
+            def capture_remove_seat(
+                seat_object: SeatObject, data_category: str | None = None
+            ) -> None:
                 remove_call_vals.append(seat_object.id)
 
             mock_remove_seat.side_effect = capture_remove_seat
@@ -1201,8 +1204,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         expected_config_updates: list[
             tuple[str, str | None, UptimeSubscriptionRegion.RegionMode | None]
         ],
-        current_minute=5,
-    ):
+        current_minute: int = 5,
+    ) -> None:
         region_configs = [
             UptimeRegionConfig(slug=slug, name=slug, config_redis_key_prefix=slug)
             for slug in regions

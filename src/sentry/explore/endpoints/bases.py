@@ -1,4 +1,6 @@
 from django.db.models import Exists, OuterRef, Q, QuerySet
+from rest_framework.request import Request
+from rest_framework.views import APIView
 
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryProject
@@ -14,7 +16,7 @@ class ExploreSavedQueryPermission(OrganizationPermission):
         "DELETE": ["org:read", "org:write", "org:admin", "saved_query:write"],
     }
 
-    def has_object_permission(self, request, view, obj):
+    def has_object_permission(self, request: Request, view: APIView, obj: object) -> bool:
         if isinstance(obj, Organization):
             return super().has_object_permission(request, view, obj)
 
@@ -58,7 +60,7 @@ class ExploreSavedFormulaPermission(OrganizationPermission):
 
 
 def filter_to_accessible_explore_queries(
-    request, queryset: QuerySet[ExploreSavedQuery]
+    request: Request, queryset: QuerySet[ExploreSavedQuery]
 ) -> QuerySet[ExploreSavedQuery]:
     """
     Filter an ``ExploreSavedQuery`` queryset to only those rows the request actor can access.

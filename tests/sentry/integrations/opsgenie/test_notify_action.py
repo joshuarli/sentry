@@ -5,6 +5,7 @@ import pytest
 import responses
 
 from sentry.analytics.events.alert_sent import AlertSentEvent
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamAction, OpsgenieNotifyTeamForm
 from sentry.integrations.opsgenie.analytics import OpsgenieIntegrationNotificationSent
@@ -32,7 +33,7 @@ METADATA = {
 class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = OpsgenieNotifyTeamAction
 
-    def _create_integration(self, name):
+    def _create_integration(self, name: str) -> Integration:
         integration = self.create_provider_integration(
             provider="opsgenie", name=name, external_id=name, metadata=METADATA
         )
@@ -281,7 +282,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
     @patch("sentry.integrations.opsgenie.actions.notification.logger")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_api_error(self, mock_record, mock_logger: MagicMock) -> None:
+    def test_api_error(self, mock_record: MagicMock, mock_logger: MagicMock) -> None:
         event = self.get_event()
         rule = self.get_rule(data={"account": self.integration.id, "team": self.team1["id"]})
         results = list(rule.after(event=event))

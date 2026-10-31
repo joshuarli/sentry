@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db.models import F
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -36,7 +38,14 @@ class ExploreSavedQueryBase(OrganizationEndpoint):
     owner = ApiOwner.EXPLORE
     permission_classes = (ExploreSavedQueryPermission,)
 
-    def convert_args(self, request: Request, organization_id_or_slug, id, *args, **kwargs):
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: str,
+        id: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
         try:

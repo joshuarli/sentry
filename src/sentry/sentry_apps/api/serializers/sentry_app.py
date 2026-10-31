@@ -1,4 +1,4 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any, NotRequired, TypedDict
 
@@ -86,7 +86,7 @@ class SentryAppSerializerResponse(TypedDict):
 class SentryAppSerializer(Serializer):
     def get_attrs(
         self, item_list: Sequence[SentryApp], user: User | RpcUser | AnonymousUser, **kwargs: Any
-    ):
+    ) -> MutableMapping[Any, Any]:
         # Get associated IntegrationFeatures
         app_feature_attrs = IntegrationFeature.objects.get_by_targets_as_dict(
             targets=item_list, target_type=IntegrationTypes.SENTRY_APP

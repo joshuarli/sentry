@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
@@ -23,8 +23,8 @@ class ExternalIssueSerializer(Serializer):
         item_list: Sequence[ExternalIssue],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ):
-        result = {}
+    ) -> MutableMapping[Any, Any]:
+        result: dict[ExternalIssue, dict[str, object]] = {}
         for item in item_list:
             # Get the integration (e.g. Jira, GitHub, etc) associated with that issue
             integration = integration_service.get_integration(
@@ -47,5 +47,11 @@ class ExternalIssueSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self,
+        obj: ExternalIssue,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> Mapping[Any, Any]:
         return attrs
