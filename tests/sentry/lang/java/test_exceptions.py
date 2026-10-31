@@ -365,7 +365,7 @@ def test_deobfuscate_is_noop_when_no_classes_mapping() -> None:
 
     # Empty mapping
     excs = Exceptions(build_event([{"value": original}]))
-    exc = excs.get_processable_exceptions_with_values()[0][0]
+    processable_exc = excs.get_processable_exceptions_with_values()[0][0]
     excs.deobfuscate_and_save({}, mapped_exceptions=[])
-    assert exc["value"] == original
-    assert "raw_value" not in exc
+    assert processable_exc["value"] == original
+    assert "raw_value" not in processable_exc

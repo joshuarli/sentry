@@ -7,7 +7,7 @@ from collections.abc import Iterator, Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import StrEnum
 from functools import cached_property
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 import orjson
 import sentry_sdk
@@ -212,6 +212,31 @@ class GitHubApiRequestType(StrEnum):
     UPDATE_ISSUE_STATUS = "update_issue_status"
 
 
+class GithubInstallationAccount(TypedDict):
+    login: str
+    avatar_url: str
+
+
+class GithubUserInstallation(TypedDict):
+    id: int
+    account: GithubInstallationAccount
+    target_type: str
+
+
+class GithubUserInstallations(TypedDict):
+    installations: list[GithubUserInstallation]
+
+
+class GithubUserOrganization(TypedDict):
+    login: str
+
+
+class GithubUserOrganizationMembership(TypedDict):
+    organization: GithubUserOrganization
+    role: str
+    state: str
+
+
 class GithubSetupApiClient(IntegrationProxyClient):
     """
     API Client that doesn't require an installation.
@@ -255,31 +280,43 @@ class GithubSetupApiClient(IntegrationProxyClient):
         """
         return self.get("/user", api_request_type=GitHubApiRequestType.GET_USER_INFO)
 
-    def get_user_info_installations(self) -> dict[str, Any]:
+    def get_user_info_installations(self) -> GithubUserInstallations:
         """
         Authentication: Access Token
         Docs: https://docs.github.com/en/rest/apps/installations?apiVersion=2022-11-28#list-app-installations-accessible-to-the-user-access-token
         """
-        return self.get(
-            "/user/installations",
-            api_request_type=GitHubApiRequestType.GET_USER_INFO_INSTALLATIONS,
+        # justification: GitHub's REST API defines this response shape.
+        return cast(
+            GithubUserInstallations,
+            self.get(
+                "/user/installations",
+                api_request_type=GitHubApiRequestType.GET_USER_INFO_INSTALLATIONS,
+            ),
         )
 
-    def get_organization_memberships_for_user(self) -> list[dict[str, Any]]:
+    def get_organization_memberships_for_user(self) -> list[GithubUserOrganizationMembership]:
         """
         Authentication: Access Token
         Docs: https://docs.github.com/en/rest/orgs/members?apiVersion=2022-11-28#get-an-organization-membership-for-the-authenticated-user
         """
-        return self.get(
-            "/user/memberships/orgs",
-            api_request_type=GitHubApiRequestType.GET_ORGANIZATION_MEMBERSHIPS_FOR_USER,
+        # justification: GitHub's REST API defines this response shape.
+        return cast(
+            list[GithubUserOrganizationMembership],
+            self.get(
+                "/user/memberships/orgs",
+                api_request_type=GitHubApiRequestType.GET_ORGANIZATION_MEMBERSHIPS_FOR_USER,
+            ),
         )
 
 
 class GithubProxyClient(IntegrationProxyClient):
     integration: Integration | RpcIntegration  # late init
 
-    def request(self, *args: Any, **kwargs: Any) -> Any:
+    def request(
+        self,
+        *args: Any,
+        **kwargs: Any,  # justification: proxy forwards arbitrary API requests.
+    ) -> Any:
         credentials_set = kwargs.pop("credentials_set", None)
         if credentials_set == "application":
             if "headers" not in kwargs:

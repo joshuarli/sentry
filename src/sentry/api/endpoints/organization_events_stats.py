@@ -94,7 +94,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
     def flatten_results(
         self, results: SnubaTSResult | dict[str, SnubaTSResult]
-    ) -> list[dict[str, Any]]:
+    ) -> list[dict[str, object]]:
         if isinstance(results, SnubaTSResult):
             return results.data["data"]
         else:
@@ -376,7 +376,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             )
 
         def get_event_stats_factory(
-            scoped_dataset: Any,
+            scoped_dataset: Any,  # justification: dataset modules expose different query functions.
         ) -> Callable[
             [list[str], str, SnubaParams, int, bool, timedelta | None],
             SnubaTSResult | dict[str, SnubaTSResult],

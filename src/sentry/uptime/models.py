@@ -1,7 +1,7 @@
 import enum
 import logging
 from datetime import timedelta
-from typing import Any, ClassVar, Literal, Self, cast, override
+from typing import ClassVar, Literal, Self, cast, override
 
 from django.db import models
 from django.db.models import Count, Value
@@ -337,9 +337,11 @@ class UptimeResponseCapture(DefaultFieldsModel):
             models.Index(fields=["date_added"]),
         ]
 
-    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
+    def delete(
+        self, using: str | None = None, keep_parents: bool = False
+    ) -> tuple[int, dict[str, int]]:
         try:
             File.objects.get(pk=self.file_id).delete()
         except File.DoesNotExist:
             pass
-        return super().delete(*args, **kwargs)
+        return super().delete(using=using, keep_parents=keep_parents)

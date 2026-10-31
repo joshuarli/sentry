@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from enum import IntEnum
 from typing import Any, ClassVar, Self
 
 from django.conf import settings
 from django.db import models
+from django.db.models.base import ModelBase
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -116,21 +117,34 @@ class Rule(Model):
         if actor and actor.is_team:
             self.owner_team_id = actor.id
 
-    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
-        rv = super().delete(*args, **kwargs)
+    def delete(
+        self, using: str | None = None, keep_parents: bool = False
+    ) -> tuple[int, dict[str, int]]:
+        rv = super().delete(using=using, keep_parents=keep_parents)
         self._clear_project_rule_cache()
         return rv
 
-    def save(self, *args: Any, **kwargs: Any) -> None:
-        rv = super().save(*args, **kwargs)
+    def save(
+        self,
+        *,
+        force_insert: bool | tuple[ModelBase, ...] = False,
+        force_update: bool = False,
+        using: str | None = None,
+        update_fields: Iterable[str] | None = None,
+    ) -> None:
+        super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
         self._clear_project_rule_cache()
-        return rv
 
     def _clear_project_rule_cache(self) -> None:
         cache_key = f"project:{self.project_id}:rules"
         cache.delete(cache_key)
 
-    def get_audit_log_data(self) -> dict[str, Any]:
+    def get_audit_log_data(self) -> dict[str, object]:
         return {
             "label": self.label,
             "data": self.data,
