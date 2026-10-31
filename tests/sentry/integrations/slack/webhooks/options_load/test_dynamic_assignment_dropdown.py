@@ -1,3 +1,5 @@
+from typing import Any
+
 import orjson
 
 from sentry.constants import ObjectStatus
@@ -29,7 +31,8 @@ class DynamicAssignmentDropdownTest(BaseEventTest):
                 ]
             },
         }
-        self.original_message: dict = {
+        # justification: Slack message payload is dynamic JSON.
+        self.original_message: dict[str, Any] = {
             "type": "message",
             "text": "[internal] IntegrationError",
             "blocks": [

@@ -36,7 +36,8 @@ class OpsgenieNotifyTeamForm(forms.Form):
     account = forms.ChoiceField(choices=(), widget=forms.Select())
     team = forms.ChoiceField(required=False, choices=(), widget=forms.Select())
 
-    def __init__(self, *args, **kwargs):
+    # justification: Django form kwargs are dynamic.
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.org_id = kwargs.pop("org_id")
         self._integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
         self._teams = kwargs.pop("teams")

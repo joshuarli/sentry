@@ -1,5 +1,5 @@
-from collections.abc import Sequence
-from typing import TypedDict
+from collections.abc import Mapping, Sequence
+from typing import Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -63,7 +63,7 @@ class OutgoingNotificationActionSerializer(Serializer[OutgoingNotificationAction
     def serialize(
         self,
         obj: NotificationAction,
-        attrs,
+        attrs: Mapping[str, Any],  # justification: serializer attrs are dynamically keyed.
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> OutgoingNotificationActionResponse:

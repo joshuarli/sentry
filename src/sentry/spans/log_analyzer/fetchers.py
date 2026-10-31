@@ -164,7 +164,7 @@ def fetch_logs_from_file(
 
 
 def _parse_buffer_file_entries(
-    raw_entries: list[dict],
+    raw_entries: list[dict[str, Any]],  # justification: decoded log JSON entries.
     start_time: datetime | None,
     end_time: datetime | None,
     consumer: str | None,
@@ -194,7 +194,7 @@ def _parse_buffer_file_entries(
 
 
 def _parse_flusher_file_entries(
-    raw_entries: list[dict],
+    raw_entries: list[dict[str, Any]],  # justification: decoded log JSON entries.
     start_time: datetime | None,
     end_time: datetime | None,
     consumer: str | None,

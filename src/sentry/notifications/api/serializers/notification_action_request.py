@@ -45,7 +45,7 @@ class NotificationActionInputData(TypedDict, total=False):
     target_type: int
 
 
-class NotificationActionSerializer(CamelSnakeModelSerializer):
+class NotificationActionSerializer(CamelSnakeModelSerializer[NotificationAction]):
     """
     Django Rest Framework serializer for incoming NotificationAction API payloads
     """
