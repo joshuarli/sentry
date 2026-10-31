@@ -47,7 +47,7 @@ class ReleaseFileSerializer(serializers.Serializer):
     )
 
 
-def _entry_from_index(release: Release, dist: Distribution | None, url: str) -> ReleaseFile:
+def _entry_from_index(release: Release, dist: Distribution | None, url: str) -> dict[str, object]:
     index = read_artifact_index(release, dist)
     if index is None:
         raise ResourceDoesNotExist

@@ -11,6 +11,7 @@ from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
 from sentry.models.releasefile import (
     ARTIFACT_INDEX_FILENAME,
+    ArtifactIndex,
     ReleaseArchive,
     ReleaseFile,
     _ArtifactIndexGuard,
@@ -166,7 +167,7 @@ class ReleaseArchiveTestCase(TestCase):
         )
 
         # Two files were overwritten, one was added
-        expected = {
+        expected: ArtifactIndex = {
             "files": {
                 "fake://bar": {
                     "archive_ident": archive2.ident,

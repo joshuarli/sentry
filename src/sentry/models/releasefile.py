@@ -8,7 +8,7 @@ from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
 from types import TracebackType
-from typing import IO, ClassVar, Iterable, Iterator, Mapping, Self, cast
+from typing import IO, ClassVar, Iterable, Iterator, Mapping, Self, TypedDict, cast
 from urllib.parse import urlunsplit
 
 from django.db import models, router
@@ -38,6 +38,10 @@ from sentry.utils.urls import urlsplit_best_effort
 from sentry.utils.zip import safe_extract_zip
 
 logger = logging.getLogger(__name__)
+
+
+class ArtifactIndex(TypedDict, total=False):
+    files: dict[str, dict[str, object]]
 
 
 def _load_json_object(data: str | bytes) -> dict[str, object]:
@@ -254,9 +258,9 @@ class _ArtifactIndexData:
         self.changed = fresh
 
     @property
-    def data(self) -> dict[str, object]:
+    def data(self) -> ArtifactIndex:
         """Meant to be read-only"""
-        return self._data
+        return cast(ArtifactIndex, self._data)
 
     @property
     def num_files(self) -> int:
@@ -286,7 +290,7 @@ class _ArtifactIndexData:
 class _ArtifactIndexGuard:
     """Ensures atomic write operations to the artifact index"""
 
-    def __init__(self, release: Release, dist: Distribution | None, **filter_args) -> None:
+    def __init__(self, release: Release, dist: Distribution | None, **filter_args: object) -> None:
         self._release = release
         self._dist = dist
         self._ident = ReleaseFile.get_ident(
@@ -294,7 +298,7 @@ class _ArtifactIndexGuard:
         )
         self._filter_args = filter_args  # Extra constraints on artifact index release file
 
-    def readable_data(self) -> dict[str, object] | None:
+    def readable_data(self) -> ArtifactIndex | None:
         """Simple read, no synchronization necessary"""
         try:
             releasefile = self._releasefile_qs()[0]
@@ -303,7 +307,7 @@ class _ArtifactIndexGuard:
         else:
             fp = releasefile.file.getfile()
             with fp:
-                return _load_json_object_from_file(fp)
+                return cast(ArtifactIndex, _load_json_object_from_file(fp))
 
     @contextmanager
     def writable_data(
@@ -392,7 +396,9 @@ class _ArtifactIndexGuard:
 
 
 @traces.trace
-def read_artifact_index(release: Release, dist: Distribution | None, **filter_args) -> dict | None:
+def read_artifact_index(
+    release: Release, dist: Distribution | None, **filter_args: object
+) -> ArtifactIndex | None:
     """Get index data"""
     guard = _ArtifactIndexGuard(release, dist, **filter_args)
     return guard.readable_data()
@@ -408,8 +414,8 @@ def update_artifact_index(
     release: Release,
     dist: Distribution | None,
     archive_file: File,
-    temp_file: IO | None = None,
-):
+    temp_file: IO[bytes] | None = None,
+) -> ReleaseFile | None:
     """Add information from release archive to artifact index
 
     :returns: The created ReleaseFile instance
@@ -429,7 +435,7 @@ def update_artifact_index(
 
         files = cast(dict[str, object], manifest.get("files", {}))
         if not files:
-            return
+            return None
 
         for filename, info in files.items():
             info = cast(dict[str, object], info).copy()
