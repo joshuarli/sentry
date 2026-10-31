@@ -3,15 +3,17 @@ from __future__ import annotations
 import logging
 import zipfile
 from contextlib import contextmanager
+from datetime import datetime
 from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
 from types import TracebackType
-from typing import IO, ClassVar, Iterator, Mapping, Self, cast
+from typing import IO, ClassVar, Iterable, Iterator, Mapping, Self, cast
 from urllib.parse import urlunsplit
 
 from django.db import models, router
 from django.db.models import QuerySet
+from django.db.models.base import ModelBase
 from django.db.models.functions import Now
 from django.utils import timezone
 from sentry_sdk import traces
@@ -97,7 +99,14 @@ class ReleaseFile(Model):
         app_label = "sentry"
         db_table = "sentry_releasefile"
 
-    def save(self, *args, **kwargs):
+    def save(
+        self,
+        *,
+        force_insert: bool | tuple[ModelBase, ...] = False,
+        force_update: bool = False,
+        using: str | None = None,
+        update_fields: Iterable[str] | None = None,
+    ) -> None:
         from sentry.models.distribution import Distribution
 
         if not self.ident and self.name:
@@ -105,20 +114,27 @@ class ReleaseFile(Model):
             if self.dist_id:
                 dist = Distribution.objects.get(pk=self.dist_id).name
             self.ident = type(self).get_ident(self.name, dist)
-        return super().save(*args, **kwargs)
+        return super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
 
-    def update(self, *args, **kwargs):
+    def update(self, using: str | None = None, **kwargs: File | int | str | datetime | None) -> int:
         # If our name is changing, we must also change the ident
         if "name" in kwargs and "ident" not in kwargs:
             dist_name = None
-            dist_id = kwargs.get("dist_id") or self.dist_id
+            dist_id = cast(int | None, kwargs.get("dist_id") or self.dist_id)
             if dist_id:
                 dist_name = Distribution.objects.filter(pk=dist_id).values_list("name", flat=True)[
                     0
                 ]
-            kwargs["ident"] = self.ident = type(self).get_ident(kwargs["name"], dist_name)
+            kwargs["ident"] = self.ident = type(self).get_ident(
+                cast(str, kwargs["name"]), dist_name
+            )
             kwargs["date_accessed"] = timezone.now()
-        return super().update(*args, **kwargs)
+        return super().update(using, **kwargs)
 
     @classmethod
     def get_ident(cls, name: str, dist: str | None = None) -> str:
