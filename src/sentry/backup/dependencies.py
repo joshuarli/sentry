@@ -8,7 +8,7 @@ from typing import NamedTuple
 
 from django.db import models
 from django.db.models import Q, UniqueConstraint
-from django.db.models.fields.related import ForeignKey, OneToOneField
+from django.db.models.fields.related import OneToOneField
 
 from sentry.backup.helpers import EXCLUDED_APPS
 from sentry.backup.scopes import RelocationScope
@@ -408,8 +408,9 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
             # Now add a dependency for any FK relation visible to Django.
             for field in model._meta.get_fields():
                 is_nullable: bool = getattr(field, "null", False)
-                if field.name != "id" and getattr(field, "unique", False):
-                    uniques.add(frozenset({field.name}))
+                fk_field_name: str = field.name
+                if fk_field_name != "id" and getattr(field, "unique", False):
+                    uniques.add(frozenset({fk_field_name}))
 
                 fk_rel_model: type[models.base.Model] | None = getattr(
                     field.remote_field, "model", None
@@ -421,8 +422,8 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
                             kind=ForeignFieldKind.FlexibleForeignKey,
                             nullable=is_nullable,
                         )
-                    elif isinstance(field, ForeignKey):
-                        foreign_keys[field.name] = ForeignField(
+                    elif field.many_to_one:
+                        foreign_keys[fk_field_name] = ForeignField(
                             model=fk_rel_model,
                             kind=ForeignFieldKind.DefaultForeignKey,
                             nullable=is_nullable,
