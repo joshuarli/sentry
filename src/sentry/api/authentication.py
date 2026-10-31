@@ -136,7 +136,7 @@ def is_static_relay(request):
     """
     relay_id = get_header_relay_id(request)
     static_relays = settings.SENTRY_RELAY_STATIC_AUTH
-    relay_info = static_relays.get(relay_id)
+    relay_info = static_relays.get(relay_id) if relay_id is not None else None
 
     if relay_info is not None:
         metrics.incr(

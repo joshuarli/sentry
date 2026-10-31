@@ -32,6 +32,7 @@ import collections
 import inspect
 import typing
 from collections import defaultdict
+from collections.abc import Sequence
 from enum import Enum
 from types import UnionType
 from typing import Any, Literal, Union, is_typeddict
@@ -66,13 +67,18 @@ from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 #   map TypedDicts in schema registry
 
 
-def get_type_hints(hint, **kwargs):
+def get_type_hints(
+    hint: Any,
+    globalns: dict[str, Any] | None = None,
+    localns: dict[str, Any] | None = None,
+    include_extras: bool = False,
+) -> dict[str, Any]:
     try:
-        return _get_type_hints(hint, **kwargs)
+        return _get_type_hints(hint, globalns, localns, include_extras)
     except NameError:
         # try to resolve a circular import from TYPE_CHECKING imports
         reload_module_with_type_checking_enabled(hint.__module__)
-        return _get_type_hints(hint, **kwargs)
+        return _get_type_hints(hint, globalns, localns, include_extras)
     except TypeError:
         raise UnableToProceedError(
             f"""Unable to resolve type hints for {hint}.
@@ -82,11 +88,11 @@ def get_type_hints(hint, **kwargs):
         )
 
 
-def _get_type_hint_origin(hint):
+def _get_type_hint_origin(hint: Any) -> tuple[Any, tuple[Any, ...]]:
     return typing.get_origin(hint), typing.get_args(hint)
 
 
-def build_choice_description_list(choices) -> str:
+def build_choice_description_list(choices: Sequence[tuple[object, object]]) -> str:
     """
     Override the default generated description for choicefields if the value and
     label are identical to be (* `value`) instead of (* `value` - `label`).
@@ -102,7 +108,7 @@ drf_spectacular.plumbing.build_choice_description_list = build_choice_descriptio
 
 def build_array_type(
     schema: _SchemaType | None, min_length: int | None = None, max_length: int | None = None
-):
+) -> _SchemaType:
     """
     This function wraps the build_array_type from `drf-spectacular` because it is not type-safe.
     """
@@ -124,7 +130,7 @@ def _cycle_placeholder(hint: Any) -> dict[str, Any]:
     }
 
 
-def resolve_type_hint(hint) -> Any:
+def resolve_type_hint(hint: Any) -> Any:
     """drf-spectacular library method modified as described above"""
     origin, args = _get_type_hint_origin(hint)
     excluded_fields = get_override(hint, "exclude_fields", [])
