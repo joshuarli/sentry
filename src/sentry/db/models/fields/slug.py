@@ -12,7 +12,7 @@ DEFAULT_SLUG_MAX_LENGTH = 50
 
 if TYPE_CHECKING:
     _SlugField = SlugField[str, str]
-    _Lookup = Lookup[str]
+    _Lookup = Lookup[str | int]
 else:
     _SlugField = SlugField
     _Lookup = Lookup

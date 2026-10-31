@@ -76,7 +76,7 @@ class SplunkForwarder(BaseDataForwarder):
         return f"{self.provider.value}:{md5_text(self.project_token).hexdigest()}"
 
     def get_event_payload_properties(self, event: Event | GroupEvent) -> dict[str, Any]:
-        props = {
+        props: dict[str, object] = {
             "event_id": event.event_id,
             "issue_id": event.group_id,
             "project_id": event.project.slug,

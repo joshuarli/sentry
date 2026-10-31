@@ -839,7 +839,7 @@ class EventSubjectTemplateData(dict[str, str]):
         elif name == "project":
             return cast(str, self.event.project.get_full_name())
         elif name == "projectID":
-            return cast(str, self.event.project.slug)
+            return self.event.project.slug
         elif name == "shortID" and self.event.group_id and self.event.group:
             return cast(str, self.event.group.qualified_short_id)
         elif name == "orgID":
