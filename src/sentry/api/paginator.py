@@ -140,6 +140,7 @@ class BasePaginator:
 
         if value:
             assert self.key
+            source = cast(_PaginatorQuerySet, queryset)
             if self.key in source.query.extra:
                 col_query, col_params = source.query.extra[self.key]
                 col_params = col_params[:]
