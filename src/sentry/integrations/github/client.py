@@ -312,11 +312,8 @@ class GithubSetupApiClient(IntegrationProxyClient):
 class GithubProxyClient(IntegrationProxyClient):
     integration: Integration | RpcIntegration  # late init
 
-    def request(
-        self,
-        *args: Any,
-        **kwargs: Any,  # justification: proxy forwards arbitrary API requests.
-    ) -> Any:
+    # justification: proxy forwards arbitrary API request arguments and returns.
+    def request(self, *args: Any, **kwargs: Any) -> Any:
         credentials_set = kwargs.pop("credentials_set", None)
         if credentials_set == "application":
             if "headers" not in kwargs:

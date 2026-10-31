@@ -10,6 +10,7 @@ from typing import Any, Literal
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, QuerySet
+from django.http import HttpRequest
 from django.utils import timezone as django_timezone
 from django.utils.timezone import now
 from pydantic import BaseModel
@@ -406,7 +407,7 @@ class SeerAgentClient:
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
-        request: Request | None = None,
+        request: HttpRequest | Request | None = None,
         override_ce_enable: bool = True,
         force_ce: bool | None = None,
         ui_tools: str | None = None,

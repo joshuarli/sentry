@@ -18,7 +18,7 @@ from sentry.testutils.factories import Factories
 from sentry.users.models.user import User
 from sentry.utils.auth import login
 
-RequestFactory = Callable[[], Optional[tuple[HttpRequest, User]]]
+RequestFactory = Callable[[], Optional[tuple[HttpRequest, User | AnonymousUser]]]
 
 _P = ParamSpec("_P")
 _R = TypeVar(

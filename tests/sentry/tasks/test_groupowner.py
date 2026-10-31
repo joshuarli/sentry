@@ -232,11 +232,13 @@ class TestGroupOwners(TestCase):
 
         self.set_release_commits(self.user_2.email)
         event_2_frames = get_frame_paths(event_2)
+        event_2_group_id = event_2.group_id
+        assert event_2_group_id is not None
         process_suspect_commits(
             event_id=event_2.event_id,
             event_platform=event_2.platform,
             event_frames=event_2_frames,
-            group_id=event_2.group_id,
+            group_id=event_2_group_id,
             project_id=event_2.project_id,
         )
         assert GroupOwner.objects.filter(group=self.event.group).count() == 2
@@ -245,11 +247,13 @@ class TestGroupOwners(TestCase):
 
         self.set_release_commits(self.user_3.email)
         event_3_frames = get_frame_paths(event_3)
+        event_3_group_id = event_3.group_id
+        assert event_3_group_id is not None
         process_suspect_commits(
             event_id=event_3.event_id,
             event_platform=event_3.platform,
             event_frames=event_3_frames,
-            group_id=event_3.group_id,
+            group_id=event_3_group_id,
             project_id=event_3.project_id,
         )
         assert GroupOwner.objects.filter(group=self.event.group).count() == 2
@@ -266,7 +270,7 @@ class TestGroupOwners(TestCase):
             event_id=event_3.event_id,
             event_platform=event_3.platform,
             event_frames=event_3_frames,
-            group_id=event_3.group_id,
+            group_id=event_3_group_id,
             project_id=event_3.project_id,
         )
         # Won't be processed because the cache is present and this group has owners
@@ -341,11 +345,13 @@ class TestGroupOwners(TestCase):
             },
             project_id=self.project.id,
         )
+        event_group_id = event_with_no_release.group_id
+        assert event_group_id is not None
         process_suspect_commits(
             event_with_no_release.event_id,
             event_with_no_release.platform,
             get_frame_paths(event_with_no_release),
-            event_with_no_release.group_id,
+            event_group_id,
             event_with_no_release.project_id,
         )
         assert GroupOwner.objects.filter(group=event_with_no_release.group).count() == 0

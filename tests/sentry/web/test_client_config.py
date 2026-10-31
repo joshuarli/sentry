@@ -287,7 +287,7 @@ def test_client_config_with_staff_session_fills_cells_and_cells_are_sorted() -> 
     # Simulate an active staff session
     staff = Staff(request)
     staff.set_logged_in(user)
-    request.staff = staff
+    setattr(request, "staff", staff)
 
     result = get_client_config(request)
 
@@ -317,7 +317,7 @@ def test_client_config_with_staff_session_includes_hidden_cells() -> None:
     # Simulate an active staff session
     staff = Staff(request)
     staff.set_logged_in(user)
-    request.staff = staff
+    setattr(request, "staff", staff)
 
     result = get_client_config(request)
 
