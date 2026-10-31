@@ -5,12 +5,12 @@ import logging
 import math
 from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime, timezone
-from typing import Any, Protocol, cast
+from typing import Any, Protocol
 from urllib.parse import quote
 
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
 from django.db import connections
-from django.db.models import Model, QuerySet
+from django.db.models import QuerySet
 from django.db.models.functions import Lower
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 
@@ -62,17 +62,10 @@ class MissingPaginationError(Exception):
         super().__init__(self.error_message.format(func_name=func_name))
 
 
-class BasePaginator[M: Model]:
+class BasePaginator:
     def __init__(
-        self,
-        queryset: QuerySet[M],
-        order_by: str | None = None,
-        max_limit: int = MAX_LIMIT,
-        on_results: Callable[[Sequence[M]], Sequence[M]] | None = None,
-        post_query_filter: Callable[[Sequence[M]], Sequence[M]] | None = None,
-    ) -> None:
-        self.key: str | None
-        self.desc: bool
+        self, queryset, order_by=None, max_limit=MAX_LIMIT, on_results=None, post_query_filter=None
+    ):
         if order_by:
             if order_by.startswith("-"):
                 self.key, self.desc = order_by[1:], True
@@ -89,7 +82,7 @@ class BasePaginator[M: Model]:
     def _is_asc(self, is_prev: bool) -> bool:
         return (self.desc and is_prev) or not (self.desc or is_prev)
 
-    def build_queryset(self, value: CursorValue, is_prev: bool) -> QuerySet[M]:
+    def build_queryset(self, value, is_prev):
         queryset = self.queryset
 
         # "asc" controls whether or not we need to change the ORDER BY to
@@ -114,8 +107,8 @@ class BasePaginator[M: Model]:
                 if asc:
                     index = queryset.query.order_by.index(f"-{self.key}")
                     new_order_by = list(queryset.query.order_by)
-                    new_order_by[index] = cast(str, queryset.query.order_by[index])[1:]
-                    setattr(queryset.query, "order_b", tuple(new_order_by))
+                    new_order_by[index] = queryset.query.order_by[index][1:]
+                    queryset.query.order_b = tuple(new_order_by)
             else:
                 if asc:
                     queryset = queryset.order_by(self.key)
@@ -140,20 +133,13 @@ class BasePaginator[M: Model]:
 
         return queryset
 
-    def get_item_key(self, item: M, for_prev: bool = False) -> CursorValue:
+    def get_item_key(self, item: Any, for_prev: bool = False) -> CursorValue:
         raise NotImplementedError
 
     def value_from_cursor(self, cursor: Cursor) -> CursorValue:
         raise NotImplementedError
 
-    def get_result(
-        self,
-        limit: int = 100,
-        cursor: Cursor | None = None,
-        count_hits: bool = False,
-        known_hits: int | None = None,
-        max_hits: int | None = None,
-    ) -> CursorResult[M]:
+    def get_result(self, limit=100, cursor=None, count_hits=False, known_hits=None, max_hits=None):
         # cursors are:
         #   (identifier(integer), row offset, is_prev)
         if cursor is None:
@@ -214,7 +200,7 @@ class BasePaginator[M: Model]:
         if cursor.is_prev:
             results.reverse()
 
-        result: CursorResult[M] = build_cursor(
+        cursor = build_cursor(
             results=results,
             limit=limit,
             hits=hits,
@@ -229,17 +215,16 @@ class BasePaginator[M: Model]:
         # This will reduce the number of rows returned rather than fill a full page,
         # and could result in an empty page being returned
         if self.post_query_filter:
-            result.results = self.post_query_filter(result.results)
+            cursor.results = self.post_query_filter(cursor.results)
 
-        return result
+        return cursor
 
     def count_hits(self, max_hits: int) -> int:
         return count_hits(self.queryset, max_hits)
 
 
-class Paginator[M: Model](BasePaginator[M]):
+class Paginator(BasePaginator):
     def get_item_key(self, item: Any, for_prev: bool = False) -> int:
-        assert self.key is not None
         value = getattr(item, self.key)
         return int(math.floor(value) if self._is_asc(for_prev) else math.ceil(value))
 
@@ -247,11 +232,10 @@ class Paginator[M: Model](BasePaginator[M]):
         return cursor.value
 
 
-class DateTimePaginator[M: Model](BasePaginator[M]):
+class DateTimePaginator(BasePaginator):
     multiplier = 1000
 
     def get_item_key(self, item: Any, for_prev: bool = False) -> int:
-        assert self.key is not None
         value = getattr(item, self.key)
         value = float(value.strftime("%s.%f")) * self.multiplier
         return int(math.floor(value) if self._is_asc(for_prev) else math.ceil(value))

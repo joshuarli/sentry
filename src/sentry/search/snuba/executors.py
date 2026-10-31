@@ -232,7 +232,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
     @property
     def empty_result(self) -> CursorResult[Group]:
-        return Paginator(Group.objects.none()).get_result()
+        # TODO: Add types to paginators and remove this
+        return cast(CursorResult[Group], Paginator(Group.objects.none()).get_result())
 
     @property
     @abstractmethod
@@ -1341,9 +1342,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 ordered_queryset, order_by = strategy.native_order_by(group_queryset)
                 return cast(
                     CursorResult[Group],
-                    Paginator(
-                        ordered_queryset.using_replica(), order_by=order_by, **paginator_options
-                    ).get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits),
+                    Paginator(ordered_queryset.using_replica(), order_by=order_by, **paginator_options).get_result(
+                        limit, cursor, count_hits=count_hits, max_hits=max_hits
+                    ),
                 )
 
         max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
@@ -1869,7 +1870,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # When it's a simple django-only search, we count_hits like normal
             results = cast(
                 CursorResult[Group],
-                paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits),
+                paginator.get_result(
+                    limit, cursor, count_hits=count_hits, max_hits=max_hits
+                ),
             )
             metrics.timing(
                 "snuba.search.query",
