@@ -37,7 +37,7 @@ class JiraWebhookBase(Endpoint, abc.ABC):
     provider = IntegrationProviderSlug.JIRA.value
 
     @csrf_exempt
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponseBase:
         return super().dispatch(request, *args, **kwargs)
 
     def handle_exception_with_details(
