@@ -188,7 +188,9 @@ def validate_issue_platform_event_schema(event_data: Mapping[str, object]) -> No
     jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
 
 
-def should_filter_feedback(event: Mapping[str, Any]) -> tuple[bool, str | None]:
+def should_filter_feedback(
+    event: Mapping[str, Any],  # justification: feedback payload is JSON.
+) -> tuple[bool, str | None]:
     """Returns a tuple of (should_filter, reason)."""
 
     # Right now all unreal error events without a feedback

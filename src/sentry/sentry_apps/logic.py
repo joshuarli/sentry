@@ -306,6 +306,8 @@ class SentryAppUpdater:
         # they should re-enter the value when renaming.
         existing_by_name = {}
         for header in self.sentry_app.webhook_headers:
+            if header is None:
+                continue
             name, separator, _value = header.partition(":")
             if separator:
                 existing_by_name[name.strip().lower()] = header

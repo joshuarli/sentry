@@ -20,6 +20,7 @@ from sentry.billing.platform.services.usage._outcomes_query import (
     _BILLABLE_OUTCOMES,
     _build_query,
     _build_response,
+    _OutcomeRow,
     _over_quota_condition,
     _total_function,
     query_outcomes_usage,
@@ -27,6 +28,7 @@ from sentry.billing.platform.services.usage._outcomes_query import (
 from sentry.billing.platform.services.usage._project_outcomes_query import (
     _build_project_query,
     _build_project_response,
+    _ProjectOutcomeRow,
     query_project_outcomes_usage,
 )
 from sentry.utils.outcomes import Outcome
@@ -41,6 +43,7 @@ def _make_timestamp(dt: datetime) -> Timestamp:
 def _make_row(
     *,
     time: str = "2025-03-15T00:00:00+00:00",
+    max_ts: str = "2025-03-15T11:00:00+00:00",
     category: int = 1,
     total: int = 0,
     accepted: int = 0,
@@ -49,9 +52,10 @@ def _make_row(
     over_quota: int = 0,
     spike_protection: int = 0,
     dynamic_sampling: int = 0,
-) -> dict:
+) -> _OutcomeRow:
     return {
         "time": time,
+        "max_ts": max_ts,
         "category": category,
         "total": total,
         "accepted": accepted,
@@ -408,7 +412,7 @@ def _make_project_row(
     category: int = 1,
     accepted: int = 100,
     max_ts: str = "2025-03-15T11:00:00+00:00",
-) -> dict:
+) -> _ProjectOutcomeRow:
     return {
         "project_id": project_id,
         "time": time,

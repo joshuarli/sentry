@@ -348,9 +348,9 @@ class WorkflowEngineDetectorSerializer(Serializer):
     def serialize(
         self,
         obj: Detector,
-        attrs: Mapping[str, Any],
+        attrs: Mapping[str, Any],  # justification: serializer attrs are dynamic.
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: Any,  # justification: serializer kwargs are dynamic.
     ) -> AlertRuleSerializerResponse:
         triggers = attrs.get("triggers", [])
         alert_rule_id = None
@@ -434,9 +434,9 @@ class DetailedWorkflowEngineDetectorSerializer(Serializer):
     def serialize(
         self,
         obj: Detector,
-        attrs: Mapping[str, Any],
+        attrs: Mapping[str, Any],  # justification: serializer attrs are dynamic.
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: Any,  # justification: serializer kwargs are dynamic.
     ) -> DetailedAlertRuleSerializerResponse:
         base_data = self.base_serializer.serialize(obj, attrs, user, **kwargs)
         data: DetailedAlertRuleSerializerResponse = {

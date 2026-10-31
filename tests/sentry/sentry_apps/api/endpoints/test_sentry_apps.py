@@ -856,6 +856,7 @@ class PostSentryAppsTest(SentryAppsTest):
         sentry_app = SentryApp.objects.get(slug=response.data["slug"])
         assert sentry_app.webhook_headers == ["X-Trailing: value", "Authorization: Bearer token"]
         for header in sentry_app.webhook_headers:
+            assert header is not None
             assert "\n" not in header
             assert "\r" not in header
 
