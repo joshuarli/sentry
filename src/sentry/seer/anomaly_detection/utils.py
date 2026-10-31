@@ -174,7 +174,7 @@ def format_snuba_ts_data(
         extra_columns=None,
     )
 
-    for data in serialized_result.get("data"):
+    for data in serialized_result.get("data") or []:
         if len(data) > 1:
             count_data = data[1]
             count = 0

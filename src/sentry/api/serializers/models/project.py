@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Collection, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
+from types import ModuleType
 from typing import TYPE_CHECKING, Any, Final, NotRequired, Protocol, TypedDict, cast
 
 import orjson
@@ -12,6 +13,7 @@ from django.db import connection
 from django.db.models import prefetch_related_objects
 from django.utils import timezone
 from sentry_sdk import traces
+from sentry_sdk.traces import StreamedSpan
 
 from sentry import features, options, projectoptions, quotas, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
@@ -338,6 +340,8 @@ class ProjectSerializer(Serializer):
     such as "show all projects for this organization", and its attributes be kept to a minimum.
     """
 
+    dataset: ModuleType
+
     def __init__(
         self,
         environment_id: str | None = None,
@@ -375,7 +379,7 @@ class ProjectSerializer(Serializer):
     def get_attrs(
         self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: object
     ) -> dict[Project, dict[str, object]]:
-        def measure_span(op_tag):
+        def measure_span(op_tag: str) -> StreamedSpan:
             span = traces.start_span(
                 name=f"serialize.get_attrs.project.{op_tag}",
                 attributes={
@@ -450,7 +454,9 @@ class ProjectSerializer(Serializer):
                     serialized["options"] = options[project.id]
         return result
 
-    def get_stats(self, projects, query):
+    def get_stats(
+        self, projects: Sequence[Project], query: str
+    ) -> dict[int, list[tuple[int, int]]]:
         assert self.stats_period is not None
         # we need to compute stats at 1d (1h resolution), and 14d
         segments, interval = STATS_PERIOD_CHOICES[self.stats_period]
@@ -666,6 +672,10 @@ class ProjectSerializer(Serializer):
         return context
 
 
+class ProjectWithOrganizationResponse(ProjectSerializerResponse):
+    organization: OrganizationSummarySerializerResponse
+
+
 class ProjectWithOrganizationSerializer(ProjectSerializer):
     def get_attrs(
         self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: object
@@ -677,9 +687,16 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
             attrs[item]["organization"] = orgs[str(item.organization_id)]
         return attrs
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self,
+        obj: Project,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> ProjectWithOrganizationResponse:
         base = super().serialize(obj, attrs, user)
-        return {**base, "organization": attrs["organization"]}
+        organization = cast("OrganizationSummarySerializerResponse", attrs["organization"])
+        return {**base, "organization": organization}
 
 
 class TeamResponseDict(TypedDict):
@@ -765,7 +782,8 @@ class _DeployDict(TypedDict):
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
-    def __init__(self, access: Access | None = None, **kwargs) -> None:
+    # justification: forwards the base serializer keyword options.
+    def __init__(self, access: Access | None = None, **kwargs: Any) -> None:
         self.access = access
         super().__init__(**kwargs)
 
@@ -1335,7 +1353,8 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             ),
         }
 
-    def get_value_with_default(self, attrs, key):
+    # justification: project option values are dynamically typed per option.
+    def get_value_with_default(self, attrs: Mapping[str, Any], key: str) -> Any:
         value = attrs["options"].get(key)
         if value is not None:
             return value

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from collections.abc import Generator, Iterable, Sequence
+from collections.abc import Generator, Iterable, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
@@ -74,7 +74,7 @@ PROJECTS_PER_BATCH = 1_000
 TIMESERIES_PER_BATCH = 10
 
 
-def get_performance_issue_settings(projects: list[Project]):
+def get_performance_issue_settings(projects: list[Project]) -> dict[Project, dict[str, object]]:
     project_settings = {}
 
     project_option_settings = ProjectOption.objects.get_value_bulk(
@@ -182,7 +182,9 @@ class FunctionRegressionDetector(RegressionDetector):
         )
 
     @classmethod
-    def detector_store_factory(cls) -> DetectorStore:
+    def detector_store_factory(
+        cls,
+    ) -> DetectorStore[Mapping[str | bytes, bytes | float | int | str]]:
         return RedisDetectorStore(regression_type=RegressionType.FUNCTION)
 
     @classmethod
@@ -208,7 +210,9 @@ class FunctionRegressionDetector(RegressionDetector):
     namespace=profiling_tasks,
     processing_deadline_duration=30,
 )
-def detect_function_trends(project_ids: list[int], start: str, *args, **kwargs) -> None:
+def detect_function_trends(
+    project_ids: list[int], start: str, *args: object, **kwargs: object
+) -> None:
     if not options.get("statistical_detectors.enable"):
         return
 
@@ -247,8 +251,8 @@ def detect_function_trends(project_ids: list[int], start: str, *args, **kwargs) 
 def detect_function_change_points(
     functions_list: list[tuple[int, int]] | None = None,
     start: str | None = None,
-    *args,
-    **kwargs,
+    *args: object,
+    **kwargs: object,
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
@@ -295,7 +299,10 @@ def process_function_change_points(candidates: list[tuple[int, str, str]]) -> No
 
 
 def _detect_function_change_points(
-    functions_list: Sequence[tuple[int, int | str]], start: datetime, *args, **kwargs
+    functions_list: Sequence[tuple[int, int | str]],
+    start: datetime,
+    *args: object,
+    **kwargs: object,
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
@@ -486,7 +493,9 @@ def emit_function_regression_issue(
     return len(data["occurrence_payloads"])
 
 
-def fetch_continuous_examples(raw_examples):
+def fetch_continuous_examples(
+    raw_examples: Mapping[tuple[int, int], Mapping[str, datetime | str | float | None]],
+) -> Mapping[tuple[int, int], Mapping[str, datetime | str | float | None]]:
     if not raw_examples:
         return raw_examples
 

@@ -30,6 +30,11 @@ logger = logging.getLogger("sentry")
 
 NoneType = type(None)
 
+
+def _is_none_type(value: object) -> bool:
+    return value is NoneType
+
+
 # Returned by a read hook when it has no value to serve for the key. A unique
 # object so it can never collide with a value a hook might legitimately return.
 READ_HOOK_FALLBACK = object()
@@ -203,7 +208,13 @@ class OptionsManager:
         """
         self._read_hook = hook
 
-    def set(self, key: str, value, coerce=True, channel: UpdateChannel = UpdateChannel.UNKNOWN):
+    def set(
+        self,
+        key: str,
+        value: object,
+        coerce: bool = True,
+        channel: UpdateChannel = UpdateChannel.UNKNOWN,
+    ) -> bool | None:
         """
         Set the value for an option. If the cache is unavailable the action will
         still succeed.
@@ -306,7 +317,7 @@ class OptionsManager:
         """
         return key in settings.SENTRY_OPTIONS
 
-    def get(self, key: str, silent=False):
+    def get(self, key: str, silent: bool = False) -> TAny:
         """
         Get the value of an option, falling back to the local configuration.
 
@@ -373,7 +384,7 @@ class OptionsManager:
             record_option(key, optval)
             return optval
 
-    def delete(self, key: str):
+    def delete(self, key: str) -> bool:
         """
         Permanently remove the value of an option.
 
@@ -395,14 +406,14 @@ class OptionsManager:
     def register(
         self,
         key: str,
-        default=None,
-        type=None,
+        default: object | Callable[[], object] | None = None,
+        type: Type[TAny] | None = None,
         flags: int = DEFAULT_FLAGS,
         ttl: int = DEFAULT_KEY_TTL,
         grace: int = DEFAULT_KEY_GRACE,
         # Optional info about how to group options together in the _admin ui. Only applies to
         # options marked `FLAG_ADMIN_MODIFIABLE`
-        grouping_info=None,
+        grouping_info: GroupingInfo | None = None,
     ) -> None:
         assert key not in self.registry, "Option already registered: %r" % key
 
@@ -445,7 +456,7 @@ class OptionsManager:
         # We disallow None as a value for options since this is ambiguous and doesn't
         # really make sense as config options. There should be a sensible default
         # value instead that matches the type expected, rather than relying on None.
-        if type is NoneType:
+        if _is_none_type(type):
             raise TypeError("Options must not be None")
 
         # Make sure the type is correct at registration time
