@@ -59,7 +59,7 @@ class OrganizationStarredServiceSpansEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
     permission_classes = (MemberPermission,)
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:insights-modules-use-eap", organization, actor=request.user
         )
