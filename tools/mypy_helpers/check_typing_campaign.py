@@ -116,10 +116,17 @@ def _changed_files(base: str | None) -> list[str]:
 
 
 def _any_lines(text: str) -> list[int]:
+    import_lines: set[int] = set()
+    for node in ast.walk(ast.parse(text)):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            import_lines.update(range(node.lineno, (node.end_lineno or node.lineno) + 1))
+
     return [
         token.start[0]
         for token in tokenize.generate_tokens(io.StringIO(text).readline)
-        if token.type == tokenize.NAME and token.string == "Any"
+        if token.type == tokenize.NAME
+        and token.string == "Any"
+        and token.start[0] not in import_lines
     ]
 
 

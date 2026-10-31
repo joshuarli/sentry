@@ -82,6 +82,15 @@ def test_any_with_justification_passes(tmp_path) -> None:
         assert main(("src/sentry/foo.py",)) == 0
 
 
+def test_any_import_alone_passes(tmp_path) -> None:
+    _init_repo(tmp_path)
+    _commit_pyproject(tmp_path, [])
+    _stage_file(tmp_path, "src/sentry/foo.py", "from typing import Any\n\nvalue: int = 1\n")
+
+    with contextlib.chdir(tmp_path):
+        assert main(("src/sentry/foo.py",)) == 0
+
+
 def test_any_in_weaklisted_module_passes(tmp_path) -> None:
     _init_repo(tmp_path)
     _commit_pyproject(tmp_path, ["sentry.foo"])
