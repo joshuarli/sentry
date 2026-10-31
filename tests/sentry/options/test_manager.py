@@ -1,5 +1,6 @@
 from collections.abc import Generator
 from functools import cached_property
+from typing import cast
 from unittest.mock import patch
 
 import pytest
@@ -25,7 +26,7 @@ from sentry.options.manager import (
 from sentry.options.store import OptionsStore
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test
-from sentry.utils.types import Int, String
+from sentry.utils.types import Int, String, Type
 
 
 @all_silo_test
@@ -98,7 +99,7 @@ class OptionsManagerTest(TestCase):
             self.manager.register("wrong-type", default=1, type=String)
 
         with pytest.raises(TypeError):
-            self.manager.register("none-type", default=None, type=type(None))
+            self.manager.register("none-type", default=None, type=cast(Type[object], type(None)))
 
         with pytest.raises(ValueError):
             self.manager.register("bad_flags", flags=FLAG_NOSTORE | FLAG_ADMIN_MODIFIABLE)

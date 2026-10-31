@@ -317,7 +317,7 @@ class OptionsManager:
         """
         return key in settings.SENTRY_OPTIONS
 
-    def get(self, key: str, silent: bool = False) -> TAny:
+    def get(self, key: str, silent: object = False) -> TAny:
         """
         Get the value of an option, falling back to the local configuration.
 
@@ -363,7 +363,7 @@ class OptionsManager:
                         return result
 
             if not (opt.flags & FLAG_NOSTORE):
-                result = self.store.get(opt, silent=silent)
+                result = self.store.get(opt, silent=bool(silent))
                 if result is not None:
                     tags["source"] = "store"
                     record_option(key, result)
