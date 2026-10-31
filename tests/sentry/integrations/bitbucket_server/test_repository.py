@@ -5,6 +5,7 @@ from functools import cached_property
 import orjson
 import pytest
 import responses
+from requests import PreparedRequest
 
 from fixtures.bitbucket_server import (
     COMMIT_CHANGELIST_EXAMPLE,
@@ -298,7 +299,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
             integration_id=self.integration.id,
         )
 
-        def create(request):
+        def create(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
             Repository.objects.filter(id=repo.id).update(status=ObjectStatus.DISABLED)
             return 201, {}, '{"id": 79}'
 

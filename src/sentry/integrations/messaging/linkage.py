@@ -176,7 +176,8 @@ class IdentityLinkageView(LinkageView, ABC):
         dispatch_kwargs = {k: v for (k, v) in dispatch_kwargs.items() if v is not None}
         return super().dispatch(request, **dispatch_kwargs)
 
-    def get(self, request: Request, *args, **kwargs) -> HttpResponse:
+    # justification: Django view kwargs carry the pipeline params mapping.
+    def get(self, request: Request, *args: object, **kwargs: Any) -> HttpResponse:
         params = kwargs["params"]
         context = {"organization": params["organization"]}
         integration = params.get("integration")
@@ -220,7 +221,7 @@ class IdentityLinkageView(LinkageView, ABC):
         )
         return render_to_response(success_template, request=request, context=success_context)
 
-    def _send_nudge_notification(self, organization: RpcOrganization, request: Request):
+    def _send_nudge_notification(self, organization: RpcOrganization, request: Request) -> None:
         # TODO: Delete this if no longer needed
 
         user: User = request.user  # type: ignore[assignment]

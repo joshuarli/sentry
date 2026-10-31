@@ -1,5 +1,6 @@
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from typing import cast
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers, status
@@ -28,7 +29,7 @@ USER_OPTION_SETTINGS = {
 }
 
 
-class UserNotificationsSerializer(Serializer):
+class UserNotificationsSerializer(Serializer[dict[str, bool]]):
     def get_attrs(
         self,
         item_list: Sequence[User],
@@ -46,13 +47,22 @@ class UserNotificationsSerializer(Serializer):
             results[user_option.user].append(user_option)
         return results
 
-    def serialize(self, obj, attrs, user, *args, **kwargs):
-        raw_data = {option.key: option.value for option in attrs}
+    def serialize(
+        self,
+        obj: User,
+        attrs: Mapping[object, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[str, bool]:
+        # justification: the serializer pipeline passes this object's get_attrs list.
+        options = cast(Sequence[UserOption], attrs)
+        raw_data = {option.key: option.value for option in options}
 
         data = {}
         for key, uo in USER_OPTION_SETTINGS.items():
             val = raw_data.get(uo["key"], uo["default"])
-            data[key.value] = bool(int(val))  # '1' is true, '0' is false
+            # justification: stored option values are numeric strings.
+            data[key.value] = bool(int(cast(str, val)))  # '1' is true, '0' is false
 
         return data
 
