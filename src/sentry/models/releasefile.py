@@ -121,7 +121,12 @@ class ReleaseFile(Model):
             update_fields=update_fields,
         )
 
-    def update(self, using: str | None = None, **kwargs: File | int | str | datetime | None) -> int:
+    def update(
+        self,
+        using: str | None = None,
+        *args: str,
+        **kwargs: File | int | str | datetime | None,
+    ) -> int:
         # If our name is changing, we must also change the ident
         if "name" in kwargs and "ident" not in kwargs:
             dist_name = None
@@ -134,7 +139,7 @@ class ReleaseFile(Model):
                 cast(str, kwargs["name"]), dist_name
             )
             kwargs["date_accessed"] = timezone.now()
-        return super().update(using, **kwargs)
+        return super().update(using, *args, **kwargs)
 
     @classmethod
     def get_ident(cls, name: str, dist: str | None = None) -> str:

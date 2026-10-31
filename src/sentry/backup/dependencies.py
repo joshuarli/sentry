@@ -409,7 +409,7 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
             for field in model._meta.get_fields():
                 is_nullable: bool = getattr(field, "null", False)
                 fk_field_name: str = field.name
-                if fk_field_name != "id" and getattr(field, "unique", False):
+                if field.name != "id" and getattr(field, "unique", False):
                     uniques.add(frozenset({fk_field_name}))
 
                 fk_rel_model: type[models.base.Model] | None = getattr(
