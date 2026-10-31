@@ -38,7 +38,7 @@ BACKOFF_SCHEDULE = [10, 20, 30, 30, 30, 30, 30, 30, 30, 30, 30]
     namespace=uptime_tasks,
     retry=Retry(times=3, delay=1, on=(Exception,)),
 )
-def process_uptime_backlog(subscription_id: str, attempt: int = 1):
+def process_uptime_backlog(subscription_id: str, attempt: int = 1) -> None:
     """
     Process buffered out-of-order results for a subscription.
 

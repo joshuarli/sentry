@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import uuid
+from collections.abc import Iterator
 from datetime import datetime, timedelta
 from unittest import mock
 from unittest.mock import patch
@@ -52,10 +53,10 @@ class ConfigPusherTestMixin(UptimeTestCase):
         sub: UptimeSubscription,
         action: str | None,
         region_mode: UptimeSubscriptionRegion.RegionMode | None,
-    ):
+    ) -> None:
         region_config = get_region_config(region)
         assert region_config is not None
-        cluster: RedisCluster | StrictRedis = redis.redis_clusters.get_binary(
+        cluster: RedisCluster[bytes] | StrictRedis[bytes] = redis.redis_clusters.get_binary(
             region_config.config_redis_cluster
         )
 
@@ -92,12 +93,12 @@ class BaseUptimeSubscriptionTaskTest(ConfigPusherTestMixin, metaclass=abc.ABCMet
     }
 
     @pytest.fixture(autouse=True)
-    def _setup_metrics(self):
+    def _setup_metrics(self) -> Iterator[None]:
         with patch("sentry.uptime.subscriptions.tasks.metrics") as self.metrics:
             yield
 
     @abc.abstractproperty
-    def expected_status(self):
+    def expected_status(self) -> UptimeSubscription.Status:
         pass
 
     @abc.abstractmethod
@@ -106,7 +107,7 @@ class BaseUptimeSubscriptionTaskTest(ConfigPusherTestMixin, metaclass=abc.ABCMet
 
     def create_subscription(
         self, status: UptimeSubscription.Status, subscription_id: str | None = None
-    ):
+    ) -> UptimeSubscription:
         return self.create_uptime_subscription(
             status=status,
             type="something",
@@ -566,7 +567,7 @@ STORE_A = ConfigStore(cluster="default", key_prefix="a", region_slugs=frozenset(
 @override_settings(UPTIME_REGIONS=REPAIR_REGIONS)
 class RepairMissingConfigsTest(ConfigPusherTestMixin):
     @pytest.fixture(autouse=True)
-    def _setup_delay(self):
+    def _setup_delay(self) -> Iterator[None]:
         with patch.object(update_remote_uptime_subscription, "delay") as self.delay:
             yield
 
@@ -709,7 +710,7 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
         update_date: datetime,
         expected_status: int,
         expected_priority_level: DetectorPriorityLevel,
-    ):
+    ) -> None:
         detector = self.create_uptime_detector(
             mode=mode,
             detector_state=detector_state,

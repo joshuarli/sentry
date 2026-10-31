@@ -79,16 +79,16 @@ def raiseStatusTrue() -> bool:
     return True
 
 
-def raiseException():
+def raiseException() -> None:
     raise Exception
 
 
-def raiseHTTPError():
+def raiseHTTPError() -> None:
     raise HTTPError()
 
 
 class RequestMock:
-    def __init__(self):
+    def __init__(self) -> None:
         self.body = "blah blah"
 
 
@@ -360,8 +360,8 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_send_alert_event_with_additional_payload_legacy_rule_id(
-        self, mock_record, safe_urlopen
-    ):
+        self, mock_record: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
         rule = self.create_project_rule(
             action_data=[
                 {
@@ -813,8 +813,8 @@ class TestProcessResourceChange(TestCase):
 
     @patch("sentry_sdk.capture_exception")
     def test_silently_handles_chunked_encoding_error_unpublished(
-        self, capture_exception, safe_urlopen
-    ):
+        self, capture_exception: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
         """
         ChunkedEncodingError is swallowed by @ignore_unpublished_app_errors for
         unpublished apps. In production, it's also in silenced_exceptions on the task.
@@ -850,7 +850,9 @@ class TestProcessResourceChange(TestCase):
         assert safe_urlopen.call_count == 1
 
     @patch("sentry_sdk.capture_exception")
-    def test_chunked_encoding_error_propagates_for_published(self, capture_exception, safe_urlopen):
+    def test_chunked_encoding_error_propagates_for_published(
+        self, capture_exception: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
         """
         For published apps, ChunkedEncodingError is NOT swallowed by
         @ignore_unpublished_app_errors — it propagates up to the

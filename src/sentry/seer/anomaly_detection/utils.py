@@ -99,7 +99,7 @@ def get_snuba_query_string(
 
 def get_crash_free_historical_data(
     start: datetime, end: datetime, project: Project, organization: Organization, granularity: int
-):
+) -> SnubaTSResult:
     """
     Fetch the historical metrics data from Snuba for crash free user rate and crash free session rate metrics
     """
@@ -203,9 +203,11 @@ def format_historical_data(
     )
 
 
+# justification: DATASET_OPTIONS mixes snuba modules and RPC dataset classes, so the
+# registry lookup in sentry.snuba.utils.get_dataset has no common static type.
 def get_dataset_from_label_and_event_types(
     dataset_label: str, event_types: list[SnubaQueryEventType.EventType] | None = None
-):
+) -> Any:
     dataset_label = get_dataset_name_from_label_and_event_types(dataset_label, event_types)
     dataset = get_dataset(dataset_label)
     if dataset is None:
