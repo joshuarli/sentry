@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import logging
 import time
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import StrEnum
 from functools import cached_property
@@ -255,7 +255,7 @@ class GithubSetupApiClient(IntegrationProxyClient):
         """
         return self.get("/user", api_request_type=GitHubApiRequestType.GET_USER_INFO)
 
-    def get_user_info_installations(self):
+    def get_user_info_installations(self) -> dict[str, Any]:
         """
         Authentication: Access Token
         Docs: https://docs.github.com/en/rest/apps/installations?apiVersion=2022-11-28#list-app-installations-accessible-to-the-user-access-token
@@ -265,7 +265,7 @@ class GithubSetupApiClient(IntegrationProxyClient):
             api_request_type=GitHubApiRequestType.GET_USER_INFO_INSTALLATIONS,
         )
 
-    def get_organization_memberships_for_user(self):
+    def get_organization_memberships_for_user(self) -> list[dict[str, Any]]:
         """
         Authentication: Access Token
         Docs: https://docs.github.com/en/rest/orgs/members?apiVersion=2022-11-28#get-an-organization-membership-for-the-authenticated-user
@@ -279,7 +279,7 @@ class GithubSetupApiClient(IntegrationProxyClient):
 class GithubProxyClient(IntegrationProxyClient):
     integration: Integration | RpcIntegration  # late init
 
-    def request(self, *args: Any, **kwargs: Any):
+    def request(self, *args: Any, **kwargs: Any) -> Any:
         credentials_set = kwargs.pop("credentials_set", None)
         if credentials_set == "application":
             if "headers" not in kwargs:
@@ -1550,7 +1550,7 @@ class GitHubApiClient(GitHubBaseClient):
         )
 
     @contextlib.contextmanager
-    def referrer(self, referrer: str):
+    def referrer(self, referrer: str) -> Iterator[None]:
         prev = self.__referrer
         self.__referrer = referrer
         try:

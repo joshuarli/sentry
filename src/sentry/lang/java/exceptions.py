@@ -62,10 +62,10 @@ class Exceptions:
                 if class_matches:
                     self._processable_exceptions_with_values.append((exc, class_matches))
 
-    def get_processable_exceptions(self):
+    def get_processable_exceptions(self) -> list[dict[str, Any]]:
         return self._processable_exceptions
 
-    def get_exception_class_names(self):
+    def get_exception_class_names(self) -> list[str]:
         """
         Returns a flattened list of all class names found in the exception values.
         """
@@ -75,12 +75,12 @@ class Exceptions:
             for class_name in class_names
         ]
 
-    def get_processable_exceptions_with_values(self):
+    def get_processable_exceptions_with_values(self) -> list[tuple[Any, list[Any]]]:
         return self._processable_exceptions_with_values
 
     def deobfuscate_and_save(
         self, classes: dict[str, str] | None, mapped_exceptions: list[dict[str, Any]]
-    ):
+    ) -> None:
         """
         Deobfuscates all exception values, module and type in-place
         """

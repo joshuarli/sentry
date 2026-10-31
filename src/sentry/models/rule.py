@@ -93,7 +93,7 @@ class Rule(Model):
     __repr__ = sane_repr("project_id", "label")
 
     @classmethod
-    def get_for_project(cls, project_id):
+    def get_for_project(cls, project_id: int) -> list[Rule]:
         cache_key = f"project:{project_id}:rules"
         rules_list = cache.get(cache_key)
         if rules_list is None:
@@ -116,12 +116,12 @@ class Rule(Model):
         if actor and actor.is_team:
             self.owner_team_id = actor.id
 
-    def delete(self, *args, **kwargs):
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         rv = super().delete(*args, **kwargs)
         self._clear_project_rule_cache()
         return rv
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         rv = super().save(*args, **kwargs)
         self._clear_project_rule_cache()
         return rv
@@ -130,7 +130,7 @@ class Rule(Model):
         cache_key = f"project:{self.project_id}:rules"
         cache.delete(cache_key)
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, Any]:
         return {
             "label": self.label,
             "data": self.data,

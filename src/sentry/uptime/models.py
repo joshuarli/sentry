@@ -1,7 +1,7 @@
 import enum
 import logging
 from datetime import timedelta
-from typing import ClassVar, Literal, Self, cast, override
+from typing import Any, ClassVar, Literal, Self, cast, override
 
 from django.db import models
 from django.db.models import Count, Value
@@ -234,7 +234,7 @@ class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscripti
 
     @override
     @staticmethod
-    def related_model(instance) -> list[ModelRelation]:
+    def related_model(instance: DataSource) -> list[ModelRelation]:
         return [ModelRelation(UptimeSubscription, {"id": instance.source_id})]
 
     @override
@@ -254,7 +254,9 @@ class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscripti
         return "uptime.uptimesubscription"
 
 
-def get_detector(uptime_subscription: UptimeSubscription, prefetch_workflow_data=False) -> Detector:
+def get_detector(
+    uptime_subscription: UptimeSubscription, prefetch_workflow_data: bool = False
+) -> Detector:
     """
     Fetches a workflow_engine Detector given an existing uptime_subscription.
     This is used during the transition period moving uptime to detector.
@@ -283,7 +285,7 @@ def get_uptime_subscription(detector: Detector) -> UptimeSubscription:
     return UptimeSubscription.objects.get_from_cache(id=int(data_source.source_id))
 
 
-def get_audit_log_data(detector: Detector):
+def get_audit_log_data(detector: Detector) -> dict[str, object]:
     """Get audit log data from a detector."""
     uptime_subscription = get_uptime_subscription(detector)
 
@@ -335,7 +337,7 @@ class UptimeResponseCapture(DefaultFieldsModel):
             models.Index(fields=["date_added"]),
         ]
 
-    def delete(self, *args, **kwargs):
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         try:
             File.objects.get(pk=self.file_id).delete()
         except File.DoesNotExist:

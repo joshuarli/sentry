@@ -1920,15 +1920,18 @@ def _handle_regression(
     return is_regression
 
 
-def _is_placeholder_title(title):
+def _is_placeholder_title(title: str | None) -> bool:
     return title in PLACEHOLDER_EVENT_TITLES
 
 
-def _is_real_title(title):
+def _is_real_title(title: str | None) -> bool:
     return bool(title) and title not in PLACEHOLDER_EVENT_TITLES
 
 
-def _get_updated_group_title(existing_container, incoming_container):
+def _get_updated_group_title(
+    existing_container: Mapping[str, str | None],
+    incoming_container: Mapping[str, str | None],
+) -> str | None:
     """
     Given either `group.data` or `group.data["metadata"]`, in both existing and incoming forms, pick
     the correct title to use when updating the group. Uses the incoming title (or `None` if there
@@ -2213,7 +2216,7 @@ def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, An
         return PriorityLevel.MEDIUM
 
 
-def update_severity_error_count(reset=False) -> None:
+def update_severity_error_count(reset: bool = False) -> None:
     timeout = 60 * 60  # 1 hour
     if reset:
         cache.set(SEER_ERROR_COUNT_KEY, 0, timeout=timeout)

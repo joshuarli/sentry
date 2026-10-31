@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import timedelta
 from typing import Any
 
@@ -92,7 +92,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             }
         )
 
-    def flatten_results(self, results: SnubaTSResult | dict[str, SnubaTSResult]):
+    def flatten_results(
+        self, results: SnubaTSResult | dict[str, SnubaTSResult]
+    ) -> list[dict[str, Any]]:
         if isinstance(results, SnubaTSResult):
             return results.data["data"]
         else:
@@ -101,7 +103,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 [],
             )
 
-    def check_if_results_have_data(self, results: SnubaTSResult | dict[str, SnubaTSResult]):
+    def check_if_results_have_data(self, results: SnubaTSResult | dict[str, SnubaTSResult]) -> bool:
         flattened_data = self.flatten_results(results)
         has_data = any(
             any(
@@ -242,7 +244,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             if should_upsample:
                 final_columns = transform_query_columns_for_error_upsampling(query_columns)
 
-            def get_rpc_config():
+            def get_rpc_config() -> SearchResolverConfig:
                 if scoped_dataset not in RPC_DATASETS:
                     raise NotImplementedError
 
@@ -373,7 +375,12 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 transform_alias_to_input_format=transform_alias_to_input_format,
             )
 
-        def get_event_stats_factory(scoped_dataset):
+        def get_event_stats_factory(
+            scoped_dataset: Any,
+        ) -> Callable[
+            [list[str], str, SnubaParams, int, bool, timedelta | None],
+            SnubaTSResult | dict[str, SnubaTSResult],
+        ]:
             """
             This factory closes over dataset in order to make an additional request to the errors dataset
             in the case that this request is from a dashboard widget and we're trying to split their discover dataset.
