@@ -122,15 +122,15 @@ class BasePaginator:
         if self.key:
             if self.key in source.query.order_by:
                 if not asc:
-                    index = source.query.order_by.index(self.key)
                     new_order_by = list(source.query.order_by)
-                    new_order_by[index] = f"-{source.query.order_by[index]}"
+                    index = new_order_by.index(self.key)
+                    new_order_by[index] = f"-{new_order_by[index]}"
                     source.query.order_by = tuple(new_order_by)
             elif ("-%s" % self.key) in source.query.order_by:
                 if asc:
-                    index = source.query.order_by.index(f"-{self.key}")
                     new_order_by = list(source.query.order_by)
-                    new_order_by[index] = source.query.order_by[index][1:]
+                    index = new_order_by.index(f"-{self.key}")
+                    new_order_by[index] = new_order_by[index][1:]
                     source.query.order_b = tuple(new_order_by)
             else:
                 if asc:
