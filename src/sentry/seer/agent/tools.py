@@ -1435,11 +1435,11 @@ def get_issue_details(
             type__in=_SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES,
             user_id__isnull=False,
         )
-        activities = (
+        activities: list[Activity] = list(
             Activity.objects.filter(group=group).filter(activity_filter).order_by("-datetime")[:50]
         )
         serialized_activities: list[ActivitySerializerResponse] = serialize(
-            list(activities), user=None, serializer=ActivitySerializer(resolve_mentions=True)
+            activities, user=None, serializer=ActivitySerializer(resolve_mentions=True)
         )
     except Exception:
         logger.exception(
@@ -1610,15 +1610,15 @@ class _IssueCommitters:
                 for entry in author_commits
                 for commit, _ in entry.get("commits", list[tuple[Commit, int]]())
             }
+            commit_list: list[Commit] = list(commits_by_id.values())
+            serialized_commits: list[CommitSerializerResponse] = serialize(
+                commit_list,
+                serializer=CommitSerializer(exclude=["author"]),
+            )
+
             serialized_by_id: dict[str, CommitSerializerResponse] = {
                 commit_id: serialized
-                for commit_id, serialized in zip(
-                    commits_by_id,
-                    serialize(
-                        list(commits_by_id.values()),
-                        serializer=CommitSerializer(exclude=["author"]),
-                    ),
-                )
+                for commit_id, serialized in zip(commits_by_id, serialized_commits)
             }
             stack_commits = [
                 {
