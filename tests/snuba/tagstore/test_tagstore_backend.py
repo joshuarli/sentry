@@ -8,6 +8,8 @@ from django.utils import timezone
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
 from sentry.search.eap.occurrences.rollout_utils import EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION
@@ -17,6 +19,7 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
+from sentry.services.eventstore.models import Event
 from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.tagstore.exceptions import GroupTagKeyNotFound, TagKeyNotFound
 from sentry.tagstore.snuba.backend import SnubaTagStorage
@@ -138,7 +141,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         self.proj1env2 = Environment.objects.get(name=env2)
 
     @cached_property
-    def perf_group_and_env(self):
+    def perf_group_and_env(self) -> tuple[Group, Environment]:
         env_name = "test"
         env = Environment.objects.get(name=env_name)
 
@@ -166,10 +169,11 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             }
         )
         perf_group = event.group
+        assert perf_group is not None
         return perf_group, env
 
     @cached_property
-    def generic_group_and_env(self):
+    def generic_group_and_env(self) -> tuple[Group, Environment]:
         env = Environment.objects.get(name="test")
         _, _, group_info = self.store_search_issue(
             self.project.id,
@@ -1112,7 +1116,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             project_id=self.proj1.id,
         )
 
-        def get_top_value():
+        def get_top_value() -> TagValue:
             result = self.ts.get_group_tag_value_paginator(
                 self.proj1group1,
                 [self.proj1env1.id],
@@ -1411,7 +1415,13 @@ class BaseSemverTest(TestCase, SnubaTestCase):
         super().setUp()
         self.ts = SnubaTagStorage()
 
-    def run_test(self, query, expected_versions, environment=None, project=None):
+    def run_test(
+        self,
+        query: str | None,
+        expected_versions: list[str],
+        environment: Environment | None = None,
+        project: Project | None = None,
+    ) -> None:
         if project is None:
             project = self.project
         assert list(
@@ -1563,7 +1573,13 @@ class GetTagValuePaginatorForProjectsReleaseStageTest(TestCase, SnubaTestCase):
         super().setUp()
         self.ts = SnubaTagStorage()
 
-    def run_test(self, query, expected_releases, environment=None, project=None):
+    def run_test(
+        self,
+        query: str | None,
+        expected_releases: list[Release],
+        environment: Environment | None = None,
+        project: Project | None = None,
+    ) -> None:
         if project is None:
             project = self.project
         assert list(
@@ -1649,8 +1665,8 @@ class TestEAPTagStorageQueries(TestCase, SnubaTestCase, OccurrenceTestCase):
 
     def _store_error_event_with_user(
         self, fingerprint: str, user_id: str, timestamp: float, environment: str | None = None
-    ):
-        extra: dict = {
+    ) -> Event:
+        extra: dict[str, object] = {
             "user": {"id": user_id},
             "tags": {"sentry:user": f"id:{user_id}"},
         }
@@ -1664,8 +1680,8 @@ class TestEAPTagStorageQueries(TestCase, SnubaTestCase, OccurrenceTestCase):
         )[0]
 
     def _store_issue_platform_event_with_user(
-        self, group, user_id: str, timestamp: datetime, environment: str | None = None
-    ):
+        self, group: Group, user_id: str, timestamp: datetime, environment: str | None = None
+    ) -> None:
         eap_item = self.create_eap_occurrence(
             group_id=group.id,
             timestamp=timestamp,

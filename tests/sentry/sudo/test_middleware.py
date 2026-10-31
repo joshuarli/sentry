@@ -11,7 +11,7 @@ from sudo.utils import grant_sudo_privileges, revoke_sudo_privileges
 class SudoMiddlewareTestCase(BaseTestCase):
     middleware = SudoMiddleware(placeholder_get_response)
 
-    def assertSignedCookieEqual(self, v1, v2, reason=None):
+    def assertSignedCookieEqual(self, v1: str, v2: str, reason: str | None = None) -> None:
         value, _, _ = v1.split(":")
         return self.assertEqual(value, v2, reason)
 

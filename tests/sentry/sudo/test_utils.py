@@ -3,11 +3,16 @@ from django.core.signing import BadSignature
 
 from fixtures.sudo_testutils import BaseTestCase
 from sudo.settings import COOKIE_AGE, COOKIE_NAME
-from sudo.utils import grant_sudo_privileges, has_sudo_privileges, revoke_sudo_privileges
+from sudo.utils import (
+    _SudoRequest,
+    grant_sudo_privileges,
+    has_sudo_privileges,
+    revoke_sudo_privileges,
+)
 
 
 class GrantSudoPrivilegesTestCase(BaseTestCase):
-    def assertRequestHasToken(self, request, max_age):
+    def assertRequestHasToken(self, request: _SudoRequest, max_age: int) -> None:
         token = request.session[COOKIE_NAME]
 
         self.assertRegex(token, r"^\w{12}$")
@@ -38,7 +43,7 @@ class GrantSudoPrivilegesTestCase(BaseTestCase):
 
 
 class RevokeSudoPrivilegesTestCase(BaseTestCase):
-    def assertRequestNotSudo(self, request):
+    def assertRequestNotSudo(self, request: _SudoRequest) -> None:
         self.assertFalse(self.request._sudo)
         self.assertNotIn(COOKIE_NAME, self.request.session)
 
@@ -71,7 +76,7 @@ class HasSudoPrivilegesTestCase(BaseTestCase):
     def test_cookie_and_token_match(self) -> None:
         self.login()
 
-        def get_signed_cookie(key, salt="", max_age=None) -> str:
+        def get_signed_cookie(key: str, salt: str = "", max_age: int | None = None) -> str:
             return "abc123"
 
         self.request.session[COOKIE_NAME] = "abc123"
@@ -81,7 +86,7 @@ class HasSudoPrivilegesTestCase(BaseTestCase):
     def test_cookie_and_token_mismatch(self) -> None:
         self.login()
 
-        def get_signed_cookie(key, salt="", max_age=None) -> str:
+        def get_signed_cookie(key: str, salt: str = "", max_age: int | None = None) -> str:
             return "nope"
 
         self.request.session[COOKIE_NAME] = "abc123"
@@ -91,7 +96,7 @@ class HasSudoPrivilegesTestCase(BaseTestCase):
     def test_cookie_bad_signature(self) -> None:
         self.login()
 
-        def get_signed_cookie(key, salt="", max_age=None):
+        def get_signed_cookie(key: str, salt: str = "", max_age: int | None = None) -> str:
             raise BadSignature
 
         self.request.session[COOKIE_NAME] = "abc123"
