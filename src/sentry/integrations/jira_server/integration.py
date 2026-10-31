@@ -648,9 +648,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         # https://jira.atlassian.com/secure/WikiRendererHelpAction.jspa?section=texteffects
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
-        return cast(
-            dict[str, object], self.get_client().create_comment(issue_id, quoted_comment)
-        )
+        return cast(dict[str, object], self.get_client().create_comment(issue_id, quoted_comment))
 
     def create_comment_attribution(self, user_id: int, comment_text: str) -> str:
         user = user_service.get_user(user_id=user_id)
@@ -814,9 +812,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         return jira_projects
 
     @all_silo_function
-    def get_create_issue_config(
-        self, group: Group | None, user: User | RpcUser, **kwargs
-    ):
+    def get_create_issue_config(self, group: Group | None, user: User | RpcUser, **kwargs):
         """
         We use the `group` to get three things: organization_slug, project
         defaults, and default title and description. In the case where we're

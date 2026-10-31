@@ -252,9 +252,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
 
         return self._issue_request_with_auto_token_refresh(*args, **kwargs)
 
-    def _issue_request_with_auto_token_refresh(
-        self, *args: Any, **kwargs: Any
-    ) -> object:
+    def _issue_request_with_auto_token_refresh(self, *args: Any, **kwargs: Any) -> object:
         try:
             response = super().request(*args, **kwargs)
         except ApiUnauthorized:
@@ -275,9 +273,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         response_object: object = response
         return response_object
 
-    def _attempt_request_after_refreshing_token(
-        self, *args: Any, **kwargs: Any
-    ) -> object:
+    def _attempt_request_after_refreshing_token(self, *args: Any, **kwargs: Any) -> object:
         assert not self.is_refreshing_token, "A token refresh is already occurring"
         self.is_refreshing_token = True
         try:
@@ -368,9 +364,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         except IndexError:
             raise ApiError("Issue not found with ID", 404)
 
-    def create_issue(
-        self, project: str | int, data: dict[str, object]
-    ) -> MappingApiResponse:
+    def create_issue(self, project: str | int, data: dict[str, object]) -> MappingApiResponse:
         """Create an issue
 
         See https://docs.gitlab.com/ee/api/issues.html#new-issue
@@ -409,9 +403,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         )
         return response
 
-    def get_issue_notes(
-        self, project_id: str | int, issue_id: str
-    ) -> SequenceApiResponse:
+    def get_issue_notes(self, project_id: str | int, issue_id: str) -> SequenceApiResponse:
         """https://docs.gitlab.com/api/notes/#list-all-issue-notes"""
         response: SequenceApiResponse = self.get(
             GitLabApiClientPath.issue_notes.format(
@@ -420,9 +412,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         )
         return response
 
-    def create_comment(
-        self, repo: str, issue_id: str, data: dict[str, Any]
-    ) -> MappingApiResponse:
+    def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> MappingApiResponse:
         """Create an issue note/comment
 
         See https://docs.gitlab.com/ee/api/notes.html#create-new-issue-note
@@ -448,9 +438,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         )
         return response
 
-    def delete_issue_note(
-        self, repo: str, issue_id: str, comment_id: str
-    ) -> dict[str, object]:
+    def delete_issue_note(self, repo: str, issue_id: str, comment_id: str) -> dict[str, object]:
         """https://docs.gitlab.com/api/notes/#delete-an-issue-note"""
 
         response: dict[str, object] = self.delete(
@@ -460,9 +448,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         )
         return response
 
-    def get_issue_note_awards(
-        self, repo: str, issue_id: str, note_id: str
-    ) -> SequenceApiResponse:
+    def get_issue_note_awards(self, repo: str, issue_id: str, note_id: str) -> SequenceApiResponse:
         response: SequenceApiResponse = self.get(
             GitLabApiClientPath.issue_note_awards.format(
                 project_id=safe_quote(repo), issue_id=issue_id, note_id=note_id
@@ -499,9 +485,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         )
         return response
 
-    def get_merge_requests(
-        self, project_id: str, state: str | None = None
-    ) -> SequenceApiResponse:
+    def get_merge_requests(self, project_id: str, state: str | None = None) -> SequenceApiResponse:
         if state is None:
             params = None
         else:
@@ -512,9 +496,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         )
         return response
 
-    def create_merge_request(
-        self, project_id: str, data: dict[str, Any]
-    ) -> MappingApiResponse:
+    def create_merge_request(self, project_id: str, data: dict[str, Any]) -> MappingApiResponse:
         response: MappingApiResponse = self.post(
             GitLabApiClientPath.merge_requests.format(project_id=safe_quote(project_id)),
             data=data,
@@ -532,9 +514,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         )
         return response
 
-    def get_merge_request_notes(
-        self, project_id: str, pr_key: str
-    ) -> SequenceApiResponse:
+    def get_merge_request_notes(self, project_id: str, pr_key: str) -> SequenceApiResponse:
         response: SequenceApiResponse = self.get(
             GitLabApiClientPath.merge_request_notes.format(
                 project_id=safe_quote(project_id), pr_key=pr_key
@@ -542,9 +522,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         )
         return response
 
-    def get_merge_request_versions(
-        self, project_id: str, pr_key: str
-    ) -> SequenceApiResponse:
+    def get_merge_request_versions(self, project_id: str, pr_key: str) -> SequenceApiResponse:
         response: SequenceApiResponse = self.get(
             GitLabApiClientPath.merge_request_versions.format(
                 project_id=safe_quote(project_id), pr_key=pr_key
@@ -636,9 +614,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         )
         return response
 
-    def get_merge_request_awards(
-        self, project_id: str, pr_key: str
-    ) -> SequenceApiResponse:
+    def get_merge_request_awards(self, project_id: str, pr_key: str) -> SequenceApiResponse:
         response: SequenceApiResponse = self.get(
             GitLabApiClientPath.merge_request_awards.format(
                 project_id=safe_quote(project_id), pr_key=pr_key
@@ -853,9 +829,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         )
         return response
 
-    def create_branch(
-        self, project_id: str | int, branch: str, ref: str
-    ) -> MappingApiResponse:
+    def create_branch(self, project_id: str | int, branch: str, ref: str) -> MappingApiResponse:
         """https://docs.gitlab.com/api/branches/#create-repository-branch"""
         response: MappingApiResponse = self.post(
             GitLabApiClientPath.branches.format(project_id=safe_quote(project_id)),

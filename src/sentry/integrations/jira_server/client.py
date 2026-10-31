@@ -180,9 +180,7 @@ class JiraServerClient(ApiClient):
         """
         return self.get_cached(self.PRIORITIES_URL)
 
-    def search_users_for_project(
-        self, project: str, username: str
-    ) -> list[dict[str, object]]:
+    def search_users_for_project(self, project: str, username: str) -> list[dict[str, object]]:
         # Jira Server wants a project key, while cloud is indifferent.
         project_key = self.get_project_key_for_id(project)
         return cast(
