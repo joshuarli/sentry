@@ -48,7 +48,7 @@ EXCLUSION_PATH_PREFIXES = [
 ]
 
 
-def __get_line_count_for_team_stats(team_stats: Mapping):
+def __get_line_count_for_team_stats(team_stats: Mapping[ApiPublishStatus, set[str]]) -> int:
     """
     Returns number of lines it takes to write ownership for each team.
     For example returns 15 for:
@@ -71,12 +71,14 @@ def __get_line_count_for_team_stats(team_stats: Mapping):
     return line_count
 
 
-def __write_ownership_data(ownership_data: dict[ApiOwner, dict]):
+def __write_ownership_data(
+    ownership_data: dict[ApiOwner, dict[ApiPublishStatus, set[str]]],
+) -> None:
     """
     Writes API ownership for all the teams in _OWNERSHIP_FILE.
     This file is used by Sentaur slack bot to inform teams on status of their APIs
     """
-    processed_data = {}
+    processed_data: dict[str, dict[str, int | list[str]]] = {}
     index = 2
     for team in ownership_data:
         # sorting APIs list so it doesn't trigger file change on every commit
@@ -186,7 +188,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
     _IDEMPOTENT_OPERATIONS.clear()
 
     filtered = []
-    ownership_data: dict[ApiOwner, dict] = {}
+    ownership_data: dict[ApiOwner, dict[ApiPublishStatus, set[str]]] = {}
     for path, path_regex, method, callback in endpoints:
         # Collect servers from endpoint class for postprocessing
         endpoint_servers = getattr(callback.view_class, "servers", None)

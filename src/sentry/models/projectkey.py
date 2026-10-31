@@ -34,6 +34,9 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.relay import schedule_invalidate_project_config
 
 if TYPE_CHECKING:
+    from rest_framework.request import Request
+
+    from sentry.models.organization import Organization
     from sentry.models.project import Project
 
 _token_re = re.compile(r"^[a-f0-9]{32}$")
@@ -57,7 +60,7 @@ class ProjectKeyManager(CellOutboxProducingManager["ProjectKey"]):
             public_key=instance.public_key, trigger="projectkey.post_delete"
         )
 
-    def for_request(self, request):
+    def for_request(self, request: Request) -> models.QuerySet[ProjectKey]:
         """Return objects that the given request user is allowed to access"""
         from sentry.auth.superuser import is_active_superuser
 
@@ -163,7 +166,7 @@ class ProjectKey(ReplicatedCellModel):
         return bool(_token_re.match(key))
 
     @classmethod
-    def from_dsn(cls, dsn):
+    def from_dsn(cls, dsn: str) -> ProjectKey:
         urlparts = urlparse(dsn)
 
         public_key = urlparts.username
@@ -175,7 +178,7 @@ class ProjectKey(ReplicatedCellModel):
         if not project_id.isdecimal() or int(project_id) > I64_MAX:
             raise ProjectKey.DoesNotExist("ProjectKey matching query does not exist.")
 
-        return ProjectKey.objects.get(public_key=public_key, project=project_id)
+        return ProjectKey.objects.get(public_key=public_key, project=int(project_id))
 
     @classmethod
     def get_default(cls, project: Project | int) -> ProjectKey | None:
@@ -186,7 +189,7 @@ class ProjectKey(ReplicatedCellModel):
         ).first()
 
     @property
-    def is_active(self):
+    def is_active(self) -> bool:
         return self.status == ProjectKeyStatus.ACTIVE
 
     @property
@@ -248,11 +251,11 @@ class ProjectKey(ReplicatedCellModel):
         return f"{urlparts.scheme}://{key}@{urlparts.netloc + urlparts.path}/{self.project_id}"
 
     @property
-    def organization_id(self):
+    def organization_id(self) -> int:
         return self.project.organization_id
 
     @property
-    def organization(self):
+    def organization(self) -> Organization:
         return self.project.organization
 
     @property
