@@ -40,7 +40,7 @@ class SentryAppInstallationSerializer(Serializer[SentryAppInstallationResult]):
         item_list: Sequence[SentryAppInstallation],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> MutableMapping[Any, Any]:
+    ) -> MutableMapping[Any, Any]:  # justification: serializer attrs and kwargs are dynamic.
         result: MutableMapping[Any, Any] = super().get_attrs(item_list, user, **kwargs)
 
         organizations = {
@@ -63,9 +63,9 @@ class SentryAppInstallationSerializer(Serializer[SentryAppInstallationResult]):
     def serialize(
         self,
         obj: SentryAppInstallation,
-        attrs: Mapping[Any, Any],
+        attrs: Mapping[Any, Any],  # justification: serializer attrs and kwargs are dynamic.
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: Any,  # justification: serializer attrs and kwargs are dynamic.
     ) -> SentryAppInstallationResult:
         access = kwargs.get("access")
         data: SentryAppInstallationResult = {

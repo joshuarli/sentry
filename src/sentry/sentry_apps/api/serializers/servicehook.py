@@ -24,9 +24,9 @@ class ServiceHookSerializer(Serializer[ServiceHookSerializerResponse]):
     def serialize(
         self,
         obj: ServiceHook,
-        attrs: Mapping[Any, Any],
+        attrs: Mapping[Any, Any],  # justification: serializer attrs and kwargs are dynamic.
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: Any,  # justification: serializer attrs and kwargs are dynamic.
     ) -> ServiceHookSerializerResponse:
         return {
             "id": obj.guid,

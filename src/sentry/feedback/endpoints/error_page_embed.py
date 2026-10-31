@@ -153,7 +153,7 @@ class ErrorPageEmbedView(View):
     def _smart_response(
         self,
         request: HttpRequest,
-        context: dict[str, Any] | None = None,
+        context: dict[str, object] | None = None,
         status: int = 200,
     ) -> HttpResponse:
         json_context = json.dumps(context or {})

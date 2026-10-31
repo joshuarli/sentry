@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -26,7 +26,7 @@ from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.dates import parse_stats_period, validate_interval
-from sentry.utils.snuba import bulk_snuba_queries
+from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
 
 TOP_FUNCTIONS_LIMIT = 50
 FUNCTIONS_PER_QUERY = 10
@@ -151,13 +151,17 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsEndpointBase
             results = {}
 
             for chunk, builder, result in zip(chunks, builders, bulk_results):
-                formatted_results = functions.format_top_events_timeseries_results(
-                    result,
-                    builder,
-                    rollup=rollup,
-                    snuba_params=snuba_params,
-                    top_events={"data": chunk},
-                    result_key_order=["project.id", "fingerprint"],
+                # justification: top events are supplied and allow_empty defaults to True.
+                formatted_results = cast(
+                    dict[str, SnubaTSResult],
+                    functions.format_top_events_timeseries_results(
+                        result,
+                        builder,
+                        rollup=rollup,
+                        snuba_params=snuba_params,
+                        top_events={"data": chunk},
+                        result_key_order=["project.id", "fingerprint"],
+                    ),
                 )
 
                 results.update(formatted_results)

@@ -166,13 +166,13 @@ def test_emit_invalid_keys_prod(handler: mock.MagicMock) -> None:
 def test_JSONRenderer_nonprod() -> None:
     renderer = JSONRenderer()
     with pytest.raises(TypeError):
-        renderer(None, None, {"foo": {mock.Mock(): "foo"}})
+        renderer(None, "test", {"foo": {mock.Mock(): "foo"}})
 
 
 @mock.patch("logging.raiseExceptions", False)
 def test_JSONRenderer_prod() -> None:
     renderer = JSONRenderer()
-    renderer(None, None, {"foo": {mock.Mock(): "foo"}})
+    renderer(None, "test", {"foo": {mock.Mock(): "foo"}})
 
 
 @mock.patch("logging.raiseExceptions", True)

@@ -31,15 +31,26 @@ class IframeView(ProjectView):
         return self._respond_with_state("logged-out")
 
     def handle_not_2fa_compliant(
-        self, request: HttpRequest, *args: Any, **kwargs: Any
+        self,
+        request: HttpRequest,
+        *args: Any,  # justification: Django view arguments are variadic.
+        **kwargs: Any,  # justification: Django view arguments are variadic.
     ) -> HttpResponse:
         return self._respond_with_state("logged-out")
 
-    def handle_auth_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+    def handle_auth_required(
+        self,
+        request: HttpRequest,
+        *args: Any,  # justification: Django view arguments are variadic.
+        **kwargs: Any,
+    ) -> HttpResponse:
         return self._respond_with_state("logged-out")
 
     def handle_permission_required(
-        self, request: HttpRequest, *args: Any, **kwargs: Any
+        self,
+        request: HttpRequest,
+        *args: Any,  # justification: Django view arguments are variadic.
+        **kwargs: Any,  # justification: Django view arguments are variadic.
     ) -> HttpResponse:
         return self._respond_with_state("missing-project")
 
@@ -48,8 +59,8 @@ class IframeView(ProjectView):
         request: HttpRequest,
         organization: Organization,
         project: Project,
-        *args: Any,
-        **kwargs: Any,
+        *args: Any,  # justification: Django view arguments are variadic.
+        **kwargs: Any,  # justification: Django view arguments are variadic.
     ) -> HttpResponse:
         referrer = _get_referrer(request) or ""
         allowed_origins: list[str] = project.get_option("sentry:toolbar_allowed_origins")

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import cast
 
 from django.db.models import F
 from django.utils import timezone
@@ -43,15 +43,16 @@ class ExploreSavedQueryBase(OrganizationEndpoint):
         request: Request,
         organization_id_or_slug: str,
         id: str,
-        *args: Any,
-        **kwargs: Any,
-    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
         try:
             kwargs["query"] = ExploreSavedQuery.objects.get(
                 id=to_valid_int_id("id", id, raise_404=True),
-                organization=kwargs["organization"],
+                # justification: convert_args places the resolved organization in kwargs.
+                organization=cast(Organization, kwargs["organization"]),
             )
         except ExploreSavedQuery.DoesNotExist:
             raise ResourceDoesNotExist

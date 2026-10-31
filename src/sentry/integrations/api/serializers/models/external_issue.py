@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import Any, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -13,17 +13,20 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
-
 # Serializer for External Issues Model
 # Maps an external issue to to additional integration information such as key or name
+# justification: serialized payload is dynamic.
+ExternalIssueResponse = dict[str, Any]
+
+
 @register(ExternalIssue)
-class ExternalIssueSerializer(Serializer):
+class ExternalIssueSerializer(Serializer[ExternalIssueResponse]):
     def get_attrs(
         self,
         item_list: Sequence[ExternalIssue],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> MutableMapping[Any, Any]:
+    ) -> MutableMapping[Any, Any]:  # justification: serializer attrs and kwargs are dynamic.
         result: dict[ExternalIssue, dict[str, object]] = {}
         for item in item_list:
             # Get the integration (e.g. Jira, GitHub, etc) associated with that issue
@@ -50,8 +53,9 @@ class ExternalIssueSerializer(Serializer):
     def serialize(
         self,
         obj: ExternalIssue,
-        attrs: Mapping[Any, Any],
+        attrs: Mapping[Any, Any],  # justification: serializer attrs and kwargs are dynamic.
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> Mapping[Any, Any]:
-        return attrs
+        **kwargs: Any,  # justification: serializer attrs and kwargs are dynamic.
+    ) -> dict[str, Any]:  # justification: serializer attrs and kwargs are dynamic.
+        # justification: attrs is the serializer's own per-item dict.
+        return cast(dict[str, Any], attrs)

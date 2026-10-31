@@ -655,18 +655,22 @@ def query_functions_timeseries(
         for project, fingerprint in functions_list
     ]
 
-    results = functions.top_events_timeseries(
-        timeseries_columns=[agg_function],
-        selected_columns=["project.id", "fingerprint"],
-        user_query="is_application:1",
-        snuba_params=params,
-        orderby=None,  # unused because top events is specified
-        rollup=interval,
-        limit=len(chunk),
-        organization=None,  # unused
-        referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_STATS.value,
-        top_events={"data": chunk},
-        result_key_order=["project.id", "fingerprint"],
+    # justification: top events are supplied and allow_empty defaults to True.
+    results = cast(
+        dict[str, SnubaTSResult],
+        functions.top_events_timeseries(
+            timeseries_columns=[agg_function],
+            selected_columns=["project.id", "fingerprint"],
+            user_query="is_application:1",
+            snuba_params=params,
+            orderby=None,  # unused because top events is specified
+            rollup=interval,
+            limit=len(chunk),
+            organization=None,  # unused
+            referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_STATS.value,
+            top_events={"data": chunk},
+            result_key_order=["project.id", "fingerprint"],
+        ),
     )
 
     for project, fingerprint in functions_list:

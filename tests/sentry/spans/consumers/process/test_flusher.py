@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import time
+from multiprocessing.sharedctypes import Synchronized
 from time import sleep
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 
 import orjson
@@ -66,10 +69,10 @@ def test_flusher_logs_flushed_segments() -> None:
     buffer = _buffer_with_segment(
         project_id=project_id, trace_id=trace_id, span_id=span_id, slice_id=slice_id
     )
-    stopped = SimpleNamespace(value=0)
-    current_drift = SimpleNamespace(value=0)
-    backpressure_since = SimpleNamespace(value=0)
-    healthy_since = SimpleNamespace(value=0)
+    stopped = cast("Synchronized[int]", SimpleNamespace(value=0))
+    current_drift = cast("Synchronized[int]", SimpleNamespace(value=0))
+    backpressure_since = cast("Synchronized[int]", SimpleNamespace(value=0))
+    healthy_since = cast("Synchronized[int]", SimpleNamespace(value=0))
     produced: list[tuple[int, Any, int]] = []
 
     def produce_to_pipe(project_id: int, payload: Any, dropped: int) -> None:
@@ -115,10 +118,10 @@ def test_flusher_produces_flushed_segments_to_process_segment_task() -> None:
     buffer = _buffer_with_segment(
         project_id=project_id, trace_id=trace_id, span_id=span_id, slice_id=slice_id
     )
-    stopped = SimpleNamespace(value=0)
-    current_drift = SimpleNamespace(value=0)
-    backpressure_since = SimpleNamespace(value=0)
-    healthy_since = SimpleNamespace(value=0)
+    stopped = cast("Synchronized[int]", SimpleNamespace(value=0))
+    current_drift = cast("Synchronized[int]", SimpleNamespace(value=0))
+    backpressure_since = cast("Synchronized[int]", SimpleNamespace(value=0))
+    healthy_since = cast("Synchronized[int]", SimpleNamespace(value=0))
     task_future = mock.Mock()
 
     def wait_for_task_delivery() -> None:

@@ -203,11 +203,9 @@ def format_historical_data(
     )
 
 
-# justification: DATASET_OPTIONS mixes snuba modules and RPC dataset classes, so the
-# registry lookup in sentry.snuba.utils.get_dataset has no common static type.
 def get_dataset_from_label_and_event_types(
     dataset_label: str, event_types: list[SnubaQueryEventType.EventType] | None = None
-) -> Any:
+) -> Any:  # justification: registry mixes snuba modules and RPC dataset classes.
     dataset_label = get_dataset_name_from_label_and_event_types(dataset_label, event_types)
     dataset = get_dataset(dataset_label)
     if dataset is None:

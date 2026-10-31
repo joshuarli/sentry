@@ -15,9 +15,9 @@ class ServiceHookProjectSerializer(Serializer):
     def serialize(
         self,
         obj: ServiceHookProject | RpcServiceHookProject,
-        attrs: Mapping[Any, Any],
+        attrs: Mapping[Any, Any],  # justification: serializer attrs and kwargs are dynamic.
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: Any,  # justification: serializer attrs and kwargs are dynamic.
     ) -> dict[str, str]:
         return {
             "id": str(obj.id),

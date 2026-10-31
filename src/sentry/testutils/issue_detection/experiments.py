@@ -19,7 +19,11 @@ def exclude_experimental_detectors(cls: type[TestCase]) -> type[TestCase]:
     """
     cls_setUp = cls.setUp
 
-    def exclude_experimental_detectors_setUp(self: TestCase, *args: Any, **kwargs: Any) -> None:
+    def exclude_experimental_detectors_setUp(
+        self: TestCase,
+        *args: Any,  # justification: test payload is dynamic.
+        **kwargs: Any,  # justification: test payload is dynamic.
+    ) -> None:
         patch_detector_classes = patch(
             "sentry.issue_detection.performance_detection.DETECTOR_CLASSES",
             [cls for cls in DETECTOR_CLASSES if "Experimental" not in cls.__name__],

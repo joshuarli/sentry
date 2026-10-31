@@ -105,7 +105,9 @@ class DocIntegrationAvatarSerializer(Serializer):
     avatar_photo = AvatarField(required=True)
     avatar_type = serializers.ChoiceField(choices=(("upload", "upload")))
 
-    def validate(self, attrs: Mapping[str, Any]) -> Mapping[str, Any]:
+    def validate(
+        self, attrs: Mapping[str, Any]
+    ) -> Mapping[str, Any]:  # justification: serializer attrs and kwargs are dynamic.
         attrs = super().validate(attrs)
 
         if not attrs.get("avatar_photo"):

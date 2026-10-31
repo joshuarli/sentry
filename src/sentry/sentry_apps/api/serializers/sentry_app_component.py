@@ -36,9 +36,9 @@ class SentryAppComponentSerializer(Serializer[SentryAppComponentSerializerRespon
     def serialize(
         self,
         obj: SentryAppComponent,
-        attrs: Mapping[Any, Any],
+        attrs: Mapping[Any, Any],  # justification: serializer attrs and kwargs are dynamic.
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: Any,  # justification: serializer attrs and kwargs are dynamic.
     ) -> SentryAppComponentSerializerResponse:
         errors = kwargs["errors"]
         installation_uuids: dict[int, str] | None = kwargs.get("installation_uuids")
@@ -63,9 +63,9 @@ class SentryAppAlertRuleActionSerializer(Serializer):
     def serialize(
         self,
         obj: SentryAppComponent,
-        attrs: Mapping[Any, Any],
+        attrs: Mapping[Any, Any],  # justification: serializer attrs and kwargs are dynamic.
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: Any,  # justification: serializer attrs and kwargs are dynamic.
     ) -> dict[str, object]:
         event_action: SentryAppEventDataInterface | None = kwargs.get("event_action")
         if not event_action:

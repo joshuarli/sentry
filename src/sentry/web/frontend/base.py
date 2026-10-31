@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
+from django.core.files.base import File as DjangoFile
 from django.http import (
     HttpRequest,
     HttpResponse,
@@ -880,7 +881,7 @@ class AvatarPhotoView(View):
         if size_s:
             try:
                 size = int(size_s)
-                photo_file = avatar.get_cached_photo(size)
+                photo_file: bytes | DjangoFile[bytes] | None = avatar.get_cached_photo(size)
             except ValueError:
                 return HttpResponseBadRequest()
         else:

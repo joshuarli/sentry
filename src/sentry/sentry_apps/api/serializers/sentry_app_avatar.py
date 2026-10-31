@@ -23,9 +23,9 @@ class SentryAppAvatarSerializer(Serializer):
     def serialize(
         self,
         obj: SentryAppAvatar | RpcSentryAppAvatar,
-        attrs: Mapping[Any, Any],
+        attrs: Mapping[Any, Any],  # justification: serializer attrs and kwargs are dynamic.
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: Any,  # justification: serializer attrs and kwargs are dynamic.
     ) -> SentryAppAvatarSerializerResponse:
         return {
             "avatarType": obj.get_avatar_type_display(),

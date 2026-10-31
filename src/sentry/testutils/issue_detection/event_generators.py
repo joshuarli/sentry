@@ -61,7 +61,7 @@ def create_span(
     duration: float = 100.0,
     desc: str | None = "SELECT count() FROM table WHERE id = %s",
     hash: str = "",
-    data: dict[str, Any] | None = None,
+    data: dict[str, Any] | None = None,  # justification: test payload is dynamic.
 ) -> Span:
     return modify_span_duration(
         SpanBuilder().with_op(op).with_description(desc).with_hash(hash).with_data(data).build(),
@@ -69,7 +69,9 @@ def create_span(
     )
 
 
-def create_event(spans: Sequence[Span], event_id: str = "a" * 16) -> dict[str, Any]:
+def create_event(
+    spans: Sequence[Span], event_id: str = "a" * 16
+) -> dict[str, Any]:  # justification: test payload is dynamic.
     return {
         "event_id": event_id,
         "project": PROJECT_ID,

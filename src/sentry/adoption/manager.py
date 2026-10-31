@@ -1,6 +1,6 @@
 from collections import defaultdict
 from collections.abc import Sequence
-from typing import NamedTuple
+from typing import NamedTuple, cast
 
 FEATURE_LOCATION = {"language", "integration", "code", "web", "admin", "api"}
 
@@ -10,7 +10,7 @@ class Feature(NamedTuple):
     slug: str
     name: str
     location: str
-    prerequisite: Sequence[str] | None
+    prerequisite: Sequence[str | tuple[str, ...]] | None
 
 
 class UnknownFeature(KeyError):
@@ -32,7 +32,7 @@ class AdoptionManager:
         slug: str,
         name: str,
         location: str,
-        prerequisite: Sequence[str] | None = None,
+        prerequisite: Sequence[str | tuple[str, ...]] | None = None,
     ) -> None:
         assert location in FEATURE_LOCATION
 
@@ -45,7 +45,8 @@ class AdoptionManager:
 
         if location == "integration":
             assert prerequisite is not None
-            self._integration_slugs[prerequisite[0]].add(slug)
+            # justification: integration prerequisites are plain slugs.
+            self._integration_slugs[cast(str, prerequisite[0])].add(slug)
 
     def get_by_id(self, id: int) -> Feature:
         try:

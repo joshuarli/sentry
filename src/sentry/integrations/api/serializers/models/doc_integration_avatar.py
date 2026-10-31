@@ -14,9 +14,9 @@ class DocIntegrationAvatarSerializer(Serializer[MutableMapping[str, Any]]):
     def serialize(
         self,
         obj: DocIntegrationAvatar,
-        attrs: Mapping[Any, Any],
+        attrs: Mapping[Any, Any],  # justification: serializer attrs and kwargs are dynamic.
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: Any,  # justification: serializer attrs and kwargs are dynamic.
     ) -> MutableMapping[str, Any]:
         return {
             "avatarType": obj.get_avatar_type_display(),

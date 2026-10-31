@@ -169,7 +169,7 @@ def process_mention_for_slack(
         )
 
         # Only fetch thread context when actually in a thread.
-        messages: list[dict[str, Any]] = []
+        messages: list[dict[str, Any]] = []  # justification: Slack payload is dynamic JSON.
         thread_context: str | None = None
         if thread_ts:
             messages = entrypoint.install.get_thread_history(

@@ -151,6 +151,7 @@ def send_and_save_sentry_app_request(
             # Re-raise the exception because some of these tasks might retry on the exception
             raise
 
+        project_id_header = resp.headers.get("Sentry-Hook-Project")
         track_response_code(resp.status_code, slug, event)
         buffer.add_request(
             response_code=resp.status_code,
@@ -158,7 +159,7 @@ def send_and_save_sentry_app_request(
             event=event,
             url=url,
             error_id=resp.headers.get("Sentry-Hook-Error"),
-            project_id=resp.headers.get("Sentry-Hook-Project"),
+            project_id=int(project_id_header) if project_id_header is not None else None,
             response=resp,
             headers=loggable_headers,
         )

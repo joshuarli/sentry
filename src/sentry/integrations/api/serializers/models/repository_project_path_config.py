@@ -40,8 +40,8 @@ class RepositoryProjectPathConfigSerializer(
         self,
         item_list: Sequence[RepositoryProjectPathConfig],
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> MutableMapping[Any, Any]:
+        **kwargs: Any,  # justification: serializer attrs and kwargs are dynamic.
+    ) -> MutableMapping[Any, Any]:  # justification: serializer attrs and kwargs are dynamic.
         if not item_list:
             return {}
 
@@ -95,9 +95,9 @@ class RepositoryProjectPathConfigSerializer(
     def serialize(
         self,
         obj: RepositoryProjectPathConfig,
-        attrs: Mapping[Any, Any],
+        attrs: Mapping[Any, Any],  # justification: serializer attrs and kwargs are dynamic.
         user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        **kwargs: Any,  # justification: serializer attrs and kwargs are dynamic.
     ) -> RepositoryProjectPathConfigSerializerResponse:
         integration = attrs.get("integration")
 
