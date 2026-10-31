@@ -1,23 +1,26 @@
 # Sentry typing hillclimb
 
-## Status: COMPLETE 2026-10-31 — exact `evaluate` is `complete` with 0 reasons. Candidate `9acb5860c21` (source tree `68cc9efe`), acceptance parent `66941a85b51` (tree `7d425682` = upstream/master `c8f1ef5e` + 4 evaluator policy files + 7 owner-owned files). Report: `.work/tmp/evaluate-20261030-postrebase4/report.json`. HEAD is the docs-only record after the measured commit, so the measured source tree is unchanged. Branch is rebased onto `c8f1ef5e` (639 commits); restore point `typing-hillclimb-pre-rebase-20261030`. Origin is at `eb1421a` (the handoff commit); local is 4 commits ahead and unpushed.
-Resume prompt: "Resume from typing-campaign.md Status; the typing campaign is complete — carve PRs or push."
-First command: `git status --short --branch` on `typing-hillclimb` (expect clean; origin ahead/behind as noted), then reread Status + Handoff.
-Last revision: code `9acb5860c21`; exact evaluate vs parent `66941a85b51` is `complete` (0 reasons). Older `4f75fa69`-based reports are historical.
-Parked: 198 pre-rebase sideline branches (p3/p4/p5/lane/accel/wave/winddown families) — none merged; merging any would revert the Oct 28/30 rebase onto `upstream/master`. Their patch-novel commits are cataloged by the inventory script below; carve per-branch PRs at resume time. Kept as restore points: acceptance parent `typing-campaign-baseline-20261029` (now at `66941a85`), pre-rebase backups `typing-hillclimb-backup-20261027` / `-20261029`, and `typing-hillclimb-pre-rebase-20261030`. Milestone policy: rebase `typing-hillclimb` onto latest `upstream/master` at every milestone; the final rebase is complete.
-Next slice: campaign complete; next is review/push/PR carving. Do not resume the old campaign slices below.
+## Status: acceptance complete; review and publication remain
 
-## Handoff (2026-10-31, campaign complete)
-- Goal: finish the typing campaign — met by exact `evaluate` (`complete`, 0 reasons).
-- Final measured tree: `9acb5860c21` / source tree `68cc9efe`; parent `66941a85b51` / tree `7d425682`. The HEAD docs record adds no source change, so the measured source tree is unchanged. Report at `.work/tmp/evaluate-20261030-postrebase4/report.json`.
-- Done: all three lanes integrated; generic-paginator detour reverted in `d9803e8`; file producers typed; paginator entry points typed without Any; GroupInbox inbox boundary cast; last two `tuple.index` Any obligations cleared in `9acb586`.
-- Verification: 147 callers mypy-clean, ruff check/format clean, serial paginator/releasefile/file/group-index and backup comparator/invariant suites green; exact evaluate `complete`.
-- Environment note: upstream `00df08c75a8` deprecates `sentry.tsdb.redissnuba.RedisSnubaTSDB`; the local `~/.sentry/sentry.conf.py` still sets it, which the evaluator treats as unexplained mypy stderr. The final run used `SENTRY_CONF` pointing at a temporary copy of `~/.sentry` with `SENTRY_TSDB` migrated to `sentry.tsdb.snuba.SnubaTSDB`. The temporary copy (including its secret) was removed after the run; recreate it for any future exact evaluate, or migrate the local setting.
-- Next: review the branch; push the 4 unpushed local commits (fast-forward from origin `eb1421a`) if desired; carve PRs from the parked branch inventory; migrate the local TSDB setting.
-- Needs owner: push/PR decision; whether to keep the 198 parked branches; whether to update `~/.sentry/sentry.conf.py`; review the two unresolved behavioral choices in the changes log (grouptype platform default and the releasefile index assert vs cast).
+The exact evaluator reported `complete` with zero reasons for candidate `9acb5860c21` against parent `66941a85b51`. Its `precision_complete` flag is false because it counts precision additions in test files. The accepted source tree remains unchanged on `origin/typing-hillclimb` at `4f5c9df6b5e`. The report was in `.work/tmp/evaluate-20261030-postrebase4/report.json` on the original computer and is not committed. The acceptance parent is not an ancestor of the campaign branch.
+
+The branch review is incomplete. Do not treat acceptance as proof that the changes are ready to land. The export `origin/typing-hillclimb-upstream` is an older snapshot and has not been updated to the accepted tree. On 2026-10-31, `upstream/master` advanced from `c8f1ef5e` to `063a6cb279f`; the intervening commit changed three frontend files. Fetch again before publication.
+
+The parked branches and acceptance parent are preserved on the fork under `origin/typing-campaign-parked/`, using their original local branch names after that prefix. Fetch the fork and recreate a local branch from the matching remote-tracking ref when needed. Do not merge the old sideline branches directly: they predate the final rebase. Compare and carve their changes onto a current base.
+
+## Resume review and publication
+
+1. Fetch `origin` and `upstream`. Check out `typing-hillclimb-campaign` and read this status and the inventory below.
+2. Review the full diff from acceptance parent `origin/typing-campaign-parked/typing-campaign-baseline-20261029` to `origin/typing-hillclimb`, including callers and runtime changes. The diff covers 256 files. The previous review was partial.
+3. Resolve `ReleaseFile.save`: the campaign makes its arguments keyword-only, while the parent override and Django `Model.save` accept positional arguments. The signature change is verified; an affected existing caller has not been established. Preserve the contract or explicitly decide to change it, then verify and re-evaluate affected work.
+4. Resolve the `update_artifact_index` assertion versus a cast. The accepted branch has no `grouptype` platform default: both its untyped function and `platform=project.platform` match the acceptance parent. The older upstream export does add `or "javascript"`; do not carry that stale behavior forward without a decision.
+5. Rebuild and verify `typing-hillclimb-upstream` from the accepted changes on a current upstream base. Exclude the evaluator, campaign log, and owner-owned baseline changes. Push the updated export. Review the parked inventory and push or carve suitable PRs, checking patch content rather than relying on patch-id counts.
+6. Authorize the GitHub CLI token for the Sentry organization if PR inspection or creation fails with SAML enforcement. Decide whether to retain the parked refs after their useful changes land.
+
+The previous handoff reports 147 callers mypy-clean, ruff check and format checks clean, and focused paginator, releasefile, file, group-index, backup comparator, and invariant suites green. Those results apply to the measured tree and its original environment. For a new exact evaluation, see the environment and command under Final measurement. The original computer's `~/.sentry/sentry.conf.py` uses a deprecated TSDB setting; decide whether to migrate that local setting. The final run used a temporary `SENTRY_CONF` with `sentry.tsdb.snuba.SnubaTSDB` and removed the temporary copy afterward.
 
 ## Behavioral changes (complete log — every runtime-visible change the campaign made)
-- `src/sentry/notifications/notification_action/grouptype.py`: `platform=project.platform or "javascript"` (NEW default when platform is None; parent passed None through). Unresolved: keep as bug-fix default (`load_data` requires `str`) or full-revert to bare (restores parent anchor, may clear the L60 row).
+- `src/sentry/notifications/notification_action/grouptype.py`: the accepted branch preserves the parent behavior. The older upstream export adds `platform=project.platform or "javascript"`; resolve that difference when rebuilding the export.
 - `src/sentry/api/serializers/models/release.py` stats: `{str(k): v ...}` rebuilds the mapping (copy, `str` keys) instead of embedding the parent alias. Value-equal on str keys; pinned `or {}` default preserved; tests green. Keep, disclosed.
 - `src/sentry/models/releasefile.py`: `assert index_data is not None` on the create=True path (AttributeError becomes AssertionError in the unreachable-None case). Alternative with zero runtime effect: `cast`. Unresolved — pick one post-resume.
 - `tests/sentry/models/test_releasefile.py`: 2× `assert data is not None` (pre-existing Oct-27 wave) plus precise `_create_update_fn` / `writable_data` annotations (annotation-only, no runtime effect).
@@ -33,7 +36,7 @@ Next slice: campaign complete; next is review/push/PR carving. Do not resume the
 - Evaluator rows key (path, code, line, message) for diagnostics but (path, anchor, scope) for Any: line-adding edits rename surviving precision rows into new reasons, so keep edits line-count-neutral where rows survive. Any anchors embed inferred types, so whole-program drift (e.g. weaklist graduations) can flag byte-identical files — verify with `git diff <baseline> HEAD -- <file>` plus report anchors before assuming a local cause.
 
 ## Final measurement
-- Final acceptance: parent `66941a85b51` (tree `7d425682` = `upstream/master c8f1ef5e` + 4 evaluator policy files + 7 owner-owned files), candidate `9acb5860c21` (tree `68cc9efe`), outcome `complete` with 0 reasons, report `.work/tmp/evaluate-20261030-postrebase4/report.json`.
+- Final acceptance: parent `66941a85b51` (tree `7d425682` = `upstream/master c8f1ef5e` + 4 evaluator policy files + 7 owner-owned files), candidate `9acb5860c21` (tree `68cc9efe`), outcome `complete` with 0 reasons. The report is local to the original computer.
 - Historical acceptance parent: `4f75fa694441` = `upstream/master 625814f` + 4 evaluator policy files + 7 owner-owned files at preserved wip (mirrors the old `41a0d23` contract). All `4f75fa69`-based reports are superseded by the final parent above.
 - Report progression vs new parent: 299 (b) → 204 (c) → 135 (d) → 94 (e) → 70 (f) → 63 (g) → 60 (h) → 59 (i). Zero weak/omission/configured/bypass/regression rows since (d).
 - Report-i (candidate `1c4265f4`, code `19a3c9627d6`): 53 precision + 5 Any + 1 all-strong. Hard rows: `release.py` L69 `explicit` (the `-> HealthData | None` annotation references `HealthData.stats: dict[str, Any]`); `backup/dependencies.py` L454×2 `special_form` + L447 precision (byte-identical to parent — whole-program drift, see Doctrine); `releasefile.py` L405 `from_error` (not reproduced under ad-hoc strict flags — needs evaluator-profile repro, suspects: bare `update_files(files: dict)` + bare `initial_artifact_count` + decorated-generator type at L269/270); `grouptype.py` L60 `unannotated` (anchor changed by the local `or "javascript"` edit); `test_releasefile.py` L205 `no-untyped-def` (nested bare `def f()`).
@@ -59,14 +62,14 @@ Vendored typing surface that IS in-tree (campaign-relevant, actively maintained)
 Rule for the campaign: these extension packages and the vendored stubs/plugin are **policy-adjacent infrastructure** — do not modify them to silence debt (the evaluator guards its own `tools/mypy_helpers/typing_campaign.py` policy set the same way). Type the call sites instead.
 
 ## Branch inventory (future upstream PRs)
-Complete catalog of local branches as of 2026-10-29 (`typing-hillclimb @ 5fadd7d083d`; 200 branches). "Novel" = patch-id comparison with zero `+` lines meaning fully incorporated — `git cherry typing-hillclimb <branch>` (rebasing rewrites hashes, so counts use patch-ids, not commits; counts are an upper bound since rebase conflict resolutions also change patch-ids — review content at carve time). Regenerate any time with:
+Historical catalog of local branches as of 2026-10-29 (`typing-hillclimb @ 5fadd7d083d`; 200 branches). The fork now holds the parked branches under `origin/typing-campaign-parked/`. "Novel" means a patch-id comparison with zero `+` lines indicating full incorporation. Counts are an upper bound because conflict resolutions change patch IDs. Review the content when carving a PR. Regenerate after fetching with:
 ```bash
-git branch --list | sed 's/^[* ] //' | while read b; do
-  tip=$(git log -1 --format='%h|%ad|%s' --date=short "$b")
-  nov=$(git cherry typing-hillclimb "$b" | grep -c '^+ ')
-  echo "$b || $tip || novel=$nov"
+git for-each-ref --format='%(refname:short)' refs/remotes/origin/typing-campaign-parked | while read -r branch; do
+  tip=$(git log -1 --format='%h|%ad|%s' --date=short "$branch")
+  nov=$(git cherry origin/typing-hillclimb "$branch" | rg -c '^\+ ' || true)
+  printf '%s || %s || novel=%s\n' "$branch" "$tip" "${nov:-0}"
 done
-# novel subjects for one branch: git cherry -v typing-hillclimb <branch>  # '+' lines are the PR slice
+# Inspect a branch with git cherry -v origin/typing-hillclimb <remote-branch>.
 ```
 Family summary (novel = patch-novel commits vs hillclimb; tips Oct 20–24 except where noted):
 
@@ -91,4 +94,4 @@ Family summary (novel = patch-novel commits vs hillclimb; tips Oct 20–24 excep
 No branch was merged during this winddown (merging any sideline would revert the Oct 28 rebase onto `upstream/master 625814f`); nothing was deleted. To retire a branch later, prove integration first (`git merge-base --is-ancestor <branch> typing-hillclimb`, else patch-equivalence with no `+` lines via `git cherry`), then remove per the orchestrate worktree lifecycle.
 
 ## Resume
-First commands on `typing-hillclimb`: `git status --short --branch` (expect clean), `git log --oneline -3`, reread Status + Doctrine + Final measurement above. Then work the Next slice in Status order, one commit per fix, with targeted mypy + ruff + narrowest pytest evidence per fix; launch exact `evaluate` (Final measurement) when a wave is ready and work its punchlist until `complete`.
+Follow “Resume review and publication” above. The evaluator commands and earlier campaign details remain here as historical context.
