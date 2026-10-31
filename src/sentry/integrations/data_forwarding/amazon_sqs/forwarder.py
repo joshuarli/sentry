@@ -85,13 +85,14 @@ class AmazonSQSForwarder(BaseDataForwarder):
             "region_name": region,
         }
 
-        def s3_put_object(*args, **kwargs):
+        def s3_put_object(*args: object, **kwargs: object) -> object:
             s3_client = boto3.client(
                 service_name="s3", config=Config(signature_version="s3v4"), **boto3_args
             )
-            return s3_client.put_object(*args, **kwargs)
+            response: object = s3_client.put_object(*args, **kwargs)
+            return response
 
-        def sqs_send_message(message):
+        def sqs_send_message(message: str) -> object:
             client = boto3.client(service_name="sqs", **boto3_args)
             send_message_args = {"QueueUrl": queue_url, "MessageBody": message}
 
@@ -103,7 +104,8 @@ class AmazonSQSForwarder(BaseDataForwarder):
                 # if content based de-duplication is not enabled, we need to provide a
                 # MessageDeduplicationId
                 send_message_args["MessageDeduplicationId"] = uuid4().hex
-            return client.send_message(**send_message_args)
+            response: object = client.send_message(**send_message_args)
+            return response
 
         # Upload to S3 if configured (for large payloads)
         if s3_bucket:

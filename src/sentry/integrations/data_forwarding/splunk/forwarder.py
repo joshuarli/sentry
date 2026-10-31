@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 from sentry import tagstore
@@ -21,14 +22,14 @@ class SplunkApiClient(BaseApiClient):
     plugin_name = "splunk"
     allow_redirects = False
 
-    def __init__(self, endpoint, token):
+    def __init__(self, endpoint: str, token: str) -> None:
         self.endpoint = endpoint
         self.token = token
         super().__init__(verify_ssl=False)
 
-    def request(self, data):
+    def request(self, data: Mapping[str, object]) -> object:
         headers = {"Authorization": f"Splunk {self.token}"}
-        return self._request(
+        response: object = self._request(
             path=self.endpoint,
             method="post",
             data=data,
@@ -37,6 +38,7 @@ class SplunkApiClient(BaseApiClient):
             timeout=5,
             allow_text=True,
         )
+        return response
 
 
 class SplunkForwarder(BaseDataForwarder):
@@ -61,7 +63,7 @@ class SplunkForwarder(BaseDataForwarder):
 
         return None
 
-    def initialize_variables(self, event: Event | GroupEvent, config: dict[str, Any]):
+    def initialize_variables(self, event: Event | GroupEvent, config: dict[str, Any]) -> None:
         self.project_token = config.get("token")
         self.project_index = config.get("index")
         self.project_instance = config.get("instance_url")
