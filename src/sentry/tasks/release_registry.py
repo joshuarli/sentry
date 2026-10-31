@@ -20,7 +20,7 @@ REQUEST_TIMEOUT = 10
 CACHE_TTL = 3600
 
 
-def _fetch_registry_url(relative_url):
+def _fetch_registry_url(relative_url: str) -> dict[str, object]:
     if not settings.SENTRY_RELEASE_REGISTRY_BASEURL:
         return {}
 
@@ -38,7 +38,7 @@ def _fetch_registry_url(relative_url):
         return response.json()
 
 
-def _fetch_release_registry_data(**kwargs):
+def _fetch_release_registry_data(**kwargs: object) -> None:
     """
     Fetch information about the latest SDK version from the release registry.
 
@@ -72,7 +72,7 @@ def _fetch_release_registry_data(**kwargs):
     processing_deadline_duration=65,
     silo_mode=SiloMode.CELL,
 )
-def fetch_release_registry_data(**kwargs):
+def fetch_release_registry_data(**kwargs: object) -> None:
     _fetch_release_registry_data(**kwargs)
 
 
@@ -82,5 +82,5 @@ def fetch_release_registry_data(**kwargs):
     processing_deadline_duration=65,
     silo_mode=SiloMode.CONTROL,
 )
-def fetch_release_registry_data_control(**kwargs):
+def fetch_release_registry_data_control(**kwargs: object) -> None:
     _fetch_release_registry_data(**kwargs)
