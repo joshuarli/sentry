@@ -50,11 +50,11 @@ class ChunkedFileBlobIndexWrapper:
     def __exit__(self, exc_type, exc_value, tb) -> None:
         self.close()
 
-    def detach_tempfile(self):
+    def detach_tempfile(self) -> tempfile._TemporaryFileWrapper[bytes]:
         if not self.prefetched:
             raise TypeError("Can only detech tempfiles in prefetch mode")
         assert self._curfile is not None
-        rv = self._curfile
+        rv = cast("tempfile._TemporaryFileWrapper[bytes]", self._curfile)
         self._curfile = None
         self.close()
         rv.seek(0)
@@ -261,7 +261,7 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
         )
 
     @traces.trace
-    def getfile(self, mode: str | None = None, prefetch: bool = False) -> FileObj:
+    def getfile(self, mode: str | None = None, prefetch: bool = False) -> FileObj[bytes]:
         """Returns a file object.  By default the file is fetched on
         demand but if prefetch is enabled the file is fully prefetched
         into a tempfile before reading can happen.

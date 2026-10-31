@@ -3,7 +3,7 @@ import bisect
 import functools
 import logging
 import math
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime, timezone
 from typing import Any, Protocol, cast
 from urllib.parse import quote
@@ -62,8 +62,19 @@ class MissingPaginationError(Exception):
         super().__init__(self.error_message.format(func_name=func_name))
 
 
-class _QueryWithOrderB(Protocol):
+class _PaginatorQuery(Protocol):
+    order_by: tuple[str, ...]
+    extra: Mapping[str, tuple[str, list[object]]]
     order_b: tuple[str, ...]
+
+
+class _PaginatorQuerySet(Protocol):
+    query: _PaginatorQuery
+    model: type[Model]
+
+    def order_by(self, *field_names: str) -> QuerySet[Model]: ...
+
+    def extra(self, *, where: Sequence[str], params: Sequence[object]) -> QuerySet[Model]: ...
 
 
 class BasePaginator:
@@ -94,7 +105,8 @@ class BasePaginator:
         return (self.desc and is_prev) or not (self.desc or is_prev)
 
     def build_queryset(self, value, is_prev):
-        queryset = self.queryset
+        source: _PaginatorQuerySet = cast(_PaginatorQuerySet, self.queryset)
+        queryset: QuerySet[Model] = self.queryset
 
         # "asc" controls whether or not we need to change the ORDER BY to
         # ascending.  If we're sorting by DESC but we're using a previous
@@ -108,18 +120,18 @@ class BasePaginator:
         # previous page so we know exactly where we ended last page.  The
         # results will get reversed back to the requested order below.
         if self.key:
-            if self.key in queryset.query.order_by:
+            if self.key in source.query.order_by:
                 if not asc:
-                    index = queryset.query.order_by.index(self.key)
-                    new_order_by = [cast(str, item) for item in queryset.query.order_by]
-                    new_order_by[index] = f"-{queryset.query.order_by[index]}"
-                    queryset.query.order_by = tuple(new_order_by)
-            elif ("-%s" % self.key) in queryset.query.order_by:
+                    index = source.query.order_by.index(self.key)
+                    new_order_by = list(source.query.order_by)
+                    new_order_by[index] = f"-{source.query.order_by[index]}"
+                    source.query.order_by = tuple(new_order_by)
+            elif ("-%s" % self.key) in source.query.order_by:
                 if asc:
-                    index = queryset.query.order_by.index(f"-{self.key}")
-                    new_order_by = [cast(str, item) for item in queryset.query.order_by]
-                    new_order_by[index] = cast(str, queryset.query.order_by[index])[1:]
-                    cast(_QueryWithOrderB, queryset.query).order_b = tuple(new_order_by)
+                    index = source.query.order_by.index(f"-{self.key}")
+                    new_order_by = list(source.query.order_by)
+                    new_order_by[index] = source.query.order_by[index][1:]
+                    source.query.order_b = tuple(new_order_by)
             else:
                 if asc:
                     queryset = queryset.order_by(self.key)
@@ -128,8 +140,8 @@ class BasePaginator:
 
         if value:
             assert self.key
-            if self.key in queryset.query.extra:
-                col_query, col_params = queryset.query.extra[self.key]
+            if self.key in source.query.extra:
+                col_query, col_params = source.query.extra[self.key]
                 col_params = col_params[:]
             else:
                 col_query, col_params = quote_name(self.key), []
@@ -137,7 +149,7 @@ class BasePaginator:
 
             col = col_query if "." in col_query else f"{queryset.model._meta.db_table}.{col_query}"
             operator = ">=" if asc else "<="
-            queryset = queryset.extra(
+            queryset = source.extra(
                 where=[f"{col} {operator} %s"],
                 params=col_params,
             )
