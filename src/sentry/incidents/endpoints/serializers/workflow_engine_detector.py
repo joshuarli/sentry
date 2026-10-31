@@ -345,7 +345,13 @@ class WorkflowEngineDetectorSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj: Detector, attrs, user, **kwargs) -> AlertRuleSerializerResponse:
+    def serialize(
+        self,
+        obj: Detector,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> AlertRuleSerializerResponse:
         triggers = attrs.get("triggers", [])
         alert_rule_id = None
 
@@ -363,13 +369,13 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "status": AlertRuleStatus.PENDING.value,
             "queryType": attrs.get("queryType"),
             "dataset": attrs.get("dataset"),
-            "query": attrs.get("query"),
-            "aggregate": attrs.get("aggregate"),
+            "query": attrs["query"],
+            "aggregate": attrs["aggregate"],
             "thresholdType": attrs.get("thresholdType"),
             "resolveThreshold": triggers[0].get("resolveThreshold") if triggers else None,
-            "timeWindow": attrs.get("timeWindow"),
+            "timeWindow": attrs["timeWindow"],
             "environment": attrs.get("environment"),
-            "resolution": attrs.get("resolution"),
+            "resolution": attrs["resolution"],
             "thresholdPeriod": 1,  # unset on detectors
             "triggers": triggers,
             "projects": sorted(attrs.get("projects", [])),
@@ -378,7 +384,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "comparisonDelta": comparison_delta / 60 if comparison_delta else None,
             "dateModified": obj.date_updated,
             "dateCreated": obj.date_added,
-            "createdBy": attrs.get("created_by"),
+            "createdBy": attrs["created_by"],
             "description": obj.description if obj.description else "",
             "sensitivity": attrs.get("sensitivity"),
             "seasonality": attrs.get("seasonality"),
@@ -426,7 +432,11 @@ class DetailedWorkflowEngineDetectorSerializer(Serializer):
         return self.base_serializer.get_attrs(item_list, user, **kwargs)
 
     def serialize(
-        self, obj: Detector, attrs, user, **kwargs
+        self,
+        obj: Detector,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> DetailedAlertRuleSerializerResponse:
         base_data = self.base_serializer.serialize(obj, attrs, user, **kwargs)
         data: DetailedAlertRuleSerializerResponse = {

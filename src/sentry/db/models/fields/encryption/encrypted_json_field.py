@@ -11,7 +11,9 @@ from ._base import EncryptedField
 logger = logging.getLogger(__name__)
 
 
-class EncryptedJSONField(EncryptedField, JSONField):
+# Justification: decrypted JSON is arbitrary, matching django-stubs' JSONField
+# default of Any, so callers keep their existing value types.
+class EncryptedJSONField(EncryptedField[Any, Any], JSONField[Any, Any]):
     """
     An encrypted field that stores JSON data.
 
@@ -34,7 +36,7 @@ class EncryptedJSONField(EncryptedField, JSONField):
     _encrypted_field_key = "sentry_encrypted_field_value"
 
     @traces.trace
-    def get_prep_value(self, value: Any) -> dict | None:
+    def get_prep_value(self, value: Any) -> dict[str, str] | None:
         """
         Prepare value for database storage.
 
@@ -48,7 +50,7 @@ class EncryptedJSONField(EncryptedField, JSONField):
 
         # Encrypt the JSON string using the EncryptedField
         # This will return something like "enc:fernet:key_id:base64data"
-        encrypted_value = super().get_prep_value(json_string)
+        encrypted_value: str | None = super().get_prep_value(json_string)
 
         if encrypted_value is None:
             return None
