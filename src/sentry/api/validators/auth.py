@@ -1,4 +1,4 @@
-from typing import NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
@@ -56,7 +56,8 @@ class RegistrationValidator(serializers.Serializer[RegistrationRequest]):
         choices=get_timezone_choices(), required=False, allow_blank=True
     )
 
-    def __init__(self, *args, **kwargs):
+    # justification: DRF passes dynamic serializer constructor keywords.
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         if not newsletter.backend.is_enabled():
             self.fields.pop("subscribe")

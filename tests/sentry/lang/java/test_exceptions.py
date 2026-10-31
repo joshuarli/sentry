@@ -1,10 +1,11 @@
 import re
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry.lang.java.exceptions import Exceptions
 
 
-def build_event(exceptions_values):
+def build_event(exceptions_values: Sequence[Mapping[str, object]]) -> dict[str, object]:
     return {"exception": {"values": exceptions_values}}
 
 

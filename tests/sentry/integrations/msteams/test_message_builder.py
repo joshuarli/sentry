@@ -569,25 +569,31 @@ class MSTeamsNotificationMessageBuilderTest(TestCase):
         assert 4 == len(body)
 
         title = body[0]
+        assert _is_text_block(title)
         assert "Notification Title with some\\_value" == title["text"]
 
         group_title = body[1]
+        assert _is_text_block(group_title)
         assert "[My Title]" in group_title["text"]
         assert TextSize.LARGE == group_title["size"]
         assert TextWeight.BOLDER == group_title["weight"]
 
         description = body[2]
+        assert _is_text_block(description)
         assert "Message Description" in description["text"]
         assert TextSize.MEDIUM == description["size"]
 
         footer = body[3]
-        assert 2 == len(footer)
+        assert _is_column_set_block(footer)
+        assert 2 == len(footer["columns"])
 
         logo = footer["columns"][0]["items"][0]
+        assert _is_image_block(logo)
         assert "Image" == logo["type"]
         assert "20px" == logo["height"]
 
         footer_text = footer["columns"][1]["items"][0]
+        assert _is_text_block(footer_text)
         assert "Notification Footer" in footer_text["text"]
         assert TextSize.SMALL == footer_text["size"]
 
