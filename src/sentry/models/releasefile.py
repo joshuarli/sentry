@@ -338,7 +338,7 @@ class _ArtifactIndexGuard:
                 artifact_count = index_data.num_files
                 if not created:
                     # Update and clean existing
-                    old_file = releasefile.file
+                    old_file: Model = releasefile.file
                     releasefile.update(file=target_file, artifact_count=artifact_count)
                     old_file.delete()
 
