@@ -34,14 +34,14 @@ logger = logging.getLogger(__name__)
 
 
 def _process_suspect_commits(
-    event_id,
-    event_platform,
+    event_id: str,
+    event_platform: str,
     event_frames: Sequence[Mapping[str, Any]],
-    group_id,
-    project_id,
-    sdk_name=None,
-    **kwargs,
-):
+    group_id: int,
+    project_id: int,
+    sdk_name: str | None = None,
+    **kwargs: object,
+) -> None:
     """
     This is the logic behind SuspectCommitStrategy.RELEASE_BASED
     """
@@ -193,14 +193,14 @@ def _process_suspect_commits(
     silo_mode=SiloMode.CELL,
 )
 def process_suspect_commits(
-    event_id,
-    event_platform,
+    event_id: str,
+    event_platform: str,
     event_frames: Sequence[Mapping[str, Any]],
-    group_id,
-    project_id,
-    sdk_name=None,
-    **kwargs,
-):
+    group_id: int,
+    project_id: int,
+    sdk_name: str | None = None,
+    **kwargs: object,
+) -> None:
     """
     This is the task behind SuspectCommitStrategy.RELEASE_BASED
     """
