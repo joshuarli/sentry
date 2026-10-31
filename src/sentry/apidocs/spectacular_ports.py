@@ -67,12 +67,16 @@ from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 #   map TypedDicts in schema registry
 
 
+# justification: drf-spectacular introspects arbitrary runtime types.
+TypeHint = Any
+
+
 def get_type_hints(
-    hint: Any,
-    globalns: dict[str, Any] | None = None,
-    localns: dict[str, Any] | None = None,
+    hint: TypeHint,
+    globalns: dict[str, TypeHint] | None = None,
+    localns: dict[str, TypeHint] | None = None,
     include_extras: bool = False,
-) -> dict[str, Any]:
+) -> dict[str, TypeHint]:
     try:
         return _get_type_hints(hint, globalns, localns, include_extras)
     except NameError:
@@ -88,7 +92,7 @@ def get_type_hints(
         )
 
 
-def _get_type_hint_origin(hint: Any) -> tuple[Any, tuple[Any, ...]]:
+def _get_type_hint_origin(hint: TypeHint) -> tuple[TypeHint, tuple[TypeHint, ...]]:
     return typing.get_origin(hint), typing.get_args(hint)
 
 
@@ -130,7 +134,7 @@ def _cycle_placeholder(hint: Any) -> dict[str, Any]:
     }
 
 
-def resolve_type_hint(hint: Any) -> Any:
+def resolve_type_hint(hint: TypeHint) -> TypeHint:
     """drf-spectacular library method modified as described above"""
     origin, args = _get_type_hint_origin(hint)
     excluded_fields = get_override(hint, "exclude_fields", [])

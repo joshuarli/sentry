@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping, Sequence
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, TypedDict
 
 import orjson
@@ -86,7 +86,10 @@ def get_group_users_count(group: Group, rules: list[NotificationOrigin] | None =
 
 # NOTE: if this starts getting large and functions get complicated,
 # pull things out into their own functions
-SUPPORTED_CONTEXT_DATA: dict[NotificationContextField, Callable] = {
+ContextDataFunc = Callable[[Group, list[NotificationOrigin] | None], str | int | date]
+
+
+SUPPORTED_CONTEXT_DATA: dict[NotificationContextField, ContextDataFunc] = {
     NotificationContextField.EVENTS: lambda group, rules: get_group_global_count(group),
     NotificationContextField.USERS_AFFECTED: get_group_users_count,
     NotificationContextField.STATE: lambda group, rules: SUBSTATUS_TO_STR.get(group.substatus, "")
@@ -207,7 +210,7 @@ def get_context(group: Group, rules: list[NotificationOrigin] | None = None) -> 
     if NotificationContextField.STATE in context:
         state = SUPPORTED_CONTEXT_DATA[NotificationContextField.STATE](group, rules)
     if NotificationContextField.EVENTS in context:
-        event_count = SUPPORTED_CONTEXT_DATA[NotificationContextField.EVENTS](group, rules)
+        event_count = str(SUPPORTED_CONTEXT_DATA[NotificationContextField.EVENTS](group, rules))
 
     if (state and state == "New") or (event_count and int(event_count) <= 1):
         if NotificationContextField.EVENTS in context:
@@ -485,7 +488,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             return self.get_context_block(event_or_group.culprit)
         return None
 
-    def get_text_block(self, text) -> SlackBlock:
+    def get_text_block(self, text: str) -> SlackBlock:
         if self.group.issue_category == GroupCategory.FEEDBACK:
             max_block_text_length = USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH
         else:

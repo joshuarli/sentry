@@ -1,4 +1,5 @@
 from time import time
+from typing import Any
 
 from taskbroker_client.retry import Retry
 
@@ -15,8 +16,12 @@ from sentry.utils import json
 from sentry.utils.cache import cache
 
 
-def get_payload_v0(event):
+def get_payload_v0(
+    event: Event | GroupEvent,
+) -> dict[str, Any]:  # justification: webhook payload is JSON.
     group = event.group
+    if group is None:
+        raise ValueError("Cannot build a webhook payload for an ungrouped event")
     project = group.project
 
     group_context = serialize(group)

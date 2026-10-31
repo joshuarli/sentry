@@ -94,7 +94,7 @@ class BaseRequestParser(ABC):
 
     # Common Helpers
 
-    def ensure_control_silo(self):
+    def ensure_control_silo(self) -> None:
         with MiddlewareOperationEvent(
             operation_type=MiddlewareOperationType.ENSURE_CONTROL_SILO,
             integration_name=self.provider,
@@ -413,7 +413,7 @@ class BaseRequestParser(ABC):
         """
         return None
 
-    def get_response_from_first_cell(self):
+    def get_response_from_first_cell(self) -> HttpResponseBase:
         cells = self.get_cells_from_organizations()
         first_cell = cells[0]
         response_map = self.get_responses_from_cell_silos(cells=[first_cell])
@@ -432,9 +432,11 @@ class BaseRequestParser(ABC):
             if cell_result.error is not None:
                 # We want to fail loudly so that devs know this error happened on the cell silo (for now)
                 raise SiloClientError(cell_result.error)
+            if cell_result.response is None:
+                raise SiloClientError("Cell returned no response")
             return cell_result.response
 
-    def get_response_from_all_cells(self):
+    def get_response_from_all_cells(self) -> HttpResponseBase:
         cells = self.get_cells_from_organizations()
         response_map = self.get_responses_from_cell_silos(cells=cells)
         successful_responses = [
@@ -450,7 +452,10 @@ class BaseRequestParser(ABC):
                     f"{cell}: {result.error}" for cell, result in response_map.items()
                 )
                 raise SiloClientError("No successful cell responses", error_map_str)
-            return successful_responses[0].response
+            response = successful_responses[0].response
+            if response is None:
+                raise SiloClientError("Cell returned no response")
+            return response
 
     # Required Overrides
 

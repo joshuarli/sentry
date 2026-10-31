@@ -1,4 +1,5 @@
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, cast
 
 import orjson
 
@@ -33,17 +34,18 @@ class GoogleIdentityProvider(OAuth2Provider):
 
     oauth_scopes = ("email",)
 
-    def get_oauth_client_id(self):
+    def get_oauth_client_id(self) -> str:
         return options.get("auth-google.client-id")
 
-    def get_oauth_client_secret(self):
+    def get_oauth_client_secret(self) -> str:
         return options.get("auth-google.client-secret")
 
-    def build_identity(self, state):
-        data = state.get("data", {})
+    def build_identity(self, state: Mapping[str, object]) -> Mapping[str, object]:
+        # justification: provider OAuth responses are decoded JSON.
+        data = cast(Mapping[str, object], state.get("data", {}))
 
         try:
-            id_token = data["id_token"]
+            id_token = cast(str, data["id_token"])
         except KeyError:
             raise IdentityNotValid("Missing id_token in OAuth response: %s" % data)
 

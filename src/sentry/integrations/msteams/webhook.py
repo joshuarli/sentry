@@ -518,7 +518,10 @@ class MsTeamsWebhookEndpoint(Endpoint):
     }
 
     def _issue_state_change(
-        self, group: Group, identity: RpcIdentity, data: Mapping[str, Any]
+        self,
+        group: Group,
+        identity: RpcIdentity,
+        data: Mapping[str, Any],  # justification: webhook payload is JSON.
     ) -> Response:
         event_write_key = ApiKey(
             organization_id=group.project.organization_id, scope_list=["event:write"]
